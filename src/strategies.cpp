@@ -4,7 +4,7 @@ SMACrossover::SMACrossover(std::string name,
     std::function<void()> lc,
     std::function<void()> sc) :
   Strategy(name, lc, sc),
-  sma_a(new MovingAverage("sma_a", 20)),
+  sma_a(new MovingAverage("sma_a", 30)),
   sma_b(new MovingAverage("sma_b", 150)),
   crossed_above(false),
   crossed_below(false) { }
