@@ -1,0 +1,9 @@
+# VIM plugins
+.ycm_extra_conf.py
+__pycache__
+
+# build files
+build/
+
+# using cmake
+Makefile

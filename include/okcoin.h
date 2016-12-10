@@ -1,0 +1,83 @@
+#pragma once
+
+#include <string>
+#include <sstream>
+#include <map>
+#include <chrono>
+#include <memory>
+#include <fstream>
+
+#include <openssl/md5.h>
+
+#include "../include/websocket.h"
+#include "../include/json.hpp"
+#include "../include/log.h"
+#include "../include/exchange_utils.h"
+#include "../include/exchange.h"
+
+class OKCoin : public Exchange {
+  public:
+    OKCoin(std::shared_ptr<Log> log, std::shared_ptr<Config> config);
+    ~OKCoin();
+    
+    // start the websocket
+    void start();
+
+    // SEMANTIC COMMANDS FOR THE USER
+    // most of these will have an associated callback
+    // subscribe to trades feed
+    void subscribe_to_ticker();
+    // subscribe to OHLC bars
+    // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
+    void subscribe_to_OHLC(std::string);
+    // send ping messages over websocket and record pongs
+    void start_checking_pings();
+    // market buy amount of CNY
+    void market_buy(double);
+    // market sell amount of BTC
+    void market_sell(double);
+    // limit buy amount of BTC at price
+    void limit_buy(double, double);
+    // limit sell amount of BTC at price
+    void limit_sell(double, double);
+    // check a limit for some seconds, call filled callback
+    // cancel limit order
+    void cancel_order(std::string);
+    // get order information by order_id
+    void orderinfo(std::string);
+    // get user info
+    void userinfo();
+    // return a string of each channels name and last received message
+    std::string status();
+
+  private:
+    const std::string OKCOIN_URL = "wss://real.okcoin.cn:10440/websocket/okcoinapi";
+    std::string api_key;
+    std::string secret_key;
+    websocket ws;
+    
+    // WEBSOCKET CALLBACKS
+    void on_message(std::string const &);
+    void on_open();
+    void on_close();
+    void on_fail();
+    void on_error(std::string const &);
+
+    // DATA AND FUNCTIONS USED BY THE SEMANTIC COMMANDS
+    std::map<std::string, std::shared_ptr<Channel>> channels;
+    void subscribe_to_channel(std::string const &);
+    void unsubscribe_to_channel(std::string const &);
+    void order(std::string, std::string, std::string price = "");
+
+    // GET MD5 HASH OF PARAMETERS
+    std::string sign(std::string);
+    
+    // OKCOIN ERROR CODES
+    std::map<std::string, std::string> error_reasons;
+    void populate_error_reasons();
+
+    // HANDLERS FOR CHANNEL MESSAGES
+    void OHLC_handler(std::string, nlohmann::json);
+    void ticker_handler(nlohmann::json);
+    void orderinfo_handler(nlohmann::json);
+};
