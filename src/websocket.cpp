@@ -15,7 +15,7 @@ void websocket::setup() {
   endpoint.init_asio();
   endpoint.start_perpetual();
 
-  thread.reset(new websocketpp::lib::thread(&wspp_client::run, &endpoint));
+  thread = std::make_shared<websocketpp::lib::thread>(&wspp_client::run, &endpoint);
 }
 
 void websocket::teardown() {

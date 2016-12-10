@@ -10,7 +10,7 @@ using std::stol;         using std::stod;
 using std::endl;         using std::lock_guard;
 using std::mutex;        using std::exception;
 using std::to_string;    using std::ifstream;
-using std::ostringstream;
+using std::ostringstream;using std::make_shared;
 using json = nlohmann::json;
 
 OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
@@ -340,7 +340,7 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
 
 void OKCoin::start_checking_pings() {
   check_pings = true;
-  ping_checker.reset(new thread([&]() {
+  ping_checker = make_shared<thread>([&]() {
     while (check_pings) {
       pong = false;
       ws.send("{'event':'ping'}");
@@ -351,7 +351,7 @@ void OKCoin::start_checking_pings() {
       }
     }
   }
-  ));
+  );
 }
 
 string OKCoin::status() {

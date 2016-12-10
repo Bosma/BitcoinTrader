@@ -50,16 +50,14 @@ protected:
 
   // vector of threads performing some recurring actions
   // used for destructor
-  std::vector<std::shared_ptr<std::thread>> running_threads;
+  std::map<std::string, std::shared_ptr<std::thread>> running_threads;
 
   // used to check if the exchange is working
-  std::shared_ptr<std::thread> connection_checker;
   void check_connection();
 
   // used to continually fetch user information
   // currently just btc and cny
   void fetch_userinfo();
-  std::shared_ptr<std::thread> userinfo_fetcher;
   double user_btc;
   double user_cny;
 
@@ -72,7 +70,7 @@ protected:
 
   // held until trade and orderinfo callbacks are complete
   // to order market events
-  std::mutex order_lock;
+  std::mutex execution_lock;
 
   // currently one strategy per OKCHandler
   std::unique_ptr<Strategy> strategy;
@@ -110,7 +108,6 @@ protected:
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel
   // it if not filled in time
-  std::shared_ptr<std::thread> limit_checker;
   std::string current_limit;
   bool done_limit_check;
   double filled_amount;

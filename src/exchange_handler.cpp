@@ -10,7 +10,7 @@ using std::lock_guard;      using std::thread;
 using std::vector;          using std::map;
 using std::chrono::minutes; using std::bind;
 using std::to_string;       using std::ostringstream;
-using std::make_shared;
+using std::make_shared; using std::make_unique;
 using namespace std::placeholders;
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
@@ -18,10 +18,11 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   trading_log(new Log((*config)["trading_log"], config)),
   exchange_log(new Log((*config)["exchange_log"], config)),
   done(false),
+  running_threads(),
   tick(),
   period(1),
   mktdata(period),
-  order_lock(),
+  execution_lock(),
   parameters({ {"sl", 6},
         {"tp", 0.26},
         {"ts", 0} }),
@@ -38,7 +39,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   ));
  
   // create and add the strategies
-  strategy.reset(new SMACrossover("SMACrossover",
+  strategy = make_unique<SMACrossover>("SMACrossover",
         // long callback
         [&]() {
           trading_log->output("LONGING");
@@ -47,7 +48,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
         // currently no shorting, so no implementation
         [&]() {
           trading_log->output("SHORTING");
-        }));
+        });
 
   mktdata.add_indicators(strategy->get_indicators());
 }
@@ -55,8 +56,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 BitcoinTrader::~BitcoinTrader() {
   done = true;
   for (auto t : running_threads)
-    if (t && t->joinable())
-      t->join();
+    if (t.second && t.second->joinable())
+      t.second->join();
 }
 
 string BitcoinTrader::last(int i) {
@@ -125,14 +126,14 @@ void BitcoinTrader::cancel_order(std::string order_id) {
 }
 
 void BitcoinTrader::start() {
-  exchange.reset(new OKCoin(exchange_log, config));
+  exchange = make_shared<OKCoin>(exchange_log, config);
   setup_exchange_callbacks();
   exchange->start();
   check_connection();
 }
 
 void BitcoinTrader::check_connection() {
-  connection_checker.reset(new thread(
+  auto connection_checker = std::make_shared<thread>(
     [&]() {
       while (!done) {
         sleep_for(seconds(5));
@@ -140,24 +141,26 @@ void BitcoinTrader::check_connection() {
             (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
              (exchange->reconnect == true))) {
           exchange_log->output("RECONNECTING TO OKCOIN");
-          exchange.reset(new OKCoin(exchange_log, config));
+          exchange = make_shared<OKCoin>(exchange_log, config);
           setup_exchange_callbacks();
           exchange->start();
         }
       }
     }
-  ));
+  );
+  running_threads["connection_checker"] = connection_checker;
 }
 
 void BitcoinTrader::fetch_userinfo() {
-  userinfo_fetcher.reset(new thread(
+  auto userinfo_fetcher = make_shared<thread>(
     [&]() {
       while (!done) {
         exchange->userinfo();
         sleep_for(seconds(5));
       }
     }
-  ));
+  );
+  running_threads["userinfo_fetcher"] = userinfo_fetcher;
 }
 
 void BitcoinTrader::handle_stops() {
@@ -230,14 +233,12 @@ void BitcoinTrader::set_takeprofit_callbacks() {
 }
 
 void BitcoinTrader::set_limit_callbacks(seconds limit) {
-  order_lock.lock();
+  execution_lock.lock();
 
   exchange->set_trade_callback(function<void(string)>(
     [&](string order_id) {
       current_limit = order_id;
-      if (limit_checker && limit_checker->joinable())
-        limit_checker->join();
-      limit_checker = make_shared<thread>([&]() {
+      auto limit_checker = make_shared<thread>([&]() {
         filled_amount = 0;
         auto start_time = timestamp_now();
         done_limit_check = false;
@@ -254,7 +255,7 @@ void BitcoinTrader::set_limit_callbacks(seconds limit) {
         // given the limit enough time, cancel it
         exchange->cancel_order(current_limit);
 
-        order_lock.unlock();
+        execution_lock.unlock();
         
         if (filled_amount != 0) {
           position = "btc";
@@ -276,6 +277,7 @@ void BitcoinTrader::set_limit_callbacks(seconds limit) {
 
         pending_stops.clear();
       });
+      running_threads["limit_checker"] = limit_checker;
     }
   ));
   exchange->set_orderinfo_callback(function<void(OrderInfo)>(
