@@ -45,7 +45,6 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
           trading_log->output("LONGING");
         },
         // short callback
-        // currently no shorting, so no implementation
         [&]() {
           trading_log->output("SHORTING");
         });
@@ -129,6 +128,7 @@ void BitcoinTrader::start() {
   exchange = make_shared<OKCoin>(exchange_log, config);
   setup_exchange_callbacks();
   exchange->start();
+  exchange->start_checking_pings();
   check_connection();
 }
 

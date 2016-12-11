@@ -341,6 +341,7 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
 void OKCoin::start_checking_pings() {
   check_pings = true;
   ping_checker = make_shared<thread>([&]() {
+    sleep_for(seconds(5));
     while (check_pings) {
       pong = false;
       ws.send("{'event':'ping'}");
