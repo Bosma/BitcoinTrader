@@ -10,6 +10,8 @@
 #include <iostream>
 #include <iomanip>
 
+#include "../include/strategies.h"
+
 class OHLC {
   public:
     OHLC(long timestamp, double open, double high,
@@ -123,57 +125,6 @@ class BollingerBands : public Indicator {
 
     int period;
     double sd;
-};
-
-class MktData {
-  public:
-    MktData(double bar_period) :
-      bars(new boost::circular_buffer<std::shared_ptr<OHLC>>(50)),
-      indicators(),
-      bar_period(bar_period) { }
-
-    void add(std::shared_ptr<OHLC> bar) {
-      // don't add bars of the same timestamp
-      bool found = false;
-      for (auto x : *bars)
-        if (x->timestamp == bar->timestamp)
-          found = true;
-
-      if (bars->empty() || !found) {
-        // if we receive a bar that's not contiguous
-        // our old data is useless
-        if (!bars->empty() &&
-            bar->timestamp != bars->back()->timestamp + (bar_period * 60000))
-          bars->clear();
-
-        bars->push_back(bar);
-
-        // for each indicator
-        // calculate the indicator value
-        // from the bars (with the new value)
-        for (auto &indi : indicators)
-          bar->indis[indi->name] = indi->calculate(bars);
-
-        if (new_bar_callback)
-          new_bar_callback(bar);
-      }
-    }
-
-    void set_new_bar_callback(std::function<void(std::shared_ptr<OHLC>)> callback) {
-      new_bar_callback = callback;
-    }
-
-    void add_indicators(std::vector<std::shared_ptr<Indicator>> to_add) {
-      indicators.insert(indicators.end(), to_add.begin(), to_add.end());
-    }
-
-    std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars;
-  private:
-    std::vector<std::shared_ptr<Indicator>> indicators;
-    std::function<void(std::shared_ptr<OHLC> bar)> new_bar_callback;
-    
-    // bar period in minutes
-    double bar_period;
 };
 
 class Ticker {

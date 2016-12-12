@@ -40,12 +40,6 @@ int main(int argc, char *argv[]) {
         trader.reconnect();
       else if (args[0] == "status")
         cout << trader.status();
-      else if (args[0] == "last")
-        cout << trader.last(stoi(args[1]));
-      else if (args[0] == "lbuy")
-        trader.limit_buy(stod(args[1]), stod(args[2]));
-      else if (args[0] == "lsell")
-        trader.limit_sell(stod(args[1]), stod(args[2]));
     }
   }
 

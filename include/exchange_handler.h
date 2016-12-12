@@ -3,6 +3,7 @@
 #include "../include/log.h"
 #include "../include/okcoin.h"
 #include "../include/strategies.h"
+#include "../include/mktdata.h"
 #include "../include/config.h"
 
 using stops_t = std::vector<std::shared_ptr<Stop>>;
@@ -15,15 +16,14 @@ public:
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
   std::string status() { return exchange->status(); }
-  std::string last(int);
 
   // interfaces to Exchange
   // (declared public because may be used interactively)
   void buy(double);
   void sell(double);
   void sell_all();
-  void limit_buy(double, double);
-  void limit_sell(double, double);
+  void limit_buy(double, double, std::chrono::seconds);
+  void limit_sell(double, double, std::chrono::seconds);
   void cancel_order(std::string);
 
   // start the exchange
@@ -64,16 +64,15 @@ protected:
   // updated in real time to latest tick
   Ticker tick;
 
-  // contains OHLC bars together with indicator values
-  int period;
-  MktData mktdata;
+  // map of OHLC bars together with indicator values
+  // keyed by period in minutes they represent
+  std::map<std::chrono::minutes, std::shared_ptr<MktData>> mktdata;
 
   // held until trade and orderinfo callbacks are complete
   // to order market events
   std::mutex execution_lock;
 
-  // currently one strategy per OKCHandler
-  std::unique_ptr<Strategy> strategy;
+  std::vector<std::shared_ptr<Strategy>> strategies;
 
   // parameters used by the strategy and rules (tp/sl distance etc.)
   std::map<std::string, double> parameters;
@@ -95,10 +94,6 @@ protected:
 
   // set up the exchange callbacks
   void setup_exchange_callbacks();
-
-  // keep track of "fiat", "filling", "btc"
-  // used currently instead of max positions
-  std::string position;
 
   // functions to set trade and orderinfo callbacks
   // that lock and unlock order_lock

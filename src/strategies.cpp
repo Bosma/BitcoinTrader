@@ -1,23 +1,31 @@
 #include "../include/strategies.h"
 
-SMACrossover::SMACrossover(std::string name,
-    std::function<void()> lc,
-    std::function<void()> sc) :
-  Strategy(name, lc, sc),
-  sma_a(new MovingAverage("sma_a", 30)),
-  sma_b(new MovingAverage("sma_b", 150)),
+using std::chrono::minutes; using std::string;
+using std::function;        using std::shared_ptr;
+using std::make_shared;
+
+SMACrossover::SMACrossover(string name,
+    function<void()> lc,
+    function<void()> sc) :
+  Strategy(name,
+      minutes(1),
+      {
+        make_shared<MovingAverage>("sma_fast", 30),
+        make_shared<MovingAverage>("sma_slow", 150)
+      },
+      lc, sc),
   crossed_above(false),
   crossed_below(false) { }
 
-void SMACrossover::apply(std::shared_ptr<OHLC> bar, Ticker tick) {
-  if (bar->indis["sma_a"]["mavg"] > bar->indis["sma_b"]["mavg"] &&
+void SMACrossover::apply(shared_ptr<OHLC> bar) {
+  if (bar->indis["sma_fast"]["mavg"] > bar->indis["sma_slow"]["mavg"] &&
       !crossed_above) {
     long_cb();
 
     crossed_above = true;
     crossed_below = false;
   }
-  else if (bar->indis["sma_a"]["mavg"] < bar->indis["sma_b"]["mavg"] &&
+  else if (bar->indis["sma_fast"]["mavg"] < bar->indis["sma_slow"]["mavg"] &&
       !crossed_below) {
     short_cb();
 

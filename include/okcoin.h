@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <openssl/md5.h>
+#include <boost/bimap.hpp>
 
 #include "../include/websocket.h"
 #include "../include/json.hpp"
@@ -29,11 +30,13 @@ class OKCoin : public Exchange {
     void subscribe_to_ticker();
     // subscribe to OHLC bars
     // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
-    void subscribe_to_OHLC(std::string);
+    void subscribe_to_OHLC(std::chrono::minutes);
     // send ping messages over websocket and record pongs
     void start_checking_pings();
-    // market buy amount of CNY
+    // market buy amount of BTC
+    // converted to CNY using tick
     void market_buy(double);
+    double current_price;
     // market sell amount of BTC
     void market_sell(double);
     // limit buy amount of BTC at price
@@ -71,6 +74,23 @@ class OKCoin : public Exchange {
 
     // GET MD5 HASH OF PARAMETERS
     std::string sign(std::string);
+
+    std::string period_conversions(std::chrono::minutes period) {
+      if (period == std::chrono::minutes(1))
+        return "1min";
+      if (period == std::chrono::minutes(15))
+        return "15min";
+      else
+        return "";
+    }
+    std::chrono::minutes period_conversions(std::string okcoin_kline) {
+      if (okcoin_kline == "1min")
+        return std::chrono::minutes(1);
+      if (okcoin_kline == "15min")
+        return std::chrono::minutes(15);
+      else
+        return std::chrono::minutes(0);
+    }
     
     // OKCOIN ERROR CODES
     std::map<std::string, std::string> error_reasons;

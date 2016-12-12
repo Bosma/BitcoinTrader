@@ -1,7 +1,6 @@
 #include "../include/okcoin.h"
 
 using namespace std::chrono;
-using namespace std::placeholders;
 using std::bind;         using std::thread;
 using std::stringstream; using std::shared_ptr;
 using std::string;       using std::function;
@@ -21,10 +20,10 @@ OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
   error_reasons()
 {
   ws.set_open_callback( bind(&OKCoin::on_open, this) );
-  ws.set_message_callback( bind(&OKCoin::on_message, this, _1) );
+  ws.set_message_callback( bind(&OKCoin::on_message, this, std::placeholders::_1) );
   ws.set_close_callback( bind(&OKCoin::on_close, this) );
   ws.set_fail_callback( bind(&OKCoin::on_fail, this) );
-  ws.set_error_callback( bind(&OKCoin::on_error, this, _1) );
+  ws.set_error_callback( bind(&OKCoin::on_error, this, std::placeholders::_1) );
 
   populate_error_reasons();
 }
@@ -202,8 +201,8 @@ void OKCoin::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotcny_btc_ticker");
 }
 
-void OKCoin::subscribe_to_OHLC(string period) {
-  subscribe_to_channel("ok_sub_spotcny_btc_kline_" + period);
+void OKCoin::subscribe_to_OHLC(minutes period) {
+  subscribe_to_channel("ok_sub_spotcny_btc_kline_" + period_conversions(period));
 }
 
 void OKCoin::subscribe_to_channel(string const & channel) {
@@ -215,7 +214,8 @@ void OKCoin::subscribe_to_channel(string const & channel) {
   channels[channel] = chan;
 }
 
-void OKCoin::market_buy(double cny_amount) {
+void OKCoin::market_buy(double btc_amount) {
+  double cny_amount = btc_amount * current_price;
   order("buy_market", dtos(cny_amount, 2));
 }
 
@@ -372,7 +372,7 @@ void OKCoin::OHLC_handler(string period, json trade) {
     double low = optionally_to_double(trade[3]);
     double close = optionally_to_double(trade[4]);
     double volume = optionally_to_double(trade[5]);
-    OHLC_callback(period, timestamp, open, high, low, close, volume);
+    OHLC_callback(period_conversions(period), timestamp, open, high, low, close, volume);
   }
 }
 
@@ -380,6 +380,8 @@ void OKCoin::ticker_handler(json tick) {
   if (ticker_callback) {
     long timestamp = optionally_to_long(tick["timestamp"]);
     double last = optionally_to_double(tick["last"]);
+    // used for converting BTC to CNY
+    current_price = last;
     double bid = optionally_to_double(tick["buy"]);
     double ask = optionally_to_double(tick["sell"]);
 

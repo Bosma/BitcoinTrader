@@ -20,26 +20,14 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   done(false),
   running_threads(),
   tick(),
-  period(1),
-  mktdata(period),
+  mktdata(),
   execution_lock(),
-  parameters({ {"sl", 6},
-        {"tp", 0.26},
-        {"ts", 0} }),
+  strategies(),
   received_userinfo(false),
-  received_a_tick(false),
-  position("fiat") {
+  received_a_tick(false) {
    
-  // called on every new bar
-  mktdata.set_new_bar_callback(function<void(shared_ptr<OHLC> bar)>(
-    [&](shared_ptr<OHLC> bar) {
-      // send the strategy the bar
-      strategy->apply(bar, tick);
-    }
-  ));
- 
   // create and add the strategies
-  strategy = make_unique<SMACrossover>("SMACrossover",
+  auto strategy_a = make_shared<SMACrossover>("SMACrossover",
         // long callback
         [&]() {
           trading_log->output("LONGING");
@@ -48,8 +36,17 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
         [&]() {
           trading_log->output("SHORTING");
         });
+  strategies.push_back(strategy_a);
 
-  mktdata.add_indicators(strategy->get_indicators());
+  for (auto strategy : strategies) {
+    // if we do not have a mktdata object for this period
+    if (mktdata.count(strategy->period) == 0) {
+      // create a mktdata object with the period the strategy uses
+      mktdata[strategy->period] = make_shared<MktData>(strategy->period);
+    }
+    // tell the mktdata object about the strategy
+    mktdata[strategy->period]->add_strategy(strategy);
+  }
 }
 
 BitcoinTrader::~BitcoinTrader() {
@@ -59,21 +56,10 @@ BitcoinTrader::~BitcoinTrader() {
       t.second->join();
 }
 
-string BitcoinTrader::last(int i) {
-  if (mktdata.bars->size() < i) {
-    i = mktdata.bars->size();
-  }
-  std::vector<std::shared_ptr<OHLC>> period_bars(mktdata.bars->end() - i, mktdata.bars->end());
-  ostringstream os;
-  for (auto bar : period_bars)
-    os << bar->to_string() << endl;
-  return os.str();
-}
-
 void BitcoinTrader::buy(double amount) {
   if (trading_log) {
     ostringstream os;
-    os << "BUYING " << amount << " CNY @ " << tick.ask;
+    os << "BUYING " << amount << " BTC @ " << tick.ask;
     trading_log->output(os.str());
   }
 
@@ -96,23 +82,25 @@ void BitcoinTrader::sell_all() {
   sell(user_btc);
 }
 
-void BitcoinTrader::limit_buy(double amount, double price) {
+void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time) {
   if (trading_log) {
     ostringstream os;
     os << "LIMIT BUYING " << amount << " BTC @ " << price;
     trading_log->output(os.str());
   }
 
+  set_limit_callbacks(cancel_time);
   exchange->limit_buy(amount, price);
 }
 
-void BitcoinTrader::limit_sell(double amount, double price) {
+void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time) {
   if (trading_log) {
     ostringstream os;
     os << "LIMIT SELLING " << amount << " BTC @ " << price;
     trading_log->output(os.str());
   }
 
+  set_limit_callbacks(cancel_time);
   exchange->limit_sell(amount, price);
 }
 
@@ -170,7 +158,6 @@ void BitcoinTrader::handle_stops() {
       triggered_stop = stop;
   }
   if (triggered_stop) {
-    position = "fiat";
     if (trading_log)
       trading_log->output(triggered_stop->action());
     stops.clear();
@@ -195,8 +182,10 @@ void BitcoinTrader::setup_exchange_callbacks() {
     [&](double btc, double cny) {
       user_btc = btc;
       user_cny = cny;
-      if (!received_userinfo)
-        exchange->subscribe_to_OHLC("1min");
+      if (!received_userinfo) {
+        for (auto m : mktdata)
+          exchange->subscribe_to_OHLC(m.second->period);
+      }
       received_userinfo = true;
     }
   ));
@@ -214,14 +203,14 @@ void BitcoinTrader::setup_exchange_callbacks() {
       received_a_tick = true;
     }
   ));
-  exchange->set_OHLC_callback(function<void(string, long, double, double, double, double, double)>(
-    [&](string period, long timestamp, double open, double high,
+  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double)>(
+    [&](minutes period, long timestamp, double open, double high,
       double low, double close, double volume) {
 
       shared_ptr<OHLC> bar(new OHLC(timestamp, open, high,
             low, close, volume));
 
-      mktdata.add(bar);
+      mktdata[period]->add(bar);
     }
   ));
 }
@@ -258,13 +247,12 @@ void BitcoinTrader::set_limit_callbacks(seconds limit) {
         execution_lock.unlock();
         
         if (filled_amount != 0) {
-          position = "btc";
           // we can now add the stops
           stops.insert(stops.end(),
               pending_stops.begin(), pending_stops.end());
           // and our take profit limit
           set_takeprofit_callbacks();
-          limit_sell(filled_amount, tp_limit);
+          limit_sell(filled_amount, tp_limit, limit);
 
           if (trading_log)
             trading_log->output("FILLED FOR " + to_string(filled_amount) + " BTC");
@@ -272,7 +260,6 @@ void BitcoinTrader::set_limit_callbacks(seconds limit) {
         else {
           if (trading_log)
             trading_log->output("NOT FILLED IN TIME");
-          position = "fiat";
         }
 
         pending_stops.clear();

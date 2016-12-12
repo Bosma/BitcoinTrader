@@ -20,7 +20,7 @@ class Exchange {
 
     virtual void start() = 0;
     virtual void subscribe_to_ticker() = 0;
-    virtual void subscribe_to_OHLC(std::string period) = 0;
+    virtual void subscribe_to_OHLC(std::chrono::minutes period) = 0;
     virtual void start_checking_pings() = 0;
     virtual void market_buy(double) = 0;
     virtual void market_sell(double) = 0;
@@ -36,7 +36,7 @@ class Exchange {
     void set_ticker_callback(std::function<void(long, double, double, double)> callback) {
       ticker_callback = callback;
     }
-    void set_OHLC_callback(std::function<void(std::string, long, double, double, double, double, double)> callback) {
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double)> callback) {
       OHLC_callback = callback;
     }
     void set_open_callback(std::function<void()> callback) {
@@ -66,7 +66,7 @@ class Exchange {
 
     // SEMANTIC CALLBACKS FOR THE USER
     std::function<void(long, double, double, double)> ticker_callback;
-    std::function<void(std::string, long, double, double, double, double, double)> OHLC_callback;
+    std::function<void(std::chrono::minutes, long, double, double, double, double, double)> OHLC_callback;
     std::function<void()> open_callback;
     std::function<void(std::string)> trade_callback;
     std::function<void(OrderInfo)> orderinfo_callback;
