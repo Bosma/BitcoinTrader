@@ -16,8 +16,8 @@ class Config {
           std::string s;
           while (getline(f, s)) {
             // handle comments
-            // skip lines starting with "
-            if (s.at(0) != '"') {
+            // skip blank lines or ones starting with "
+            if (s.at(0) != '"' || !s.empty()) {
               // extract key and value, separated by a space
               auto space_location = s.find(' ', 0);
               std::string key = s.substr(0, space_location);
