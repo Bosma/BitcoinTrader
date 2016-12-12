@@ -24,7 +24,6 @@ class Strategy {
     virtual void apply(std::shared_ptr<OHLC>) = 0;
 
     std::string name;
-    std::map<std::string, double> parameters;
     std::chrono::minutes period;
     std::vector<std::shared_ptr<Indicator>> indicators;
 
