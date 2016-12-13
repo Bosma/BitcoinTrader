@@ -40,6 +40,9 @@ void OKCoin::start() {
 
 void OKCoin::on_open() {
   log->output("OPENED SOCKET to " + ws.get_uri());
+  
+  // if we're open, no need to reconnect
+  reconnect = false;
 
   if (open_callback)
     open_callback();

@@ -143,7 +143,9 @@ void BitcoinTrader::fetch_userinfo() {
   auto userinfo_fetcher = make_shared<thread>(
     [&]() {
       while (!done) {
-        exchange->userinfo();
+        // stop checking when we are reconnecting
+        if (exchange->reconnect != true)
+          exchange->userinfo();
         sleep_for(seconds(5));
       }
     }
