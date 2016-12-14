@@ -27,7 +27,7 @@ void Log::output(std::string message, bool alert) {
   char buffer[80];
   std::time(&rawtime);
   timeinfo = std::localtime(&rawtime);
-  std::strftime(buffer, 80, "%Y-%m-%d %H-%M-%S",timeinfo);
+  std::strftime(buffer, 80, "%F %T", timeinfo);
 
   ss << buffer << ": " << message;
 
