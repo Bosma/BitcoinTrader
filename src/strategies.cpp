@@ -8,7 +8,7 @@ SMACrossover::SMACrossover(string name,
     function<void()> lc,
     function<void()> sc) :
   Strategy(name,
-      minutes(1),
+      minutes(15),
       {
         make_shared<MovingAverage>("sma_fast", 30),
         make_shared<MovingAverage>("sma_slow", 150)
