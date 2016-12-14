@@ -116,7 +116,6 @@ void BitcoinTrader::start() {
   exchange = make_shared<OKCoin>(exchange_log, config);
   setup_exchange_callbacks();
   exchange->start();
-  exchange->start_checking_pings();
   check_connection();
 }
 
@@ -124,7 +123,7 @@ void BitcoinTrader::check_connection() {
   auto connection_checker = std::make_shared<thread>(
     [&]() {
       while (!done) {
-        sleep_for(seconds(5));
+        sleep_for(seconds(1));
         if (exchange &&
             (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
              (exchange->reconnect == true))) {

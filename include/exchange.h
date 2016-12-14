@@ -14,14 +14,11 @@ class Exchange {
     Exchange(std::shared_ptr<Log> log, std::shared_ptr<Config> config) :
       reconnect(false),
       config(config),
-      log(log),
-      check_pings(false),
-      pong(false) { }
+      log(log) { }
 
     virtual void start() = 0;
     virtual void subscribe_to_ticker() = 0;
     virtual void subscribe_to_OHLC(std::chrono::minutes period) = 0;
-    virtual void start_checking_pings() = 0;
     virtual void market_buy(double) = 0;
     virtual void market_sell(double) = 0;
     virtual void limit_buy(double, double) = 0;
@@ -29,6 +26,7 @@ class Exchange {
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
+    virtual void ping() = 0;
     virtual std::string status() = 0;
 
     // SETTERS FOR
@@ -54,6 +52,9 @@ class Exchange {
     void set_filled_callback(std::function<void(double)> callback) {
       filled_callback = callback;
     }
+    void set_pong_callback(std::function<void()> callback) {
+      pong_callback = callback;
+    }
 
     // timestamp representing time of last received message
     std::chrono::nanoseconds ts_since_last;
@@ -72,9 +73,5 @@ class Exchange {
     std::function<void(OrderInfo)> orderinfo_callback;
     std::function<void(double, double)> userinfo_callback;
     std::function<void(double)> filled_callback;
-
-    // DATA AND FUNCTIONS RELATED TO PING/PONG
-    std::shared_ptr<std::thread> ping_checker;
-    bool check_pings;
-    bool pong;
+    std::function<void()> pong_callback;
 };

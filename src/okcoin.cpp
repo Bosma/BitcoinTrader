@@ -29,9 +29,6 @@ OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
 }
 
 OKCoin::~OKCoin() {
-  check_pings = false;
-  if (ping_checker && ping_checker->joinable())
-    ping_checker->join();
 }
 
 void OKCoin::start() {
@@ -172,7 +169,8 @@ void OKCoin::on_message(string const & message) {
     else {
       if (j.count("event") == 1) {
         if (j["event"] == "pong") {
-          pong = true;
+          if (pong_callback)
+            pong_callback();
         }
         else {
           log->output("NOT ARRAY AND UNKNOWN EVENT: " + message);
@@ -341,21 +339,8 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
   channels[channel]->status = "unsubscribed";
 }
 
-void OKCoin::start_checking_pings() {
-  check_pings = true;
-  ping_checker = make_shared<thread>([&]() {
-    sleep_for(seconds(5));
-    while (check_pings) {
-      pong = false;
-      ws.send("{'event':'ping'}");
-      sleep_for(seconds(5));
-      if (pong != true && check_pings) {
-        log->output("DID NOT RECEIVE PONG");
-        reconnect = true;
-      }
-    }
-  }
-  );
+void OKCoin::ping() {
+  ws.send("{'event':'ping'}");
 }
 
 string OKCoin::status() {

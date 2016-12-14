@@ -30,8 +30,6 @@ class OKCoin : public Exchange {
     // subscribe to OHLC bars
     // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
     void subscribe_to_OHLC(std::chrono::minutes);
-    // send ping messages over websocket and record pongs
-    void start_checking_pings();
     // market buy amount of BTC
     // converted to CNY using tick
     void market_buy(double);
@@ -49,6 +47,8 @@ class OKCoin : public Exchange {
     void orderinfo(std::string);
     // get user info
     void userinfo();
+    // send ping to OKCoin
+    void ping();
     // return a string of each channels name and last received message
     std::string status();
 
