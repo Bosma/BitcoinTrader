@@ -122,6 +122,8 @@ void BitcoinTrader::start() {
 void BitcoinTrader::check_connection() {
   auto connection_checker = std::make_shared<thread>(
     [&]() {
+      // give some time for everything to start up
+      sleep_for(seconds(10));
       while (!done) {
         sleep_for(seconds(1));
         if (exchange &&
