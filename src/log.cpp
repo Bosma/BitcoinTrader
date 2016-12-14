@@ -22,9 +22,14 @@ Log::~Log() {
 void Log::output(std::string message, bool alert) {
   std::stringstream ss;
 
-  auto now = std::chrono::high_resolution_clock::now();
-  std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-  ss << std::put_time(std::localtime(&now_c), "%F %T") << ": " << message;
+  std::time_t rawtime;
+  std::tm* timeinfo;
+  char buffer[80];
+  std::time(&rawtime);
+  timeinfo = std::localtime(&rawtime);
+  std::strftime(buffer, 80, "%Y-%m-%d %H-%M-%S",timeinfo);
+
+  ss << buffer << ": " << message;
 
   if (alert)
     send_email(ss.str());
