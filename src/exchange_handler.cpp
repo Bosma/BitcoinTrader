@@ -133,12 +133,22 @@ void BitcoinTrader::handle_stops() {
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
+  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double)>(
+    [&](minutes period, long timestamp, double open, double high,
+      double low, double close, double volume) {
+
+      shared_ptr<OHLC> bar(new OHLC(timestamp, open, high,
+            low, close, volume));
+
+      mktdata[period]->add(bar);
+    }
+  ));
   exchange->set_open_callback(function<void()>(
     [&]() {
       received_userinfo = false;
       // we're connected, so backfill each mktdata
       for (auto m : mktdata)
-        exchange->backfill_OHLC(m.second->period, m.second->bars->size());
+        exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
       exchange->subscribe_to_ticker();
     }
   ));
@@ -165,16 +175,6 @@ void BitcoinTrader::setup_exchange_callbacks() {
 
       handle_stops();
       received_a_tick = true;
-    }
-  ));
-  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double)>(
-    [&](minutes period, long timestamp, double open, double high,
-      double low, double close, double volume) {
-
-      shared_ptr<OHLC> bar(new OHLC(timestamp, open, high,
-            low, close, volume));
-
-      mktdata[period]->add(bar);
     }
   ));
 }

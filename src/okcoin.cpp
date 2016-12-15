@@ -418,12 +418,33 @@ void OKCoin::populate_error_reasons() {
   }
 }
 
+size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s)
+{
+  size_t newLength = size*nmemb;
+  size_t oldLength = s->size();
+
+  try {
+      s->resize(oldLength + newLength);
+  }
+  catch(std::bad_alloc &e) {
+      return 0;
+  }
+
+  std::copy((char*) contents,
+      (char*) contents + newLength,
+      s->begin() + oldLength);
+
+  return size*nmemb;
+}
+
 void OKCoin::backfill_OHLC(minutes period, int n) {
   ostringstream url;
   url << "https://www.okcoin.cn/api/v1/kline.do?";
   url << "symbol=btc_cny";
   url << "&type=" << period_conversions(period);
   url << "&size=" << n;
+
+  std::cout << url.str() << std::endl;
 
   CURL *curl;
   CURLcode res;
@@ -432,24 +453,7 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
   std::string output;
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.str().c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION,
-      [](void *contents, size_t size, size_t nmemb, std::string *s)
-        -> size_t {
-          size_t newLength = size * nmemb;
-          size_t oldLength = s->size();
-          try {
-            s->resize(oldLength + newLength);
-          }
-          catch(std::bad_alloc &e) {
-            return 0;
-          }
-
-          std::copy((char*) contents,
-              (char*) contents + newLength,
-              s->begin() + oldLength);
-          return size*nmemb;
-        }
-    );
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output);
 
     res = curl_easy_perform(curl);
@@ -458,6 +462,9 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
 
     curl_easy_cleanup(curl);
 
-    std::cout << output << std::endl;
+    auto j = json::parse(output);
+
+    for (auto bar : j)
+      OHLC_handler(period_conversions(period), bar);
   } 
 }
