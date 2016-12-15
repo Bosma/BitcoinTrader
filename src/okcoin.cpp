@@ -444,8 +444,6 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
   url << "&type=" << period_conversions(period);
   url << "&size=" << n;
 
-  std::cout << url.str() << std::endl;
-
   CURL *curl;
   CURLcode res;
 
