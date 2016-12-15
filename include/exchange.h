@@ -19,7 +19,7 @@ class Exchange {
 
     virtual void start() = 0;
     virtual void subscribe_to_ticker() = 0;
-    virtual void subscribe_to_OHLC(std::chrono::minutes period) = 0;
+    virtual void subscribe_to_OHLC(std::chrono::minutes) = 0;
     virtual void market_buy(double) = 0;
     virtual void market_sell(double) = 0;
     virtual void limit_buy(double, double) = 0;
@@ -28,6 +28,7 @@ class Exchange {
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
     virtual void ping() = 0;
+    virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
     virtual std::string status() = 0;
 
     // SETTERS FOR

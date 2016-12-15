@@ -92,20 +92,20 @@ protected:
   // that lock and unlock execution_lock
   
   // generic market buy / sell amount of BTC
-  void market_buy(double, std::function<void(double, double, long)>);
-  void market_sell(double, std::function<void(double, double, long)>);
+  void market_buy(double, std::function<void(double, double, long)> = nullptr);
+  void market_sell(double, std::function<void(double, double, long)> = nullptr);
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  void limit_buy(double, double, std::chrono::seconds, std::function<void()>);
-  void limit_sell(double, double, std::chrono::seconds, std::function<void()>);
-  void limit_algorithm(std::chrono::seconds, std::function<void()>);
+  void limit_buy(double, double, std::chrono::seconds, std::function<void()> = nullptr);
+  void limit_sell(double, double, std::chrono::seconds, std::function<void()> = nullptr);
+  void limit_algorithm(std::chrono::seconds, std::function<void()> = nullptr);
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
-  void GTC_buy(double, double, std::function<void(std::string)>);
-  void GTC_sell(double, double, std::function<void(std::string)>);
+  void GTC_buy(double, double, std::function<void(std::string)> = nullptr);
+  void GTC_sell(double, double, std::function<void(std::string)> = nullptr);
 
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel

@@ -72,7 +72,7 @@ void BitcoinTrader::limit_algorithm(seconds limit, function<void()> callback = n
   ));
 }
 
-void BitcoinTrader::market_buy(double amount, function<void(double, double, long)> callback = nullptr) {
+void BitcoinTrader::market_buy(double amount, function<void(double, double, long)> callback) {
   execution_lock.lock();
 
   ostringstream os;
@@ -100,7 +100,7 @@ void BitcoinTrader::market_buy(double amount, function<void(double, double, long
     execution_lock.unlock();
 }
 
-void BitcoinTrader::market_sell(double amount, function<void(double, double, long)> callback = nullptr) {
+void BitcoinTrader::market_sell(double amount, function<void(double, double, long)> callback) {
   execution_lock.lock();
 
   ostringstream os;

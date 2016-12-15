@@ -8,6 +8,7 @@
 #include <fstream>
 
 #include <openssl/md5.h>
+#include <curl/curl.h>
 
 #include "../include/websocket.h"
 #include "../include/json.hpp"
@@ -49,6 +50,8 @@ class OKCoin : public Exchange {
     void userinfo();
     // send ping to OKCoin
     void ping();
+    // backfill OHLC period
+    void backfill_OHLC(std::chrono::minutes, int);
     // return a string of each channels name and last received message
     std::string status();
 

@@ -136,6 +136,9 @@ void BitcoinTrader::setup_exchange_callbacks() {
   exchange->set_open_callback(function<void()>(
     [&]() {
       received_userinfo = false;
+      // we're connected, so backfill each mktdata
+      for (auto m : mktdata)
+        exchange->backfill_OHLC(m.second->period, m.second->bars->size());
       exchange->subscribe_to_ticker();
     }
   ));
