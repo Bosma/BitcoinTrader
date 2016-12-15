@@ -13,7 +13,7 @@ using std::ostringstream;using std::make_shared;
 using json = nlohmann::json;
 
 OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
-  Exchange(log, config),
+  Exchange("OKCoin", log, config),
   api_key((*config)["okcoin_apikey"]),
   secret_key((*config)["okcoin_secretkey"]),
   ws(OKCOIN_URL),

@@ -129,7 +129,7 @@ void BitcoinTrader::check_connection() {
         if (exchange &&
             (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
              (exchange->reconnect == true))) {
-          exchange_log->output("RECONNECTING TO OKCOIN");
+          exchange_log->output("RECONNECTING TO " + exchange->name);
           exchange = make_shared<OKCoin>(exchange_log, config);
           setup_exchange_callbacks();
           exchange->start();

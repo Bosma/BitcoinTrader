@@ -96,7 +96,7 @@ protected:
   void setup_exchange_callbacks();
 
   // functions to set trade and orderinfo callbacks
-  // that lock and unlock order_lock
+  // that lock and unlock execution_lock
   void set_takeprofit_callbacks();
   void set_limit_callbacks(std::chrono::seconds);
 

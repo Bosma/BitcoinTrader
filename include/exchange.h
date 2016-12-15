@@ -11,7 +11,8 @@
 
 class Exchange {
   public:
-    Exchange(std::shared_ptr<Log> log, std::shared_ptr<Config> config) :
+    Exchange(std::string name, std::shared_ptr<Log> log, std::shared_ptr<Config> config) :
+      name(name),
       reconnect(false),
       config(config),
       log(log) { }
@@ -55,6 +56,8 @@ class Exchange {
     void set_pong_callback(std::function<void()> callback) {
       pong_callback = callback;
     }
+
+    std::string name;
 
     // timestamp representing time of last received message
     std::chrono::nanoseconds ts_since_last;
