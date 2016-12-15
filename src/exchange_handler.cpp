@@ -57,11 +57,11 @@ BitcoinTrader::~BitcoinTrader() {
 }
 
 void BitcoinTrader::cancel_order(std::string order_id) {
-  if (trading_log) {
-    ostringstream os;
-    os << "CANCELLING LIMIT ORDER " << order_id;
-    trading_log->output(os.str());
-  }
+  ostringstream os;
+  os << "CANCELLING LIMIT ORDER " << order_id;
+  trading_log->output(os.str());
+
+  exchange->cancel_order(order_id);
 }
 
 void BitcoinTrader::start() {
@@ -111,16 +111,13 @@ void BitcoinTrader::handle_stops() {
       triggered_stop = stop;
   }
   if (triggered_stop) {
-    if (trading_log)
-      trading_log->output(triggered_stop->action());
+    trading_log->output(triggered_stop->action());
     stops.clear();
     exchange->cancel_order(current_limit);
-    if (triggered_stop->direction == "long") {
+    if (triggered_stop->direction == "long")
       market_sell(user_btc);
-    }
-    else {
+    else
       market_buy(user_btc);
-    }
   }
 }
 
