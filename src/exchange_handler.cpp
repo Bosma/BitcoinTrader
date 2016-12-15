@@ -1,16 +1,16 @@
 #include "../include/exchange_handler.h"
 
-using std::cout;            using std::endl;
-using std::cin;             using std::remove;
-using std::function;        using std::shared_ptr;
-using std::string;          using std::ofstream;
-using std::chrono::seconds; using std::this_thread::sleep_for;
-using std::mutex;           using std::vector;
-using std::lock_guard;      using std::thread;
-using std::vector;          using std::map;
-using std::chrono::minutes; using std::bind;
-using std::to_string;       using std::ostringstream;
-using std::make_shared; using std::make_unique;
+using std::cout;                   using std::endl;
+using std::cin;                    using std::remove;
+using std::function;               using std::shared_ptr;
+using std::string;                 using std::ofstream;
+using std::chrono::seconds;        using std::this_thread::sleep_for;
+using std::mutex;                  using std::vector;
+using std::lock_guard;             using std::thread;
+using std::vector;                 using std::map;
+using std::chrono::minutes;        using std::bind;
+using std::to_string;              using std::ostringstream;
+using std::make_shared;            using std::make_unique;
 using namespace std::placeholders;
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
@@ -52,56 +52,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 BitcoinTrader::~BitcoinTrader() {
   done = true;
   for (auto t : running_threads)
-    if (t.second && t.second->joinable())
-      t.second->join();
-}
-
-void BitcoinTrader::buy(double amount) {
-  if (trading_log) {
-    ostringstream os;
-    os << "BUYING " << amount << " BTC @ " << tick.ask;
-    trading_log->output(os.str());
-  }
-
-  exchange->market_buy(amount);
-}
-
-void BitcoinTrader::sell(double amount) {
-  if (trading_log) {
-    ostringstream os;
-    os << "SELLING " << amount << " BTC @ " << tick.bid;
-    for (auto stop : stops)
-      os << ", " << stop->to_string();
-    trading_log->output(os.str());
-  }
-
-  exchange->market_sell(amount);
-}
-
-void BitcoinTrader::sell_all() {
-  sell(user_btc);
-}
-
-void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time) {
-  if (trading_log) {
-    ostringstream os;
-    os << "LIMIT BUYING " << amount << " BTC @ " << price;
-    trading_log->output(os.str());
-  }
-
-  set_limit_callbacks(cancel_time);
-  exchange->limit_buy(amount, price);
-}
-
-void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time) {
-  if (trading_log) {
-    ostringstream os;
-    os << "LIMIT SELLING " << amount << " BTC @ " << price;
-    trading_log->output(os.str());
-  }
-
-  set_limit_callbacks(cancel_time);
-  exchange->limit_sell(amount, price);
+    if (t && t->joinable())
+      t->join();
 }
 
 void BitcoinTrader::cancel_order(std::string order_id) {
@@ -120,7 +72,7 @@ void BitcoinTrader::start() {
 }
 
 void BitcoinTrader::check_connection() {
-  auto connection_checker = std::make_shared<thread>(
+  running_threads.push_back(std::make_shared<thread>(
     [&]() {
       // give some time for everything to start up
       sleep_for(seconds(10));
@@ -136,12 +88,11 @@ void BitcoinTrader::check_connection() {
         }
       }
     }
-  );
-  running_threads["connection_checker"] = connection_checker;
+  ));
 }
 
 void BitcoinTrader::fetch_userinfo() {
-  auto userinfo_fetcher = make_shared<thread>(
+  running_threads.push_back(make_shared<thread>(
     [&]() {
       while (!done) {
         // stop checking when we are reconnecting
@@ -150,8 +101,7 @@ void BitcoinTrader::fetch_userinfo() {
         sleep_for(seconds(5));
       }
     }
-  );
-  running_threads["userinfo_fetcher"] = userinfo_fetcher;
+  ));
 }
 
 void BitcoinTrader::handle_stops() {
@@ -166,10 +116,10 @@ void BitcoinTrader::handle_stops() {
     stops.clear();
     exchange->cancel_order(current_limit);
     if (triggered_stop->direction == "long") {
-      sell(user_btc);
+      market_sell(user_btc);
     }
     else {
-      buy(user_btc * tick.ask);
+      market_buy(user_btc);
     }
   }
 }
@@ -214,69 +164,6 @@ void BitcoinTrader::setup_exchange_callbacks() {
             low, close, volume));
 
       mktdata[period]->add(bar);
-    }
-  ));
-}
-
-void BitcoinTrader::set_takeprofit_callbacks() {
-  exchange->set_trade_callback(function<void(string)>([&](string order_id) {
-    current_limit = order_id;
-  }));
-}
-
-void BitcoinTrader::set_limit_callbacks(seconds limit) {
-  execution_lock.lock();
-
-  exchange->set_trade_callback(function<void(string)>(
-    [&](string order_id) {
-      current_limit = order_id;
-      auto limit_checker = make_shared<thread>([&]() {
-        filled_amount = 0;
-        auto start_time = timestamp_now();
-        done_limit_check = false;
-        // until we are done,
-        // we fully filled for the entire amount
-        // or some seconds have passed
-        while (!done && !done_limit_check &&
-            timestamp_now() - start_time < limit) {
-          // fetch the orderinfo every 2 seconds
-          exchange->orderinfo(current_limit);
-          sleep_for(seconds(2));
-        }
-
-        // given the limit enough time, cancel it
-        exchange->cancel_order(current_limit);
-
-        execution_lock.unlock();
-        
-        if (filled_amount != 0) {
-          // we can now add the stops
-          stops.insert(stops.end(),
-              pending_stops.begin(), pending_stops.end());
-          // and our take profit limit
-          set_takeprofit_callbacks();
-          limit_sell(filled_amount, tp_limit, limit);
-
-          if (trading_log)
-            trading_log->output("FILLED FOR " + to_string(filled_amount) + " BTC");
-        }
-        else {
-          if (trading_log)
-            trading_log->output("NOT FILLED IN TIME");
-        }
-
-        pending_stops.clear();
-      });
-      running_threads["limit_checker"] = limit_checker;
-    }
-  ));
-  exchange->set_orderinfo_callback(function<void(OrderInfo)>(
-    [&](OrderInfo orderinfo) {
-      cout << orderinfo.to_string() << endl;
-      // early stopping if we fill for the entire amount
-      if (orderinfo.amount == orderinfo.filled_amount)
-        done_limit_check = true;
-      filled_amount = orderinfo.filled_amount;
     }
   ));
 }

@@ -19,11 +19,6 @@ public:
 
   // interfaces to Exchange
   // (declared public because may be used interactively)
-  void buy(double);
-  void sell(double);
-  void sell_all();
-  void limit_buy(double, double, std::chrono::seconds);
-  void limit_sell(double, double, std::chrono::seconds);
   void cancel_order(std::string);
 
   // start the exchange
@@ -50,7 +45,7 @@ protected:
 
   // vector of threads performing some recurring actions
   // used for destructor
-  std::map<std::string, std::shared_ptr<std::thread>> running_threads;
+  std::vector<std::shared_ptr<std::thread>> running_threads;
 
   // used to check if the exchange is working
   void check_connection();
@@ -74,9 +69,6 @@ protected:
 
   std::vector<std::shared_ptr<Strategy>> strategies;
 
-  // parameters used by the strategy and rules (tp/sl distance etc.)
-  std::map<std::string, double> parameters;
-
   // live stops
   stops_t stops;
   // used so that the price for take profit limits is calculated
@@ -95,10 +87,22 @@ protected:
   // set up the exchange callbacks
   void setup_exchange_callbacks();
 
+  // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
-  void set_takeprofit_callbacks();
-  void set_limit_callbacks(std::chrono::seconds);
+  // generic market buy / sell
+  void market_buy(double);
+  void market_sell(double);
+
+  // limit order that will cancel after some seconds
+  // and after those seconds will run callback given
+  // (to set take-profits / stop-losses)
+  void limit_buy(double, double, std::chrono::seconds, std::function<void()>);
+  void limit_sell(double, double, std::chrono::seconds, std::function<void()>);
+  void limit_algorithm(std::chrono::seconds, std::function<void()>);
+
+  void GTC_buy(double, double);
+  void GTC_sell(double, double);
 
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel
