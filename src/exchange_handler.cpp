@@ -56,6 +56,17 @@ BitcoinTrader::~BitcoinTrader() {
       t->join();
 }
 
+string BitcoinTrader::status() {
+  ostringstream os;
+  os << exchange->status();
+  for (auto m : mktdata) {
+    os << "MktData with period: " <<  m.second->period.count();
+    os << ", size: " << m.second->bars->size() << endl;
+    os << "last: " << m.second->bars->back()->to_string() << endl;
+  }
+  return os.str();
+}
+
 void BitcoinTrader::cancel_order(std::string order_id) {
   ostringstream os;
   os << "CANCELLING LIMIT ORDER " << order_id;

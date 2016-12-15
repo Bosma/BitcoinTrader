@@ -15,7 +15,7 @@ public:
 
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
-  std::string status() { return exchange->status(); }
+  std::string status();
 
   // interfaces to Exchange
   // (declared public because may be used interactively)
