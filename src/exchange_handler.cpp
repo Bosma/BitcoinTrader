@@ -74,17 +74,26 @@ void BitcoinTrader::start() {
 void BitcoinTrader::check_connection() {
   running_threads.push_back(std::make_shared<thread>(
     [&]() {
-      // give some time for everything to start up
-      sleep_for(seconds(10));
+      bool warm_up = true;
       while (!done) {
+        // give some time for everything to start up
+        // the first time and times after we reconnect
+        if (warm_up) {
+          sleep_for(seconds(10));
+          warm_up = false;
+        }
+        // check to reconnect every second
         sleep_for(seconds(1));
         if (exchange &&
+            // if the time since the last message received is > 1min
             (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
+             // if the websocket has closed
              (exchange->reconnect == true))) {
           exchange_log->output("RECONNECTING TO " + exchange->name);
           exchange = make_shared<OKCoin>(exchange_log, config);
           setup_exchange_callbacks();
           exchange->start();
+          warm_up = true;
         }
       }
     }
