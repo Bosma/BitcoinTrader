@@ -6,7 +6,7 @@ using std::this_thread::sleep_for; using std::chrono::seconds;
 using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 
-void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time, function<void()> callback = nullptr) {
+void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time, function<void()> callback) {
   ostringstream os;
   os << "LIMIT BUYING " << amount << " BTC @ " << price;
   trading_log->output(os.str());
@@ -15,7 +15,7 @@ void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time, 
   exchange->limit_buy(amount, price);
 }
 
-void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time, function<void()> callback = nullptr) {
+void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time, function<void()> callback) {
   ostringstream os;
   os << "LIMIT SELLING " << amount << " BTC @ " << price;
   trading_log->output(os.str());
@@ -24,7 +24,7 @@ void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time,
   exchange->limit_sell(amount, price);
 }
 
-void BitcoinTrader::limit_algorithm(seconds limit, function<void()> callback = nullptr) {
+void BitcoinTrader::limit_algorithm(seconds limit, function<void()> callback) {
   execution_lock.lock();
 
   exchange->set_trade_callback(function<void(string)>(
@@ -128,7 +128,7 @@ void BitcoinTrader::market_sell(double amount, function<void(double, double, lon
     execution_lock.unlock();
 }
 
-void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> callback = nullptr) {
+void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> callback) {
   execution_lock.lock();
 
   ostringstream os;
@@ -147,7 +147,7 @@ void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> 
   exchange->limit_buy(amount, price);
 }
 
-void BitcoinTrader::GTC_sell(double amount, double price, function<void(string)> callback = nullptr) {
+void BitcoinTrader::GTC_sell(double amount, double price, function<void(string)> callback) {
   execution_lock.lock();
 
   ostringstream os;
