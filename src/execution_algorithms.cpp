@@ -72,20 +72,60 @@ void BitcoinTrader::limit_algorithm(seconds limit, function<void()> callback = n
   ));
 }
 
-void BitcoinTrader::market_buy(double amount) {
+void BitcoinTrader::market_buy(double amount, function<void(double, double, long)> callback = nullptr) {
+  execution_lock.lock();
+
   ostringstream os;
-  os << "BUYING " << amount << " BTC @ " << tick.ask;
+  os << "MARKET BUYING " << amount << " BTC @ " << tick.ask;
   trading_log->output(os.str());
+
+  // none of this is required if we don't have a callback
+  if (callback) {
+    exchange->set_trade_callback(function<void(string)>(
+      [&](string order_id) {
+        exchange->orderinfo(order_id);
+      }
+    ));
+    exchange->set_orderinfo_callback(function<void(OrderInfo)>(
+      [&](OrderInfo orderinfo) {
+        callback(orderinfo.avg_price, orderinfo.filled_amount, orderinfo.create_date);
+        execution_lock.unlock();
+      }
+    ));
+  }
 
   exchange->market_buy(amount);
+  // if we don't have a callback unlock lock right away
+  if (!callback)
+    execution_lock.unlock();
 }
 
-void BitcoinTrader::market_sell(double amount) {
+void BitcoinTrader::market_sell(double amount, function<void(double, double, long)> callback = nullptr) {
+  execution_lock.lock();
+
   ostringstream os;
-  os << "SELLING " << amount << " BTC @ " << tick.bid;
+  os << "MARKET SELLING " << amount << " BTC @ " << tick.bid;
   trading_log->output(os.str());
 
+  // none of this is required if we don't have a callback
+  if (callback) {
+    exchange->set_trade_callback(function<void(string)>(
+      [&](string order_id) {
+        exchange->orderinfo(order_id);
+      }
+    ));
+    exchange->set_orderinfo_callback(function<void(OrderInfo)>(
+      [&](OrderInfo orderinfo) {
+        callback(orderinfo.avg_price, orderinfo.filled_amount, orderinfo.create_date);
+        execution_lock.unlock();
+      }
+    ));
+  }
+
   exchange->market_sell(amount);
+  // if we don't have a callback unlock lock right away
+  if (!callback)
+    execution_lock.unlock();
 }
 
 void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> callback = nullptr) {

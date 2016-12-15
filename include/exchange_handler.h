@@ -92,8 +92,8 @@ protected:
   // that lock and unlock execution_lock
   
   // generic market buy / sell amount of BTC
-  void market_buy(double);
-  void market_sell(double);
+  void market_buy(double, std::function<void(double, double, long)>);
+  void market_sell(double, std::function<void(double, double, long)>);
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
