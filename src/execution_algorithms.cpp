@@ -100,3 +100,31 @@ void BitcoinTrader::market_sell(double amount) {
 
   exchange->market_sell(amount);
 }
+
+void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> callback = nullptr) {
+  execution_lock.lock();
+
+  exchange->set_trade_callback(function<void(string)>(
+    [&](string order_id) {
+      if(callback)
+        callback(order_id);
+      execution_lock.unlock();
+    }
+  ));
+
+  exchange->limit_buy(amount, price);
+}
+
+void BitcoinTrader::GTC_sell(double amount, double price, function<void(string)> callback = nullptr) {
+  execution_lock.lock();
+
+  exchange->set_trade_callback(function<void(string)>(
+    [&](string order_id) {
+      if(callback)
+        callback(order_id);
+      execution_lock.unlock();
+    }
+  ));
+
+  exchange->limit_sell(amount, price);
+}

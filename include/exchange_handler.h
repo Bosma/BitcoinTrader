@@ -101,8 +101,8 @@ protected:
   void limit_sell(double, double, std::chrono::seconds, std::function<void()>);
   void limit_algorithm(std::chrono::seconds, std::function<void()>);
 
-  void GTC_buy(double, double);
-  void GTC_sell(double, double);
+  void GTC_buy(double, double, std::function<void(std::string)>);
+  void GTC_sell(double, double, std::function<void(std::string)>);
 
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel
