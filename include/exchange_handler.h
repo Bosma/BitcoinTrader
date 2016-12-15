@@ -90,7 +90,8 @@ protected:
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
-  // generic market buy / sell
+  
+  // generic market buy / sell amount of BTC
   void market_buy(double);
   void market_sell(double);
 
@@ -101,6 +102,8 @@ protected:
   void limit_sell(double, double, std::chrono::seconds, std::function<void()>);
   void limit_algorithm(std::chrono::seconds, std::function<void()>);
 
+  // good-til-cancelled limit orders
+  // will run callback after receiving order_id
   void GTC_buy(double, double, std::function<void(std::string)>);
   void GTC_sell(double, double, std::function<void(std::string)>);
 

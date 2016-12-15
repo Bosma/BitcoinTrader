@@ -104,6 +104,12 @@ void BitcoinTrader::market_sell(double amount) {
 void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> callback = nullptr) {
   execution_lock.lock();
 
+  if (trading_log) {
+    ostringstream os;
+    os << "LIMIT BUYING " << amount << " BTC @ " << price;
+    trading_log->output(os.str());
+  }
+
   exchange->set_trade_callback(function<void(string)>(
     [&](string order_id) {
       if(callback)
@@ -118,8 +124,15 @@ void BitcoinTrader::GTC_buy(double amount, double price, function<void(string)> 
 void BitcoinTrader::GTC_sell(double amount, double price, function<void(string)> callback = nullptr) {
   execution_lock.lock();
 
+  if (trading_log) {
+    ostringstream os;
+    os << "LIMIT SELLING " << amount << " BTC @ " << price;
+    trading_log->output(os.str());
+  }
+
   exchange->set_trade_callback(function<void(string)>(
     [&](string order_id) {
+      trading_log->output("LIMIT ORDER_ID: " + order_id);
       if(callback)
         callback(order_id);
       execution_lock.unlock();
