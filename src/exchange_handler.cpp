@@ -26,17 +26,17 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   received_userinfo(false),
   received_a_tick(false) {
    
-  // create and add the strategies
-  auto strategy_a = make_shared<SMACrossover>("SMACrossover",
-        // long callback
-        [&]() {
-          trading_log->output("LONGING");
-        },
-        // short callback
-        [&]() {
-          trading_log->output("SHORTING");
-        });
-  strategies.push_back(strategy_a);
+  // create the strategies
+  strategies.push_back(make_shared<SMACrossover>("SMACrossover",
+    // long callback
+    [&]() {
+      trading_log->output("LONGING");
+    },
+    // short callback
+    [&]() {
+      trading_log->output("SHORTING");
+    }
+  ));
 
   for (auto strategy : strategies) {
     // if we do not have a mktdata object for this period
@@ -157,9 +157,6 @@ void BitcoinTrader::setup_exchange_callbacks() {
   exchange->set_open_callback(function<void()>(
     [&]() {
       received_userinfo = false;
-      // we're connected, so backfill each mktdata
-      for (auto m : mktdata)
-        exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
       exchange->subscribe_to_ticker();
     }
   ));
@@ -168,8 +165,11 @@ void BitcoinTrader::setup_exchange_callbacks() {
       user_btc = btc;
       user_cny = cny;
       if (!received_userinfo) {
-        for (auto m : mktdata)
+        for (auto m : mktdata) {
+          // before we subscribe, backfill the data
+          exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
           exchange->subscribe_to_OHLC(m.second->period);
+        }
       }
       received_userinfo = true;
     }
@@ -181,8 +181,9 @@ void BitcoinTrader::setup_exchange_callbacks() {
       tick.bid = bid;
       tick.ask = ask;
 
-      if (!received_a_tick)
+      if (!received_a_tick) {
         fetch_userinfo();
+      }
 
       handle_stops();
       received_a_tick = true;
