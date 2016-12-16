@@ -6,9 +6,10 @@
 #include <memory>
 #include <map>
 #include <cmath>
-#include <boost/circular_buffer.hpp>
 #include <iostream>
 #include <iomanip>
+
+#include <boost/circular_buffer.hpp>
 
 #include "../include/strategies.h"
 
@@ -29,7 +30,14 @@ class OHLC {
     double low;
     double close;
     double volume;
-    std::map<std::string, std::map<std::string, double>> indis;
+             // strategy name
+    std::map<std::string,
+                      // indicator name
+             std::map<std::string,
+                               // column name
+                      std::map<std::string,
+                               // indicator value 
+                               double>>> indis;
 
     std::string to_string() {
       std::ostringstream os;
@@ -37,11 +45,15 @@ class OHLC {
         ",open=" << open << ",high=" << high <<
         ",low=" << low << ",close=" << close <<
         ",volume=" << volume;
-      for (auto i : indis) {
-        os << "," << i.first << "=(";
-        for (auto pt : i.second)
-          os << " " << pt.first << "=" << pt.second;
-        os << " )";
+      for (auto strategy : indis) {
+        os << "," << strategy.first << "={ ";
+        for (auto indicator : strategy.second) {
+          os << indicator.first << "=(";
+          for (auto column : indicator.second)
+            os << column.first << "=" << column.second;
+          os << ")";
+        }
+        os << " }";
       }
       return os.str();
     }
@@ -49,15 +61,16 @@ class OHLC {
 
 class Indicator {
   public:
-    Indicator(std::string name) : name(name) { }
+    Indicator(std::string name, int period) : name(name), period(period) { }
     virtual std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>>) = 0;
     std::string name;
+    int period;
 };
 
 class MovingAverage : public Indicator {
   public:
     MovingAverage(std::string name, int period) :
-      Indicator(name), period(period) { }
+      Indicator(name, period) { }
 
     std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars) {
       std::map<std::string, double> values;
@@ -77,13 +90,12 @@ class MovingAverage : public Indicator {
       values["mavg"] = ma_value;
       return values;
     }
-    int period;
 };
 
 class BollingerBands : public Indicator {
   public:
     BollingerBands(std::string name, int period = 20, double sd = 2) :
-      Indicator(name), period(period), sd(sd) { }
+      Indicator(name, period), sd(sd) { }
 
     std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars) {
       std::map<std::string, double> values;
@@ -123,7 +135,6 @@ class BollingerBands : public Indicator {
       return std::make_pair(mean, M2 / (n - 1));
     }
 
-    int period;
     double sd;
 };
 

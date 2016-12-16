@@ -10,8 +10,7 @@ class MktData {
   public:
     MktData(std::chrono::minutes period) :
       bars(new boost::circular_buffer<std::shared_ptr<OHLC>>(50)),
-      period(period),
-      indicators() { }
+      period(period) { }
 
     void add(std::shared_ptr<OHLC> bar) {
       // don't add bars of the same timestamp
@@ -32,11 +31,11 @@ class MktData {
         // for each indicator
         // calculate the indicator value
         // from the bars (with the new value)
-        for (auto &indi : indicators)
-          bar->indis[indi->name] = indi->calculate(bars);
-
-        for (auto strategy : strategies)
+        for (auto strategy : strategies) {
+          for (auto indicator : strategy->indicators)
+            bar->indis[strategy->name][indicator->name] = indicator->calculate(bars);
           strategy->apply(bar);
+        }
       }
     }
 
@@ -45,18 +44,15 @@ class MktData {
     }
 
     void add_strategy(std::shared_ptr<Strategy> to_add) {
+      if (to_add->max_lookback() > bars->capacity())
+        bars->set_capacity(to_add->max_lookback());
       strategies.push_back(to_add);
-    }
-
-    void add_indicators(std::vector<std::shared_ptr<Indicator>> to_add) {
-      indicators.insert(indicators.end(), to_add.begin(), to_add.end());
     }
 
     std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars;
     // bar period in minutes
     std::chrono::minutes period;
   private:
-    std::vector<std::shared_ptr<Indicator>> indicators;
     std::vector<std::shared_ptr<Strategy>> strategies;
     std::function<void(std::shared_ptr<OHLC> bar)> new_bar_callback;
 };

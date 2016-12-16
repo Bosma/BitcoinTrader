@@ -27,6 +27,15 @@ class Strategy {
     std::chrono::minutes period;
     std::vector<std::shared_ptr<Indicator>> indicators;
 
+    int max_lookback() {
+      int max = 0;
+      for (auto indicator : indicators)
+        if (indicator->period > max)
+          max = indicator->period;
+      return max;
+    }
+
+
   protected:
     std::function<void()> long_cb;
     std::function<void()> short_cb;
