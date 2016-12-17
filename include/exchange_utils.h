@@ -2,6 +2,9 @@
 
 #include <string>
 #include <chrono>
+
+#include <curl/curl.h>
+
 #include "../include/json.hpp"
 
 class Channel {
@@ -60,3 +63,7 @@ int optionally_to_int(nlohmann::json object);
 std::string dtos(double, int);
 
 std::chrono::nanoseconds timestamp_now();
+
+size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
+
+std::string curl_post(std::string);

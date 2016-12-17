@@ -34,3 +34,42 @@ std::string dtos(double n, int digits) {
 std::chrono::nanoseconds timestamp_now() {
   return std::chrono::high_resolution_clock::now().time_since_epoch();
 }
+
+size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s)
+{
+  size_t newLength = size*nmemb;
+  size_t oldLength = s->size();
+
+  try {
+      s->resize(oldLength + newLength);
+  }
+  catch(std::bad_alloc &e) {
+      return 0;
+  }
+
+  std::copy((char*) contents,
+      (char*) contents + newLength,
+      s->begin() + oldLength);
+
+  return size*nmemb;
+}
+
+std::string curl_post(std::string url) {
+  CURL *curl;
+  CURLcode res;
+
+  std::string output;
+  curl = curl_easy_init();
+  if (curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output);
+
+    res = curl_easy_perform(curl);
+    if(res != CURLE_OK)
+      curl_easy_strerror(res);
+
+    curl_easy_cleanup(curl);
+  } 
+  return output;
+}

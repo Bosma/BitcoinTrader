@@ -8,7 +8,6 @@
 #include <fstream>
 
 #include <openssl/md5.h>
-#include <curl/curl.h>
 
 #include "../include/websocket.h"
 #include "../include/json.hpp"
