@@ -29,7 +29,7 @@ class Exchange {
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
-    virtual std::string leverage(Currency, double = 1) = 0;
+    virtual std::string borrow(Currency, double = 1) = 0;
 
     virtual void ping() = 0;
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
