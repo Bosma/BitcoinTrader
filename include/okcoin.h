@@ -45,10 +45,8 @@ class OKCoin : public Exchange {
     void orderinfo(std::string);
     // get user info
     void userinfo();
-    // borrows max CNY
-    std::string full_margin_long();
-    // borrows max USD
-    std::string full_margin_short();
+    // borrow percent of possible currency
+    std::string borrow(Currency, double);
     // send ping to OKCoin
     void ping();
     // backfill OHLC period

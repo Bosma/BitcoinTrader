@@ -314,36 +314,23 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
-string OKCoin::full_margin_long() {
-  double rate = optionally_to_double(lend_depth(CNY)[0]["rate"]);
-  double can_borrow = optionally_to_double(borrows_info(CNY)["can_borrow"]);
+string OKCoin::borrow(Currency currency, double percent) {
+  double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
+  double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
   if (can_borrow > 0) {
-    auto response = borrow_money(CNY, can_borrow, rate, 15);
+    auto response = borrow_money(currency, percent * can_borrow, rate, 15);
 
     if (response["result"].get<bool>() == true) {
       return to_string(response["borrow_id"].get<long>());
     }
     else {
       ostringstream os;
-      os << "failed to borrow " << can_borrow << " CNY @ %" << rate;
-      log->output(os.str());
-    }
-  }
-  return "";
-}
-
-string OKCoin::full_margin_short() {
-  double rate = optionally_to_double(lend_depth(BTC)[0]["rate"]);
-  double can_borrow = optionally_to_double(borrows_info(BTC)["can_borrow"]);
-  if (can_borrow > 0) {
-    auto response = borrow_money(BTC, can_borrow, rate, 15);
-
-    if (response["result"].get<bool>() == true) {
-      return to_string(response["borrow_id"].get<long>());
-    }
-    else {
-      ostringstream os;
-      os << "failed to borrow " << can_borrow << " CNY @ %" << rate;
+      os << "failed to borrow " << can_borrow << " ";
+      switch (currency) {
+        case BTC : os << "BTC"; break;
+        case CNY : os << "CNY"; break;
+      }
+      os << " @ %" << rate;
       log->output(os.str());
     }
   }
