@@ -11,7 +11,8 @@ using std::vector;                 using std::map;
 using std::chrono::minutes;        using std::bind;
 using std::to_string;              using std::ostringstream;
 using std::make_shared;            using std::make_unique;
-using namespace std::placeholders;
+using namespace std::placeholders; using std::to_string;
+using std::floor;
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   config(config),
@@ -23,7 +24,6 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   mktdata(),
   execution_lock(),
   strategies(),
-  received_userinfo(false),
   received_a_tick(false) {
    
   // create the strategies
@@ -31,10 +31,36 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // long callback
     [&]() {
       trading_log->output("LONGING");
+      // borrowing MAX CNY
+      string borrow_id = exchange->full_margin_long();
+
+      exchange->set_userinfo_callback([&](double btc, double cny) {
+        // after we know how much CNY we now have, market buy it all
+        market_buy(floor(cny),
+            [](double avg_price, double amount, long date) {
+              std::cout << "avg_price: " << avg_price << std::endl;
+            });
+      });
+      
+      // need to find out how much CNY we have now
+      exchange->userinfo();
     },
     // short callback
     [&]() {
       trading_log->output("SHORTING");
+      // borrowing MAX BTC
+      string borrow_id = exchange->full_margin_short();
+
+      exchange->set_userinfo_callback([&](double btc, double cny) {
+        // after we know how much BTC we now have, market sell it all
+        market_sell(floor(btc),
+            [](double avg_price, double amount, long date) {
+              std::cout << "avg_price: " << avg_price << std::endl;
+            });
+      });
+      
+      // need to find out how much  we have now
+      exchange->userinfo();
     }
   ));
 
@@ -113,19 +139,6 @@ void BitcoinTrader::check_connection() {
   ));
 }
 
-void BitcoinTrader::fetch_userinfo() {
-  running_threads.push_back(make_shared<thread>(
-    [&]() {
-      while (!done) {
-        // stop checking when we are reconnecting
-        if (exchange->reconnect != true)
-          exchange->userinfo();
-        sleep_for(seconds(5));
-      }
-    }
-  ));
-}
-
 void BitcoinTrader::handle_stops() {
   shared_ptr<Stop> triggered_stop;
   for (auto stop : stops) {
@@ -134,44 +147,24 @@ void BitcoinTrader::handle_stops() {
   }
   if (triggered_stop) {
     trading_log->output(triggered_stop->action());
-    stops.clear();
-    exchange->cancel_order(current_limit);
-    if (triggered_stop->direction == "long")
-      market_sell(user_btc);
-    else
-      market_buy(user_btc);
+    // unfinished
   }
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
-  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double)>(
+  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(
     [&](minutes period, long timestamp, double open, double high,
-      double low, double close, double volume) {
+      double low, double close, double volume, bool backfilling) {
 
       shared_ptr<OHLC> bar(new OHLC(timestamp, open, high,
             low, close, volume));
 
-      mktdata[period]->add(bar);
+      mktdata[period]->add(bar, backfilling);
     }
   ));
   exchange->set_open_callback(function<void()>(
     [&]() {
-      received_userinfo = false;
       exchange->subscribe_to_ticker();
-    }
-  ));
-  exchange->set_userinfo_callback(function<void(double, double)>(
-    [&](double btc, double cny) {
-      user_btc = btc;
-      user_cny = cny;
-      if (!received_userinfo) {
-        for (auto m : mktdata) {
-          // before we subscribe, backfill the data
-          exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
-          exchange->subscribe_to_OHLC(m.second->period);
-        }
-      }
-      received_userinfo = true;
     }
   ));
   exchange->set_ticker_callback(function<void(long, double, double, double)>(
@@ -182,7 +175,11 @@ void BitcoinTrader::setup_exchange_callbacks() {
       tick.ask = ask;
 
       if (!received_a_tick) {
-        fetch_userinfo();
+        for (auto m : mktdata) {
+          // before we subscribe, backfill the data
+          exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
+          exchange->subscribe_to_OHLC(m.second->period);
+        }
       }
 
       handle_stops();

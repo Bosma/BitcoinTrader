@@ -7,6 +7,8 @@
 
 #include "../include/json.hpp"
 
+enum Currency { BTC, CNY };
+
 class Channel {
   public:
     Channel(std::string name, std::string status) :
@@ -66,4 +68,4 @@ std::chrono::nanoseconds timestamp_now();
 
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
 
-std::string curl_post(std::string);
+std::string curl_post(std::string, std::string = "");

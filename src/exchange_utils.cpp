@@ -54,7 +54,7 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   return size*nmemb;
 }
 
-std::string curl_post(std::string url) {
+std::string curl_post(std::string url, std::string post_fields) {
   CURL *curl;
   CURLcode res;
 
@@ -62,6 +62,8 @@ std::string curl_post(std::string url) {
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    if (!post_fields.empty())
+      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output);
 

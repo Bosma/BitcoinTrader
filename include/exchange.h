@@ -9,6 +9,8 @@
 #include "../include/exchange_utils.h"
 #include "../include/log.h"
 
+using json = nlohmann::json;
+
 class Exchange {
   public:
     Exchange(std::string name, std::shared_ptr<Log> log, std::shared_ptr<Config> config) :
@@ -27,6 +29,9 @@ class Exchange {
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
+    virtual std::string full_margin_long() = 0;
+    virtual std::string full_margin_short() = 0;
+
     virtual void ping() = 0;
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
     virtual std::string status() = 0;
@@ -36,7 +41,7 @@ class Exchange {
     void set_ticker_callback(std::function<void(long, double, double, double)> callback) {
       ticker_callback = callback;
     }
-    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double)> callback) {
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback) {
       OHLC_callback = callback;
     }
     void set_open_callback(std::function<void()> callback) {
@@ -71,7 +76,7 @@ class Exchange {
 
     // SEMANTIC CALLBACKS FOR THE USER
     std::function<void(long, double, double, double)> ticker_callback;
-    std::function<void(std::chrono::minutes, long, double, double, double, double, double)> OHLC_callback;
+    std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> OHLC_callback;
     std::function<void()> open_callback;
     std::function<void(std::string)> trade_callback;
     std::function<void(OrderInfo)> orderinfo_callback;

@@ -12,7 +12,7 @@ class MktData {
       bars(new boost::circular_buffer<std::shared_ptr<OHLC>>(50)),
       period(period) { }
 
-    void add(std::shared_ptr<OHLC> bar) {
+    void add(std::shared_ptr<OHLC> bar, bool backfilling = false) {
       // don't add bars of the same timestamp
       bool found = false;
       for (auto x : *bars)
@@ -34,7 +34,9 @@ class MktData {
         for (auto strategy : strategies) {
           for (auto indicator : strategy->indicators)
             bar->indis[strategy->name][indicator->name] = indicator->calculate(bars);
-          strategy->apply(bar);
+          // don't send signals on backfills
+          if (!backfilling)
+            strategy->apply(bar);
         }
       }
     }

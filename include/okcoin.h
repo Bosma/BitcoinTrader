@@ -30,10 +30,8 @@ class OKCoin : public Exchange {
     // subscribe to OHLC bars
     // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
     void subscribe_to_OHLC(std::chrono::minutes);
-    // market buy amount of BTC
-    // converted to CNY using tick
+    // market buy amount of CNY
     void market_buy(double);
-    double current_price;
     // market sell amount of BTC
     void market_sell(double);
     // limit buy amount of BTC at price
@@ -47,6 +45,10 @@ class OKCoin : public Exchange {
     void orderinfo(std::string);
     // get user info
     void userinfo();
+    // borrows max CNY
+    std::string full_margin_long();
+    // borrows max USD
+    std::string full_margin_short();
     // send ping to OKCoin
     void ping();
     // backfill OHLC period
@@ -59,6 +61,16 @@ class OKCoin : public Exchange {
     std::string api_key;
     std::string secret_key;
     websocket ws;
+    
+    // INTERNAL REST COMMANDS
+    // get lend depth
+    json lend_depth(Currency);
+    // get user borrow information
+    json borrows_info(Currency);
+    // request borrow
+    json borrow_money(Currency, double, double, int);
+    // pay off debt
+    json repayment(std::string);
     
     // WEBSOCKET CALLBACKS
     void on_message(std::string const &);
@@ -98,7 +110,7 @@ class OKCoin : public Exchange {
     void populate_error_reasons();
 
     // HANDLERS FOR CHANNEL MESSAGES
-    void OHLC_handler(std::string, nlohmann::json);
+    void OHLC_handler(std::string, nlohmann::json, bool = false);
     void ticker_handler(nlohmann::json);
     void orderinfo_handler(nlohmann::json);
 };

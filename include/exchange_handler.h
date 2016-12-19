@@ -13,6 +13,8 @@ public:
   BitcoinTrader(std::shared_ptr<Config>);
   ~BitcoinTrader();
 
+  std::function<void(std::string)> execution_callback;
+
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
   std::string status();
@@ -50,12 +52,6 @@ protected:
   // used to check if the exchange is working
   void check_connection();
 
-  // used to continually fetch user information
-  // currently just btc and cny
-  void fetch_userinfo();
-  double user_btc;
-  double user_cny;
-
   // updated in real time to latest tick
   Ticker tick;
 
@@ -80,8 +76,7 @@ protected:
   // called every tick
   void handle_stops();
 
-  // bools used to order subscribing to websocket channels in order
-  bool received_userinfo;
+  // bools used to order subscribing to websocket channels
   bool received_a_tick;
 
   // set up the exchange callbacks
@@ -94,18 +89,23 @@ protected:
   // generic market buy / sell amount of BTC
   void market_buy(double, std::function<void(double, double, long)> = nullptr);
   void market_sell(double, std::function<void(double, double, long)> = nullptr);
+  std::function<void(double, double, long)> market_callback;
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  void limit_buy(double, double, std::chrono::seconds, std::function<void()> = nullptr);
-  void limit_sell(double, double, std::chrono::seconds, std::function<void()> = nullptr);
-  void limit_algorithm(std::chrono::seconds, std::function<void()> = nullptr);
+  void limit_buy(double, double, std::chrono::seconds,
+      std::function<void(double)> = nullptr);
+  void limit_sell(double, double, std::chrono::seconds,
+      std::function<void(double)> = nullptr);
+  void limit_algorithm(std::chrono::seconds);
+  std::function<void(double)> limit_callback;
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
   void GTC_buy(double, double, std::function<void(std::string)> = nullptr);
   void GTC_sell(double, double, std::function<void(std::string)> = nullptr);
+  std::function<void(std::string)> GTC_callback;
 
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel

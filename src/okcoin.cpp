@@ -10,7 +10,6 @@ using std::endl;         using std::lock_guard;
 using std::mutex;        using std::exception;
 using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
-using json = nlohmann::json;
 
 OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
   Exchange("OKCoin", log, config),
@@ -215,8 +214,7 @@ void OKCoin::subscribe_to_channel(string const & channel) {
   channels[channel] = chan;
 }
 
-void OKCoin::market_buy(double btc_amount) {
-  double cny_amount = btc_amount * current_price;
+void OKCoin::market_buy(double cny_amount) {
   order("buy_market", dtos(cny_amount, 2));
 }
 
@@ -316,6 +314,103 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
+string OKCoin::full_margin_long() {
+  double rate = optionally_to_double(lend_depth(CNY)[0]["rate"]);
+  double can_borrow = optionally_to_double(borrows_info(CNY)["can_borrow"]);
+  if (can_borrow > 0) {
+    auto response = borrow_money(CNY, can_borrow, rate, 15);
+
+    if (response["result"].get<bool>() == true) {
+      return to_string(response["borrow_id"].get<long>());
+    }
+    else {
+      ostringstream os;
+      os << "failed to borrow " << can_borrow << " CNY @ %" << rate;
+      log->output(os.str());
+    }
+  }
+  return "";
+}
+
+string OKCoin::full_margin_short() {
+  double rate = optionally_to_double(lend_depth(BTC)[0]["rate"]);
+  double can_borrow = optionally_to_double(borrows_info(BTC)["can_borrow"]);
+  if (can_borrow > 0) {
+    auto response = borrow_money(BTC, can_borrow, rate, 15);
+
+    if (response["result"].get<bool>() == true) {
+      return to_string(response["borrow_id"].get<long>());
+    }
+    else {
+      ostringstream os;
+      os << "failed to borrow " << can_borrow << " CNY @ %" << rate;
+      log->output(os.str());
+    }
+  }
+  return "";
+}
+
+json OKCoin::lend_depth(Currency currency) {
+  string url = "https://www.okcoin.cn/api/v1/lend_depth.do";
+
+  ostringstream post_fields;
+  post_fields << "api_key=" << api_key;
+  switch(currency) {
+    case BTC : post_fields << "&symbol=btc_cny"; break;
+    case CNY : post_fields << "&symbol=cny"; break;
+  }
+  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
+  post_fields << "&sign=" << signature;
+
+  return json::parse(curl_post(url, post_fields.str()))["lend_depth"];
+}
+
+json OKCoin::borrows_info(Currency currency) {
+  string url = "https://www.okcoin.cn/api/v1/borrows_info.do";
+
+  ostringstream post_fields;
+  post_fields << "api_key=" << api_key;
+  switch(currency) {
+    case BTC : post_fields << "&symbol=btc_cny"; break;
+    case CNY : post_fields << "&symbol=cny"; break;
+  }
+  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
+  post_fields << "&sign=" << signature;
+
+  return json::parse(curl_post(url, post_fields.str()));
+}
+
+json OKCoin::borrow_money(Currency currency, double amount, double rate, int days) {
+  string url = "https://www.okcoin.cn/api/v1/borrow_money.do";
+
+  ostringstream post_fields;
+  post_fields << "amount=" << amount;
+  post_fields << "&api_key=" << api_key;
+  if (days == 15)
+    post_fields << "&days=fifteen";
+  post_fields << "&rate=" << rate;
+  switch(currency) {
+    case BTC : post_fields << "&symbol=btc_cny"; break;
+    case CNY : post_fields << "&symbol=cny"; break;
+  }
+  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
+  post_fields << "&sign=" << signature;
+
+  return json::parse(curl_post(url, post_fields.str()));
+}
+
+json OKCoin::repayment(string borrow_id) {
+  string url = "https://www.okcoin.cn/api/v1/repayment.do";
+
+  ostringstream post_fields;
+  post_fields << "api_key=" << api_key;
+  post_fields << "&borrow_id=" << borrow_id;
+  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
+  post_fields << "&sign=" << signature;
+
+  return json::parse(curl_post(url, post_fields.str()));
+}
+
 string OKCoin::sign(string parameters) {
   // generate MD5
   unsigned char result[MD5_DIGEST_LENGTH];
@@ -352,7 +447,7 @@ string OKCoin::status() {
   return ss.str();
 }
 
-void OKCoin::OHLC_handler(string period, json trade) {
+void OKCoin::OHLC_handler(string period, json trade, bool backfilling) {
   if (OHLC_callback) {
     long timestamp = optionally_to_long(trade[0]);
     double open = optionally_to_double(trade[1]);
@@ -360,7 +455,7 @@ void OKCoin::OHLC_handler(string period, json trade) {
     double low = optionally_to_double(trade[3]);
     double close = optionally_to_double(trade[4]);
     double volume = optionally_to_double(trade[5]);
-    OHLC_callback(period_conversions(period), timestamp, open, high, low, close, volume);
+    OHLC_callback(period_conversions(period), timestamp, open, high, low, close, volume, backfilling);
   }
 }
 
@@ -368,8 +463,6 @@ void OKCoin::ticker_handler(json tick) {
   if (ticker_callback) {
     long timestamp = optionally_to_long(tick["timestamp"]);
     double last = optionally_to_double(tick["last"]);
-    // used for converting BTC to CNY
-    current_price = last;
     double bid = optionally_to_double(tick["buy"]);
     double ask = optionally_to_double(tick["sell"]);
 
@@ -428,6 +521,6 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
   auto j = json::parse(curl_post(url.str()));
 
   for (auto bar : j)
-    OHLC_handler(period_conversions(period), bar);
+    OHLC_handler(period_conversions(period), bar, true);
 
 }
