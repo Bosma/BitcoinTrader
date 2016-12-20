@@ -10,6 +10,7 @@ using std::endl;         using std::lock_guard;
 using std::mutex;        using std::exception;
 using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
+using std::next;
 
 OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
   Exchange("OKCoin", log, config),
@@ -337,6 +338,28 @@ string OKCoin::borrow(Currency currency, double percent) {
   return "";
 }
 
+void OKCoin::close_borrow(Currency currency) {
+  // get the open borrows
+  auto j = unrepayments_info(currency);
+  if (j.size() != 0) {
+    string borrow_id = j[0]["borrow_id"];
+
+    // repay loan
+    auto r = repayment(borrow_id);
+    bool repaid = r["result"];
+
+    if (repaid) {
+      double amount = j[0]["amount"];
+      if (close_borrow_callback)
+        close_borrow_callback(currency, amount);
+    }
+    else
+      log->output("unsuccesful loan repayment with borrow_id: " + borrow_id);
+  }
+  else
+    close_borrow_callback(currency, 0);
+}
+
 json OKCoin::lend_depth(Currency currency) {
   string url = "https://www.okcoin.cn/api/v1/lend_depth.do";
 
@@ -365,6 +388,23 @@ json OKCoin::borrows_info(Currency currency) {
   post_fields << "&sign=" << signature;
 
   return json::parse(curl_post(url, post_fields.str()));
+}
+
+json OKCoin::unrepayments_info(Currency currency) {
+  string url = "https://www.okcoin.cn/api/v1/unrepayments_info.do";
+
+  ostringstream post_fields;
+  post_fields << "api_key=" << api_key;
+  post_fields << "&current_page=1";
+  post_fields << "&page_length=10";
+  switch(currency) {
+    case BTC : post_fields << "&symbol=btc_cny"; break;
+    case CNY : post_fields << "&symbol=cny"; break;
+  }
+  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
+  post_fields << "&sign=" << signature;
+
+  return json::parse(curl_post(url, post_fields.str()))["unrepayments"];
 }
 
 json OKCoin::borrow_money(Currency currency, double amount, double rate, int days) {
@@ -507,7 +547,9 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
 
   auto j = json::parse(curl_post(url.str()));
 
-  for (auto bar : j)
-    OHLC_handler(period_conversions(period), bar, true);
-
+  for (auto i = j.begin(); i != j.end(); ++i) {
+    // on the last bar, pretend this isn't backfilling
+    bool backfill = next(i) == j.end() ? false : true;
+    OHLC_handler(period_conversions(period), *i, backfill);
+  }
 }

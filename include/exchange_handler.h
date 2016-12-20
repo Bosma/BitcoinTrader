@@ -86,6 +86,15 @@ protected:
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
   
+  // go full margin long
+  void full_margin_long(double);
+  void full_margin_short(double);
+
+  // sell all BTC and repay all CNY
+  void close_margin_long();
+  // buy all BTC and repay all BTC
+  void close_margin_short();
+  
   // generic market buy / sell amount of BTC
   void market_buy(double, std::function<void(double, double, long)> = nullptr);
   void market_sell(double, std::function<void(double, double, long)> = nullptr);

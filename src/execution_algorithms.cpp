@@ -6,6 +6,70 @@ using std::this_thread::sleep_for; using std::chrono::seconds;
 using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 
+void BitcoinTrader::full_margin_long(double percent) {
+  // borrowing MAX CNY
+  string borrow_id = exchange->borrow(Currency::CNY, percent);
+
+  exchange->set_userinfo_callback([&](double btc, double cny) {
+      // after we know how much CNY we now have, market buy it all
+      market_buy(floor(cny),
+          [&](double avg_price, double amount, long date) {
+            trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+          });
+      });
+
+  // need to find out how much CNY we have now
+  exchange->userinfo();
+}
+
+void BitcoinTrader::full_margin_short(double percent) {
+  // borrowing MAX BTC
+  string borrow_id = exchange->borrow(Currency::BTC, percent);
+
+  exchange->set_userinfo_callback([&](double btc, double cny) {
+      // after we know how much BTC we now have, market sell it all
+      market_sell(floor(btc),
+          [&](double avg_price, double amount, long date) {
+            trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+          });
+      });
+
+  // need to find out how much BTC we have now
+  exchange->userinfo();
+}
+
+void BitcoinTrader::close_margin_short() {
+  trading_log->output("CLOSING MARGIN SHORT");
+
+  exchange->set_userinfo_callback([&](double btc, double cny) {
+      market_buy(floor(cny),
+          [&](double avg_price, double amount, long date) {
+            if (date != 0)
+              trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+
+            exchange->close_borrow(Currency::BTC);
+          });
+      });
+
+  exchange->userinfo();
+}
+
+void BitcoinTrader::close_margin_long() {
+  trading_log->output("CLOSING MARGIN LONG");
+
+  exchange->set_userinfo_callback([&](double btc, double cny) {
+      market_sell(floor(btc),
+          [&](double avg_price, double amount, long date) {
+            if (date != 0)
+              trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+
+            exchange->close_borrow(Currency::CNY);
+          });
+      });
+
+  exchange->userinfo();
+}
+
 void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time, function<void(double)> callback) {
   ostringstream os;
   os << "LIMIT BUYING " << amount << " BTC @ " << price;
@@ -89,16 +153,22 @@ void BitcoinTrader::market_buy(double amount, function<void(double, double, long
   
   // none of this is required if we don't have a callback
   if (market_callback) {
-    exchange->set_trade_callback(function<void(string)>(
-      [&](string order_id) {
-        exchange->orderinfo(order_id);
-      }
-    ));
     exchange->set_orderinfo_callback(function<void(OrderInfo)>(
       [&](OrderInfo orderinfo) {
         market_callback(orderinfo.avg_price, orderinfo.filled_amount, orderinfo.create_date);
         market_callback = nullptr;
         execution_lock.unlock();
+      }
+    ));
+    exchange->set_trade_callback(function<void(string)>(
+      [&](string order_id) {
+        if (order_id == "failed") {
+          market_callback(0, 0, 0);
+          market_callback = nullptr;
+          execution_lock.unlock();
+        }
+        else
+          exchange->orderinfo(order_id);
       }
     ));
   }
@@ -122,7 +192,13 @@ void BitcoinTrader::market_sell(double amount, function<void(double, double, lon
   if (market_callback) {
     exchange->set_trade_callback(function<void(string)>(
       [&](string order_id) {
-        exchange->orderinfo(order_id);
+        if (order_id == "failed") {
+          market_callback(0, 0, 0);
+          market_callback = nullptr;
+          execution_lock.unlock();
+        }
+        else
+          exchange->orderinfo(order_id);
       }
     ));
     exchange->set_orderinfo_callback(function<void(OrderInfo)>(

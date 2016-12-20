@@ -30,6 +30,7 @@ class Exchange {
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
     virtual std::string borrow(Currency, double = 1) = 0;
+    virtual void close_borrow(Currency) = 0;
 
     virtual void ping() = 0;
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
@@ -61,6 +62,9 @@ class Exchange {
     void set_pong_callback(std::function<void()> callback) {
       pong_callback = callback;
     }
+    void set_close_borrow_callback(std::function<void(Currency, double)> callback) {
+      close_borrow_callback = callback;
+    }
 
     std::string name;
 
@@ -82,4 +86,5 @@ class Exchange {
     std::function<void(double, double)> userinfo_callback;
     std::function<void(double)> filled_callback;
     std::function<void()> pong_callback;
+    std::function<void(Currency, double)> close_borrow_callback;
 };

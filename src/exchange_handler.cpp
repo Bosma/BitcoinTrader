@@ -31,36 +31,15 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // long callback
     [&]() {
       trading_log->output("LONGING");
-      // borrowing MAX CNY
-      string borrow_id = exchange->full_margin_long();
-
-      exchange->set_userinfo_callback([&](double btc, double cny) {
-        // after we know how much CNY we now have, market buy it all
-        market_buy(floor(cny),
-            [](double avg_price, double amount, long date) {
-              std::cout << "avg_price: " << avg_price << std::endl;
-            });
-      });
-      
-      // need to find out how much CNY we have now
-      exchange->userinfo();
+      close_margin_short();
+      full_margin_long(1.0);
     },
     // short callback
     [&]() {
       trading_log->output("SHORTING");
-      // borrowing MAX BTC
-      string borrow_id = exchange->full_margin_short();
-
-      exchange->set_userinfo_callback([&](double btc, double cny) {
-        // after we know how much BTC we now have, market sell it all
-        market_sell(floor(btc),
-            [](double avg_price, double amount, long date) {
-              std::cout << "avg_price: " << avg_price << std::endl;
-            });
-      });
-      
-      // need to find out how much  we have now
-      exchange->userinfo();
+      close_margin_long();
+      exchange->close_borrow(Currency::CNY);
+      full_margin_short(1.0);
     }
   ));
 
@@ -152,6 +131,21 @@ void BitcoinTrader::handle_stops() {
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
+  exchange->set_close_borrow_callback(function<void(Currency, double)>(
+    [&](Currency currency, double amount) {
+      if (amount == 0)
+        trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+      else {
+        ostringstream os;
+        os << "CLOSED " << amount << " ";
+        switch (currency) {
+          case BTC : os << "BTC"; break;
+          case CNY : os << "CNY"; break;
+        }
+        os << " BORROW";
+      }
+    }
+  ));
   exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(
     [&](minutes period, long timestamp, double open, double high,
       double low, double close, double volume, bool backfilling) {

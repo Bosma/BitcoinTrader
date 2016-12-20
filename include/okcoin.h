@@ -47,6 +47,8 @@ class OKCoin : public Exchange {
     void userinfo();
     // borrow percent of possible currency
     std::string borrow(Currency, double);
+    // find out how much is borrowed, close, pay back
+    void close_borrow(Currency);
     // send ping to OKCoin
     void ping();
     // backfill OHLC period
@@ -67,6 +69,8 @@ class OKCoin : public Exchange {
     json borrows_info(Currency);
     // request borrow
     json borrow_money(Currency, double, double, int);
+    // debt list
+    json unrepayments_info(Currency);
     // pay off debt
     json repayment(std::string);
     
