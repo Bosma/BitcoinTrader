@@ -117,18 +117,46 @@ protected:
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  void limit_buy(double, double, std::chrono::seconds,
-      std::function<void(double)> = nullptr);
-  void limit_sell(double, double, std::chrono::seconds,
-      std::function<void(double)> = nullptr);
+  void limit_buy(double, double, std::chrono::seconds);
+  void limit_sell(double, double, std::chrono::seconds);
   void limit_algorithm(std::chrono::seconds);
+  void set_limit_callback(std::function<void(double)> cb) {
+    if (!limit_lock.try_lock_for(std::chrono::seconds(5))) {
+      exchange_log->output("limit callback not fired in time. Allowing new callback setter access.");
+      limit_callback(0);
+      limit_lock.lock();
+    }
+    limit_callback_original = cb;
+    limit_callback = [&](double a) {
+      limit_callback_original(a);
+      limit_callback = nullptr;
+      limit_lock.unlock();
+    };
+  }
+  std::timed_mutex limit_lock;
   std::function<void(double)> limit_callback;
+  std::function<void(double)> limit_callback_original;
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
-  void GTC_buy(double, double, std::function<void(std::string)> = nullptr);
-  void GTC_sell(double, double, std::function<void(std::string)> = nullptr);
+  void GTC_buy(double, double);
+  void GTC_sell(double, double);
+  void set_GTC_callback(std::function<void(std::string)> cb) {
+    if (!GTC_lock.try_lock_for(std::chrono::seconds(5))) {
+      exchange_log->output("GTC callback not fired in time. Allowing new callback setter access.");
+      GTC_callback(0);
+      GTC_lock.lock();
+    }
+    GTC_callback_original = cb;
+    GTC_callback = [&](std::string a) {
+      GTC_callback_original(a);
+      GTC_callback = nullptr;
+      GTC_lock.unlock();
+    };
+  }
+  std::timed_mutex GTC_lock;
   std::function<void(std::string)> GTC_callback;
+  std::function<void(std::string)> GTC_callback_original;
 
   // functions and data relating to limit execution
   // currently will hold a limit for some seconds then cancel

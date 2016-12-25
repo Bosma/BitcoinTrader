@@ -18,15 +18,7 @@ class Exchange {
       name(name),
       reconnect(false),
       config(config),
-      log(log),
-      ticker_lock(),
-      OHLC_lock(),
-      open_lock(),
-      trade_lock(),
-      orderinfo_lock(),
-      userinfo_lock(),
-      filled_lock(),
-      pong_lock() { }
+      log(log) { }
 
     virtual void start() = 0;
     virtual void subscribe_to_ticker() = 0;
