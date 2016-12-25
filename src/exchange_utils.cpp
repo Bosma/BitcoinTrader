@@ -24,6 +24,14 @@ int optionally_to_int(nlohmann::json object) {
     return object;
 }
 
+std::string optionally_to_string(nlohmann::json object) {
+  if (object.is_string()) {
+    return object.get<std::string>();
+  }
+  else
+    return std::to_string(object.get<double>());
+}
+
 std::string dtos(double n, int digits) {
   std::ostringstream n_ss;
   n_ss << std::fixed << std::setprecision(digits) << n;

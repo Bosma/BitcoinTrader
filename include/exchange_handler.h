@@ -17,6 +17,9 @@ public:
 
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
+  void call_long_cb() { strategies[0]->long_cb(); }
+  void call_short_cb() { strategies[0]->short_cb(); }
+  void orderinfo(std::string id) { exchange->orderinfo(id); }
   std::string status();
 
   // interfaces to Exchange
@@ -47,7 +50,7 @@ protected:
 
   // vector of threads performing some recurring actions
   // used for destructor
-  std::vector<std::shared_ptr<std::thread>> running_threads;
+  std::map<std::string, std::shared_ptr<std::thread>> running_threads;
 
   // used to check if the exchange is working
   void check_connection();
@@ -58,10 +61,6 @@ protected:
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent
   std::map<std::chrono::minutes, std::shared_ptr<MktData>> mktdata;
-
-  // held until trade and orderinfo callbacks are complete
-  // to order market events
-  std::mutex execution_lock;
 
   std::vector<std::shared_ptr<Strategy>> strategies;
 
@@ -96,9 +95,24 @@ protected:
   void close_margin_short();
   
   // generic market buy / sell amount of BTC
-  void market_buy(double, std::function<void(double, double, long)> = nullptr);
-  void market_sell(double, std::function<void(double, double, long)> = nullptr);
+  void market_buy(double);
+  void market_sell(double);
+  void set_market_callback(std::function<void(double, double, long)> cb) {
+    if (!market_lock.try_lock_for(std::chrono::seconds(5))) {
+      exchange_log->output("market callback not fired in time. Allowing new callback setter access.");
+      market_callback(0, 0, 0);
+      market_lock.lock();
+    }
+    market_callback_original = cb;
+    market_callback = [&](double a, double b, long c) {
+      market_callback_original(a, b, c);
+      market_callback = nullptr;
+      market_lock.unlock();
+    };
+  }
+  std::timed_mutex market_lock;
   std::function<void(double, double, long)> market_callback;
+  std::function<void(double, double, long)> market_callback_original;
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given

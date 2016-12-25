@@ -134,8 +134,10 @@ void OKCoin::on_message(string const & message) {
         }
         else if (channel == "ok_spotcny_orderinfo") {
           auto orders = j[0]["data"]["orders"];
-          if (orders.empty())
+          if (orders.empty()) {
             log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
+            orderinfo_lock.unlock();
+          }
           else
             orderinfo_handler(orders[0]);
 
@@ -144,6 +146,7 @@ void OKCoin::on_message(string const & message) {
           if (j[0].count("errorcode") == 1) {
             string ec = j[0]["errorcode"];
             log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[ec]);
+            userinfo_lock.unlock();
           }
           else {
             if (userinfo_callback) {
@@ -287,19 +290,25 @@ void OKCoin::order(string type, string amount, string price) {
 }
 
 void OKCoin::orderinfo(string order_id) {
-  json j;
-  j["event"] = "addChannel";
-  j["channel"] = "ok_spotcny_orderinfo";
+  if (order_id == "failed") {
+    OrderInfo failed_order;
+    orderinfo_callback(failed_order);
+  }
+  else {
+    json j;
+    j["event"] = "addChannel";
+    j["channel"] = "ok_spotcny_orderinfo";
 
-  json parameters;
-  parameters["api_key"] = api_key;
-  parameters["symbol"] = "btc_cny";
-  parameters["order_id"] = order_id;
-  parameters["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_cny&secret_key=" + secret_key);
+    json parameters;
+    parameters["api_key"] = api_key;
+    parameters["symbol"] = "btc_cny";
+    parameters["order_id"] = order_id;
+    parameters["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_cny&secret_key=" + secret_key);
 
-  j["parameters"] = parameters;
+    j["parameters"] = parameters;
 
-  ws.send(j.dump());
+    ws.send(j.dump());
+  }
 }
 
 void OKCoin::userinfo() {
@@ -315,34 +324,32 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
-string OKCoin::borrow(Currency currency, double percent) {
+Exchange::BorrowInfo OKCoin::borrow(Currency currency, double percent) {
   double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
   double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
+
+  Exchange::BorrowInfo result;
+  result.rate = rate;
+  result.amount = can_borrow;
+
   if (can_borrow > 0) {
     auto response = borrow_money(currency, percent * can_borrow, rate, 15);
 
-    if (response["result"].get<bool>() == true) {
-      return to_string(response["borrow_id"].get<long>());
-    }
-    else {
-      ostringstream os;
-      os << "failed to borrow " << can_borrow << " ";
-      switch (currency) {
-        case BTC : os << "BTC"; break;
-        case CNY : os << "CNY"; break;
-      }
-      os << " @ %" << rate;
-      log->output(os.str());
-    }
+    if (response["result"].get<bool>() == true)
+      result.id = to_string(response["borrow_id"].get<long>());
+    else
+      result.id = "failed";
   }
-  return "";
+  else
+    result.id = "";
+  return result;
 }
 
-void OKCoin::close_borrow(Currency currency) {
+double OKCoin::close_borrow(Currency currency) {
   // get the open borrows
   auto j = unrepayments_info(currency);
   if (j.size() != 0) {
-    string borrow_id = j[0]["borrow_id"];
+    string borrow_id = optionally_to_string(j[0]["borrow_id"]);
 
     // repay loan
     auto r = repayment(borrow_id);
@@ -350,14 +357,13 @@ void OKCoin::close_borrow(Currency currency) {
 
     if (repaid) {
       double amount = j[0]["amount"];
-      if (close_borrow_callback)
-        close_borrow_callback(currency, amount);
+      return amount;
     }
     else
-      log->output("unsuccesful loan repayment with borrow_id: " + borrow_id);
+      return -1;
   }
   else
-    close_borrow_callback(currency, 0);
+    return 0;
 }
 
 json OKCoin::lend_depth(Currency currency) {
@@ -372,7 +378,8 @@ json OKCoin::lend_depth(Currency currency) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  return json::parse(curl_post(url, post_fields.str()))["lend_depth"];
+  auto j = json::parse(curl_post(url, post_fields.str()))["lend_depth"];
+  return j;
 }
 
 json OKCoin::borrows_info(Currency currency) {
@@ -387,7 +394,8 @@ json OKCoin::borrows_info(Currency currency) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  return json::parse(curl_post(url, post_fields.str()));
+  auto j = json::parse(curl_post(url, post_fields.str()));
+  return j;
 }
 
 json OKCoin::unrepayments_info(Currency currency) {

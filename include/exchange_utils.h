@@ -36,6 +36,10 @@ class OrderInfo {
       amount(amount), avg_price(avg_price), create_date(create_date),
       filled_amount(filled_amount), order_id(order_id), price(price),
       status(status), symbol(symbol), type(type) { }
+    OrderInfo() :
+      amount(0), avg_price(0), create_date(0),
+      filled_amount(0), order_id(0), price(0),
+      status(""), symbol(""), type("") { }
 
     double amount;
     double avg_price;
@@ -61,6 +65,7 @@ class OrderInfo {
 long optionally_to_long(nlohmann::json object);
 double optionally_to_double(nlohmann::json object);
 int optionally_to_int(nlohmann::json object);
+std::string optionally_to_string(nlohmann::json object);
 
 std::string dtos(double, int);
 

@@ -35,8 +35,6 @@ class Strategy {
       return max;
     }
 
-
-  protected:
     std::function<void()> long_cb;
     std::function<void()> short_cb;
 };

@@ -22,7 +22,6 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   running_threads(),
   tick(),
   mktdata(),
-  execution_lock(),
   strategies(),
   received_a_tick(false) {
    
@@ -30,16 +29,23 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   strategies.push_back(make_shared<SMACrossover>("SMACrossover",
     // long callback
     [&]() {
-      trading_log->output("LONGING");
-      close_margin_short();
-      full_margin_long(1.0);
+      if (running_threads.count("long") == 1)
+        running_threads["long"]->join();
+      running_threads["long"] = make_shared<thread>([&]() {
+        trading_log->output("LONGING");
+        close_margin_short();
+        full_margin_long(1.0);
+      });
     },
     // short callback
     [&]() {
-      trading_log->output("SHORTING");
-      close_margin_long();
-      exchange->close_borrow(Currency::CNY);
-      full_margin_short(1.0);
+      if (running_threads.count("short") == 1)
+        running_threads["short"]->join();
+      running_threads["short"] = make_shared<thread>([&]() {
+        trading_log->output("SHORTING");
+        close_margin_long();
+        full_margin_short(1.0);
+      });
     }
   ));
 
@@ -57,8 +63,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 BitcoinTrader::~BitcoinTrader() {
   done = true;
   for (auto t : running_threads)
-    if (t && t->joinable())
-      t->join();
+    if (t.second && t.second->joinable())
+      t.second->join();
 }
 
 string BitcoinTrader::status() {
@@ -88,7 +94,7 @@ void BitcoinTrader::start() {
 }
 
 void BitcoinTrader::check_connection() {
-  running_threads.push_back(std::make_shared<thread>(
+  running_threads["connection_checker"] = std::make_shared<thread>(
     [&]() {
       bool warm_up = true;
       while (!done) {
@@ -106,7 +112,7 @@ void BitcoinTrader::check_connection() {
              // if the websocket has closed
              // this may cause too many false reconnects due to random
              // okcoin fuckery
-             (exchange->reconnect == true))) {
+             exchange->reconnect)) {
           exchange_log->output("RECONNECTING TO " + exchange->name);
           exchange = make_shared<OKCoin>(exchange_log, config);
           setup_exchange_callbacks();
@@ -115,7 +121,7 @@ void BitcoinTrader::check_connection() {
         }
       }
     }
-  ));
+  );
 }
 
 void BitcoinTrader::handle_stops() {
@@ -131,21 +137,6 @@ void BitcoinTrader::handle_stops() {
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
-  exchange->set_close_borrow_callback(function<void(Currency, double)>(
-    [&](Currency currency, double amount) {
-      if (amount == 0)
-        trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
-      else {
-        ostringstream os;
-        os << "CLOSED " << amount << " ";
-        switch (currency) {
-          case BTC : os << "BTC"; break;
-          case CNY : os << "CNY"; break;
-        }
-        os << " BORROW";
-      }
-    }
-  ));
   exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(
     [&](minutes period, long timestamp, double open, double high,
       double low, double close, double volume, bool backfilling) {

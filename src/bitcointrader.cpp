@@ -40,6 +40,12 @@ int main(int argc, char *argv[]) {
         trader.reconnect();
       else if (args[0] == "status")
         cout << trader.status();
+      else if (args[0] == "long")
+        trader.call_long_cb();
+      else if (args[0] == "short")
+        trader.call_short_cb();
+      else if (args[0] == "orderinfo")
+        trader.orderinfo(args[1]);
     }
   }
 

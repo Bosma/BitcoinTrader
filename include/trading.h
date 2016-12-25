@@ -235,30 +235,3 @@ class TakeProfit : public Stop {
 
     std::string action() { return "TAKING PROFIT"; }
 };
-
-class SimulatedLimit {
-  public:
-    SimulatedLimit(double amount, double price, std::string direction, double timestamp) :
-      amount(amount), price(price), direction(direction), triggered(false), entered_timestamp(timestamp) { }
-
-    bool trigger(Ticker tick) {
-      if (direction == "long") {
-        if (tick.last < price ||
-            tick.ask <= price) {
-          triggered = true;
-        }
-      }
-      else {
-        if (tick.last > price ||
-            tick.bid >= price) {
-          triggered = true;
-        }
-      }
-      return triggered;
-    }
-    double amount;
-    double price;
-    std::string direction;
-    bool triggered;
-    long entered_timestamp;
-};
