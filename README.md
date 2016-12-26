@@ -6,11 +6,11 @@ C++ OKCoin spot CNY (multiple exchange support in the future) algo trader.
 2. Boost
 3. libcurl (development library)
 4. curl (cli - optional - used for sending emails)
-5. websocketpp: https://github.com/zaphoyd/websocketpp/
 
 ## Build Instructions
 ```bash
 git clone https://github.com/Bosma/BitcoinTrader.git && cd BitcoinTrader
+git submodule update --init --recursive
 mkdir build && cd build
 ln -s ../okcoin_error_reasons.txt ./
 cp ../bitcointrader.conf ./
