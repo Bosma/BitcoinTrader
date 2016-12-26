@@ -6,6 +6,8 @@ set (CMAKE_CXX_FLAGS "-Wall -std=c++14 -D_WEBSOCKETPP_CPP11_STL_ -DBOOST_ASIO_HA
 set (CMAKE_EXE_LINKER_FLAGS "-lboost_system -lpthread -lcrypto -lssl -lcurl")
 
 include_directories (include)
+include_directories (json/src)
+include_directories (websocketpp)
 
 file (GLOB SOURCES "src/*.cpp")
 

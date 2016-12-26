@@ -4,8 +4,8 @@
 #include <chrono>
 
 #include <curl/curl.h>
+#include <json.hpp>
 
-#include "../include/json.hpp"
 
 enum Currency { BTC, CNY };
 
