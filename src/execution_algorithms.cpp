@@ -21,6 +21,8 @@ void BitcoinTrader::full_margin_long(double percent) {
   trading_log->output("GOING FULL MARGIN LONG");
   // borrowing MAX CNY
   Exchange::BorrowInfo result = exchange->borrow(Currency::CNY, percent);
+  // wait a bit after borrowing
+  sleep_for(seconds(1));
   if (result.amount == 0)
     trading_log->output("full_margin_long: CANNOT BORROW ANY CNY");
   else if (result.id == "failed")
@@ -46,6 +48,8 @@ void BitcoinTrader::full_margin_short(double percent) {
   
   // borrowing MAX BTC
   Exchange::BorrowInfo result = exchange->borrow(Currency::BTC, percent);
+  // wait a bit after borrowing
+  sleep_for(seconds(1));
   if (result.amount == 0)
     trading_log->output("full_margin_short: CANNOT BORROW ANY BTC");
   else if (result.id == "failed")
