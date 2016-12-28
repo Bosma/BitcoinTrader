@@ -33,8 +33,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
         running_threads["long"]->join();
       running_threads["long"] = make_shared<thread>([&]() {
         trading_log->output("LONGING");
-        close_margin_short();
-        full_margin_long(1.0);
+        //close_margin_short();
+        margin_long(2);
       });
     },
     // short callback
@@ -43,8 +43,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
         running_threads["short"]->join();
       running_threads["short"] = make_shared<thread>([&]() {
         trading_log->output("SHORTING");
-        close_margin_long();
-        full_margin_short(1.0);
+        //close_margin_long();
+        margin_short(2);
       });
     }
   ));

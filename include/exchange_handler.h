@@ -85,9 +85,12 @@ protected:
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
   
-  // go full margin long
-  void full_margin_long(double);
-  void full_margin_short(double);
+  // borrow amount and currency
+  bool borrow(Currency, double);
+  
+  // go margin long
+  void margin_long(double);
+  void margin_short(double);
 
   // sell all BTC and repay all CNY
   void close_margin_long();

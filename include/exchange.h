@@ -29,6 +29,7 @@ class Exchange {
     virtual void limit_sell(double, double) = 0;
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
+    struct UserInfo { double asset_net; double free_btc; double free_cny; double borrow_btc; double borrow_cny; };
     virtual void userinfo() = 0;
     struct BorrowInfo { std::string id; double amount; double rate; };
     virtual BorrowInfo borrow(Currency, double = 1) = 0;
@@ -98,14 +99,16 @@ class Exchange {
       orderinfo_callback_original = callback;
       orderinfo_callback = [&](OrderInfo a) { orderinfo_callback_original(a); orderinfo_lock.unlock(); };
     }
-    void set_userinfo_callback(std::function<void(double, double)> callback) {
+    void set_userinfo_callback(std::function<void(UserInfo)> callback) {
       if (!userinfo_lock.try_lock_for(std::chrono::seconds(5))) {
         log->output("userinfo callback not fired in time. Allowing new callback setter access.");
-        userinfo_callback(0, 0);
+        UserInfo a;
+        a.asset_net = 0;
+        userinfo_callback(a);
         userinfo_lock.lock();
       }
       userinfo_callback_original = callback;
-      userinfo_callback = [&](double a, double b) { userinfo_callback_original(a, b); userinfo_lock.unlock(); };
+      userinfo_callback = [&](UserInfo a) { userinfo_callback_original(a); userinfo_lock.unlock(); };
     }
     void set_filled_callback(std::function<void(double)> callback) {
       if (!filled_lock.try_lock_for(std::chrono::seconds(5))) {
@@ -153,8 +156,8 @@ class Exchange {
     std::function<void(OrderInfo)> orderinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback_original;
     std::timed_mutex orderinfo_lock;
-    std::function<void(double, double)> userinfo_callback;
-    std::function<void(double, double)> userinfo_callback_original;
+    std::function<void(UserInfo)> userinfo_callback;
+    std::function<void(UserInfo)> userinfo_callback_original;
     std::timed_mutex userinfo_lock;
     std::function<void(double)> filled_callback;
     std::function<void(double)> filled_callback_original;

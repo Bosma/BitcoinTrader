@@ -150,10 +150,21 @@ void OKCoin::on_message(string const & message) {
           }
           else {
             if (userinfo_callback) {
-              auto btc = j[0]["data"]["info"]["funds"]["free"]["btc"];
-              auto cny = j[0]["data"]["info"]["funds"]["free"]["cny"];
-              userinfo_callback(optionally_to_double(btc),
-                  optionally_to_double(cny));
+              std::cout << j << std::endl;
+              auto funds = j[0]["data"]["info"]["funds"];
+              UserInfo info;
+              info.asset_net = optionally_to_double(funds["asset"]["net"]);
+              info.free_btc = optionally_to_double(funds["free"]["btc"]);
+              info.free_cny = optionally_to_double(funds["free"]["cny"]);
+              if (funds.count("borrow") == 1) {
+                info.borrow_btc = optionally_to_double(funds["borrow"]["btc"]);
+                info.borrow_cny = optionally_to_double(funds["borrow"]["cny"]);
+              }
+              else {
+                info.borrow_btc = 0;
+                info.borrow_cny = 0;
+              }
+              userinfo_callback(info);
             }
           }
         }
@@ -324,24 +335,20 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
-Exchange::BorrowInfo OKCoin::borrow(Currency currency, double percent) {
+Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
   double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
-  double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
 
   Exchange::BorrowInfo result;
   result.rate = rate;
-  result.amount = can_borrow;
+  result.amount = amount;
 
-  if (can_borrow > 0) {
-    auto response = borrow_money(currency, percent * can_borrow, rate, 15);
+  auto response = borrow_money(currency, amount, rate, 15);
 
-    if (response["result"].get<bool>() == true)
-      result.id = to_string(response["borrow_id"].get<long>());
-    else
-      result.id = "failed";
-  }
+  if (response["result"].get<bool>() == true)
+    result.id = to_string(response["borrow_id"].get<long>());
   else
-    result.id = "";
+    result.id = "failed";
+
   return result;
 }
 
