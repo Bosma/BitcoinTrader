@@ -61,6 +61,12 @@ void OKCoin::on_message(string const & message) {
   try {
     auto j = json::parse(message);
 
+    if (j.is_array() && j[0].count("channel") == 1 && j[0]["channel"] == "ok_sub_spotcny_btc_ticker") {
+      // ignore printing ticker
+    }
+    else
+      std::cout << j << std::endl;
+
     // if our json is an array
     // it's a response from some channel
     if (j.is_array()) {
@@ -150,7 +156,6 @@ void OKCoin::on_message(string const & message) {
           }
           else {
             if (userinfo_callback) {
-              std::cout << j << std::endl;
               auto funds = j[0]["data"]["info"]["funds"];
               UserInfo info;
               info.asset_net = optionally_to_double(funds["asset"]["net"]);
@@ -357,6 +362,7 @@ double OKCoin::close_borrow(Currency currency) {
   auto j = unrepayments_info(currency);
   if (j.size() != 0) {
     string borrow_id = optionally_to_string(j[0]["borrow_id"]);
+    std::cout << borrow_id << std::endl;
 
     // repay loan
     auto r = repayment(borrow_id);

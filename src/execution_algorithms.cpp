@@ -5,6 +5,7 @@ using std::make_shared;            using std::thread;
 using std::this_thread::sleep_for; using std::chrono::seconds;
 using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
+using std::chrono::milliseconds;
 
 bool BitcoinTrader::borrow(Currency currency, double amount) {
   if ((currency == BTC &&
@@ -26,29 +27,36 @@ bool BitcoinTrader::borrow(Currency currency, double amount) {
 // this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_long(double equity_multiple) {
   exchange->set_userinfo_callback([&, equity_multiple](Exchange::UserInfo info) {
-    set_market_callback([&, equity_multiple](double avg_price, double amount, long date) {
-      if (date != 0)
-        trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-      else
-        trading_log->output("FAILED TO BUY");
-    });
+    if (info.borrow_btc == 0 && info.borrow_cny == 0) {
+      set_market_callback([&, equity_multiple](double avg_price, double amount, long date) {
+        if (date != 0)
+          trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+        else
+          trading_log->output("FAILED TO BUY");
+      });
 
-    // grab price
-    double price = tick.ask;
-    // We have info.asset_net CNY of assets, so must own (equity_multiple * info.asset_net) / price of BTC
-    double btc_to_own = (equity_multiple * info.asset_net) / price;
-    // We own info.free_btc of BTC, so need to buy btc_to_own - info.free_btc of BTC
-    double btc_to_buy = btc_to_own - info.free_btc;
-    // This will cost btc_to_buy * price worth of CNY to buy
-    double cny_to_buy_btc = btc_to_buy * price;
-    // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
-    double cny_to_borrow = cny_to_buy_btc - info.free_cny;
-    // borrow the CNY and go all BTC
-    if (borrow(Currency::CNY, cny_to_borrow))
-      market_buy(floor(cny_to_buy_btc));
-    // we failed to borrow, so just buy all CNY we own
+      // grab price
+      double price = tick.ask;
+      // We have info.asset_net CNY of assets, so must own (equity_multiple * info.asset_net) / price of BTC
+      double btc_to_own = (equity_multiple * info.asset_net) / price;
+      // We own info.free_btc of BTC, so need to buy btc_to_own - info.free_btc of BTC
+      double btc_to_buy = btc_to_own - info.free_btc;
+      // This will cost btc_to_buy * price worth of CNY to buy
+      double cny_to_buy_btc = btc_to_buy * price;
+      // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
+      double cny_to_borrow = cny_to_buy_btc - info.free_cny;
+      // borrow the CNY and go all BTC
+      if (borrow(Currency::CNY, cny_to_borrow)) {
+        // give it a little time
+        sleep_for(milliseconds(200));
+        market_buy(floor(cny_to_buy_btc));
+      }
+      // we failed to borrow, so just buy all CNY we own
+      else
+        market_buy(floor(info.free_cny));
+    }
     else
-      market_buy(floor(info.free_cny));
+      trading_log->output("ATTEMPTING TO MARGIN LONG WITH OPEN POSITION");
   });
 
   trading_log->output("MARGIN LONGING " + to_string(equity_multiple * 100) + "% of equity");
@@ -60,28 +68,35 @@ void BitcoinTrader::margin_long(double equity_multiple) {
 // this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_short(double equity_multiple) {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
-    set_market_callback([&](double avg_price, double amount, long date) {
-      if (date != 0)
-        trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-      else
-        trading_log->output("FAILED TO SELL");
-    });
+    if (info.borrow_btc == 0 && info.borrow_cny == 0) {
+      set_market_callback([&](double avg_price, double amount, long date) {
+        if (date != 0)
+          trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+        else
+          trading_log->output("FAILED TO SELL");
+      });
 
-    // grab price
-    double price = tick.bid;
-    // We have info.asset_net of assets, so to be fully short must own info.asset_net * equity_multiple of CNY
-    double cny_to_own = info.asset_net * equity_multiple;
-    // We already own info.free_cny of CNY, so need to buy cny_to_own - info.free_cny of BTC
-    double cny_to_buy = cny_to_own - info.free_cny;
-    // This will mean we have to sell cny_to_buy / price BTC
-    double btc_to_buy_cny = cny_to_buy / price;
-    // We own info.free_btc of BTC already, so need to borrow btc_to_buy_cny - info.free_btc of BTC
-    double btc_to_borrow = btc_to_buy_cny - info.free_btc;
-    // borrow the BTC and sell it all
-    if (borrow(Currency::BTC, btc_to_borrow))
-      market_sell(btc_to_buy_cny);
+      // grab price
+      double price = tick.bid;
+      // We have info.asset_net of assets, so to be fully short must own info.asset_net * equity_multiple of CNY
+      double cny_to_own = info.asset_net * equity_multiple;
+      // We already own info.free_cny of CNY, so need to buy cny_to_own - info.free_cny of BTC
+      double cny_to_buy = cny_to_own - info.free_cny;
+      // This will mean we have to sell cny_to_buy / price BTC
+      double btc_to_buy_cny = cny_to_buy / price;
+      // We own info.free_btc of BTC already, so need to borrow btc_to_buy_cny - info.free_btc of BTC
+      double btc_to_borrow = btc_to_buy_cny - info.free_btc;
+      // borrow the BTC and sell it all
+      if (borrow(Currency::BTC, btc_to_borrow)) {
+        // give it a little time
+        sleep_for(milliseconds(200));
+        market_sell(btc_to_buy_cny);
+      }
+      else
+        market_sell(info.free_btc);
+    }
     else
-      market_sell(info.free_btc);
+      trading_log->output("ATTEMPTING TO MARGIN SHORT WITH OPEN POSITION");
   });
 
   trading_log->output("MARGIN SHORTING " + to_string(equity_multiple * 100) + "% of equity");
@@ -107,11 +122,9 @@ void BitcoinTrader::close_margin_short() {
         trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
     });
 
-    // We need to pay back info.borrow_btc BTC and we own info.free_btc already,
-    // so need to buy info.borrow_btc - info.free_btc
-    double btc_to_buy = info.borrow_btc - info.free_btc;
-    // so we need to buy btc_to_buy * tick.ask worth
-    market_buy(btc_to_buy * tick.ask);
+    market_buy(floor(info.free_cny));
+    // sleep before passing control of userinfo callback
+    sleep_for(milliseconds(1000));
   });
 
   trading_log->output("CLOSING MARGIN SHORT");
@@ -122,24 +135,22 @@ void BitcoinTrader::close_margin_long() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     set_market_callback([&](double avg_price, double amount, long date) {
       if (date != 0)
-        trading_log->output("close_margin_long: SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
+        trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
       else
-        trading_log->output("close_margin_long: FAILED TO SELL");
+        trading_log->output("FAILED TO SELL");
 
       double result = exchange->close_borrow(Currency::CNY);
       if (result == 0)
-        trading_log->output("close_margin_long: REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+        trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
       else if (result == -1)
-        trading_log->output("close_margin_long: REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
+        trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
       else
-        trading_log->output("close_margin_long: CLOSED " + to_string(result) + " CNY BORROW");
+        trading_log->output("CLOSED " + to_string(result) + " CNY BORROW");
     });
 
-    // we need to pay back info.borrow_cny CNY and we own info.free_cny CNY already
-    // so need to buy info.borrow_cny - info.freecny CNY
-    double cny_to_buy = info.borrow_cny - info.free_cny;
-    // so we need to sell cny_to_buy / tick.bid BTC
-    market_sell(cny_to_buy / tick.bid);
+    market_sell(info.free_btc);
+    // sleep before passing control of userinfo callback
+    sleep_for(milliseconds(1000));
   });
 
   trading_log->output("CLOSING MARGIN LONG");
@@ -224,7 +235,7 @@ void BitcoinTrader::market_buy(double amount) {
     }
 
     ostringstream os;
-    os << "market_buy: MARKET BUYING " << amount << " CNY @ " << tick.ask;
+    os << "MARKET BUYING " << amount << " CNY @ " << tick.ask;
     trading_log->output(os.str());
 
     exchange->market_buy(amount);
@@ -252,7 +263,7 @@ void BitcoinTrader::market_sell(double amount) {
     }
 
     ostringstream os;
-    os << "market_sell: MARKET SELLING " << amount << " BTC @ " << tick.bid;
+    os << "MARKET SELLING " << amount << " BTC @ " << tick.bid;
     trading_log->output(os.str());
 
     exchange->market_sell(amount);

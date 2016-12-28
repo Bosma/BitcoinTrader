@@ -100,8 +100,9 @@ protected:
   // generic market buy / sell amount of BTC
   void market_buy(double);
   void market_sell(double);
-  void set_market_callback(std::function<void(double, double, long)> cb) {
-    if (!market_lock.try_lock_for(std::chrono::seconds(5))) {
+  void set_market_callback(std::function<void(double, double, long)> cb,
+      std::chrono::seconds timeout = std::chrono::seconds(10)) {
+    if (!market_lock.try_lock_for(timeout)) {
       exchange_log->output("market callback not fired in time. Allowing new callback setter access.");
       market_callback(0, 0, 0);
       market_lock.lock();
@@ -123,8 +124,9 @@ protected:
   void limit_buy(double, double, std::chrono::seconds);
   void limit_sell(double, double, std::chrono::seconds);
   void limit_algorithm(std::chrono::seconds);
-  void set_limit_callback(std::function<void(double)> cb) {
-    if (!limit_lock.try_lock_for(std::chrono::seconds(5))) {
+  void set_limit_callback(std::function<void(double)> cb,
+      std::chrono::seconds timeout = std::chrono::seconds(10)) {
+    if (!limit_lock.try_lock_for(timeout)) {
       exchange_log->output("limit callback not fired in time. Allowing new callback setter access.");
       limit_callback(0);
       limit_lock.lock();
@@ -144,8 +146,9 @@ protected:
   // will run callback after receiving order_id
   void GTC_buy(double, double);
   void GTC_sell(double, double);
-  void set_GTC_callback(std::function<void(std::string)> cb) {
-    if (!GTC_lock.try_lock_for(std::chrono::seconds(5))) {
+  void set_GTC_callback(std::function<void(std::string)> cb,
+      std::chrono::seconds timeout = std::chrono::seconds(5)) {
+    if (!GTC_lock.try_lock_for(timeout)) {
       exchange_log->output("GTC callback not fired in time. Allowing new callback setter access.");
       GTC_callback(0);
       GTC_lock.lock();

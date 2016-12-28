@@ -44,10 +44,10 @@ class Exchange {
     // These are all synchronous, meaning they will lock a lock and unlock it when the callback is triggered
     // this is to order websocket events and ensure that a client that sets a callback will get it triggered
     // looks ugly, but see comments on first function below
-    void set_ticker_callback(std::function<void(long, double, double, double)> callback) {
+    void set_ticker_callback(std::function<void(long, double, double, double)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       // receive a callback callback
       // try to lock the lock for 5 seconds
-      if (!ticker_lock.try_lock_for(std::chrono::seconds(5))) {
+      if (!ticker_lock.try_lock_for(timeout)) {
         // someone else didn't fire the callback, so the lock wasn't unlocked
         // so force fire the callback with failure parameters to force it unlocked
         log->output("ticker callback not fired in time. Allowing new callback setter access.");
@@ -61,8 +61,8 @@ class Exchange {
       // the new callback will call the old one, then unlock the lock, allowing someone else to set this callback
       ticker_callback = [&](long a, double b, double c, double d) { ticker_callback_original(a, b, c, d); ticker_lock.unlock(); };
     }
-    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback) {
-      if (!OHLC_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!OHLC_lock.try_lock_for(timeout)) {
         log->output("OHLC callback not fired in time. Allowing new callback setter access.");
         OHLC_callback(std::chrono::minutes(0), 0, 0, 0, 0, 0, 0, false);
         OHLC_lock.lock();
@@ -71,8 +71,8 @@ class Exchange {
       OHLC_callback = [&](std::chrono::minutes a, long b,
           double c, double d, double e, double f, double g, bool h) { OHLC_callback_original(a, b, c, d, e, f, g, h); OHLC_lock.unlock(); };
     }
-    void set_open_callback(std::function<void()> callback) {
-      if (!open_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_open_callback(std::function<void()> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!open_lock.try_lock_for(timeout)) {
         log->output("open callback not fired in time. Allowing new callback setter access.");
         open_callback();
         open_lock.lock();
@@ -80,8 +80,8 @@ class Exchange {
       open_callback_original = callback;
       open_callback = [&]() { open_callback_original(); open_lock.unlock(); };
     }
-    void set_trade_callback(std::function<void(std::string)> callback) {
-      if (!trade_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_trade_callback(std::function<void(std::string)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!trade_lock.try_lock_for(timeout)) {
         log->output("trade callback not fired in time. Allowing new callback setter access.");
         trade_callback("");
         trade_lock.lock();
@@ -89,8 +89,8 @@ class Exchange {
       trade_callback_original = callback;
       trade_callback = [&](std::string a) { trade_callback_original(a); trade_lock.unlock(); };
     }
-    void set_orderinfo_callback(std::function<void(OrderInfo)> callback) {
-      if (!orderinfo_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_orderinfo_callback(std::function<void(OrderInfo)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!orderinfo_lock.try_lock_for(timeout)) {
         log->output("orderinfo callback not fired in time. Allowing new callback setter access.");
         OrderInfo failed_order;
         orderinfo_callback(failed_order);
@@ -99,8 +99,8 @@ class Exchange {
       orderinfo_callback_original = callback;
       orderinfo_callback = [&](OrderInfo a) { orderinfo_callback_original(a); orderinfo_lock.unlock(); };
     }
-    void set_userinfo_callback(std::function<void(UserInfo)> callback) {
-      if (!userinfo_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_userinfo_callback(std::function<void(UserInfo)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!userinfo_lock.try_lock_for(timeout)) {
         log->output("userinfo callback not fired in time. Allowing new callback setter access.");
         UserInfo a;
         a.asset_net = 0;
@@ -110,8 +110,8 @@ class Exchange {
       userinfo_callback_original = callback;
       userinfo_callback = [&](UserInfo a) { userinfo_callback_original(a); userinfo_lock.unlock(); };
     }
-    void set_filled_callback(std::function<void(double)> callback) {
-      if (!filled_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_filled_callback(std::function<void(double)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!filled_lock.try_lock_for(timeout)) {
         log->output("filled callback not fired in time. Allowing new callback setter access.");
         filled_callback(0);
         filled_lock.lock();
@@ -119,8 +119,8 @@ class Exchange {
       filled_callback_original = callback;
       filled_callback = [&](double a) { filled_callback_original(a); filled_lock.unlock(); };
     }
-    void set_pong_callback(std::function<void()> callback) {
-      if (!pong_lock.try_lock_for(std::chrono::seconds(5))) {
+    void set_pong_callback(std::function<void()> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+      if (!pong_lock.try_lock_for(timeout)) {
         log->output("pong callback not fired in time. Allowing new callback setter access.");
         pong_callback();
         pong_lock.lock();
