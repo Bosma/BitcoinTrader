@@ -162,6 +162,7 @@ void BitcoinTrader::setup_exchange_callbacks() {
       tick.ask = ask;
 
       if (!received_a_tick) {
+        received_a_tick = true;
         for (auto m : mktdata) {
           // before we subscribe, backfill the data
           exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
@@ -170,7 +171,6 @@ void BitcoinTrader::setup_exchange_callbacks() {
       }
 
       handle_stops();
-      received_a_tick = true;
     }
   ));
 }
