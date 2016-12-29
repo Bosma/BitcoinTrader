@@ -102,8 +102,11 @@ wspp_context_ptr websocket::on_tls_init(wspp_client *, websocketpp::connection_h
 }
 
 void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr msg) {
-  if (message_callback)
-    message_callback(msg->get_payload());
+  if (message_callback) {
+    std::thread t([&]() {
+      message_callback(msg->get_payload());
+    }).detach();
+  }
 }
 
 void websocket::on_close(wspp_client *c, websocketpp::connection_hdl hdl) {
