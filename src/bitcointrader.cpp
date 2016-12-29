@@ -44,8 +44,6 @@ int main(int argc, char *argv[]) {
         trader.call_long_cb();
       else if (args[0] == "short")
         trader.call_short_cb();
-      else if (args[0] == "orderinfo")
-        trader.orderinfo(args[1]);
     }
   }
 

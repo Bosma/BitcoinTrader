@@ -17,7 +17,7 @@ bool BitcoinTrader::borrow(Currency currency, double amount) {
     if (result.id == "failed")
       trading_log->output("FAILED TO BORROW " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate));
     else {
-      trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate));
+      trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate) + " (" + result.id + ")");
       return true;
     }
   }
@@ -28,13 +28,6 @@ bool BitcoinTrader::borrow(Currency currency, double amount) {
 void BitcoinTrader::margin_long(double equity_multiple) {
   exchange->set_userinfo_callback([&, equity_multiple](Exchange::UserInfo info) {
     if (info.borrow_btc == 0 && info.borrow_cny == 0) {
-      set_market_callback([&, equity_multiple](double avg_price, double amount, long date) {
-        if (date != 0)
-          trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-        else
-          trading_log->output("FAILED TO BUY");
-      });
-
       // grab price
       double price = tick.ask;
       // We have info.asset_net CNY of assets, so must own (equity_multiple * info.asset_net) / price of BTC
@@ -45,10 +38,10 @@ void BitcoinTrader::margin_long(double equity_multiple) {
       double cny_to_buy_btc = btc_to_buy * price;
       // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
       double cny_to_borrow = cny_to_buy_btc - info.free_cny;
+      // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
       // borrow the CNY and go all BTC
       if (borrow(Currency::CNY, cny_to_borrow)) {
-        // give it a little time
-        sleep_for(milliseconds(200));
+        sleep_for(seconds(3));
         market_buy(floor(cny_to_buy_btc));
       }
       // we failed to borrow, so just buy all CNY we own
@@ -69,13 +62,6 @@ void BitcoinTrader::margin_long(double equity_multiple) {
 void BitcoinTrader::margin_short(double equity_multiple) {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     if (info.borrow_btc == 0 && info.borrow_cny == 0) {
-      set_market_callback([&](double avg_price, double amount, long date) {
-        if (date != 0)
-          trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-        else
-          trading_log->output("FAILED TO SELL");
-      });
-
       // grab price
       double price = tick.bid;
       // We have info.asset_net of assets, so to be fully short must own info.asset_net * equity_multiple of CNY
@@ -88,8 +74,7 @@ void BitcoinTrader::margin_short(double equity_multiple) {
       double btc_to_borrow = btc_to_buy_cny - info.free_btc;
       // borrow the BTC and sell it all
       if (borrow(Currency::BTC, btc_to_borrow)) {
-        // give it a little time
-        sleep_for(milliseconds(200));
+        sleep_for(seconds(3));
         market_sell(btc_to_buy_cny);
       }
       else
@@ -107,24 +92,17 @@ void BitcoinTrader::margin_short(double equity_multiple) {
 
 void BitcoinTrader::close_margin_short() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
-    set_market_callback([&](double avg_price, double amount, long date) {
-      if (date != 0)
-        trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-      else
-        trading_log->output("FAILED TO BUY");
-
-      double result = exchange->close_borrow(Currency::BTC);
-      if (result == 0)
-        trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
-      else if (result == -1)
-        trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
-      else
-        trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
-    });
-
     market_buy(floor(info.free_cny));
-    // sleep before passing control of userinfo callback
-    sleep_for(milliseconds(1000));
+
+    sleep_for(seconds(3));
+
+    double result = exchange->close_borrow(Currency::BTC);
+    if (result == 0)
+      trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+    else if (result == -1)
+      trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
+    else
+      trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
   });
 
   trading_log->output("CLOSING MARGIN SHORT");
@@ -133,24 +111,17 @@ void BitcoinTrader::close_margin_short() {
 
 void BitcoinTrader::close_margin_long() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
-    set_market_callback([&](double avg_price, double amount, long date) {
-      if (date != 0)
-        trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(avg_price) + " CNY");
-      else
-        trading_log->output("FAILED TO SELL");
-
-      double result = exchange->close_borrow(Currency::CNY);
-      if (result == 0)
-        trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
-      else if (result == -1)
-        trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
-      else
-        trading_log->output("CLOSED " + to_string(result) + " CNY BORROW");
-    });
-
     market_sell(info.free_btc);
-    // sleep before passing control of userinfo callback
-    sleep_for(milliseconds(1000));
+
+    sleep_for(seconds(3));
+
+    double result = exchange->close_borrow(Currency::CNY);
+    if (result == 0)
+      trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+    else if (result == -1)
+      trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
+    else
+      trading_log->output("CLOSED " + to_string(result) + " CNY BORROW");
   });
 
   trading_log->output("CLOSING MARGIN LONG");
@@ -219,6 +190,7 @@ void BitcoinTrader::limit_algorithm(seconds limit) {
 }
 
 void BitcoinTrader::market_buy(double amount) {
+  amount = truncate_to(amount, 2);
   if (amount > 0.01 * tick.ask) {
     // none of this is required if we don't have a callback
     if (market_callback) {
@@ -247,6 +219,7 @@ void BitcoinTrader::market_buy(double amount) {
 }
 
 void BitcoinTrader::market_sell(double amount) {
+  amount = truncate_to(amount, 2);
   if (amount >= 0.01) {
     // none of this is required if we don't have a callback
     if (market_callback) {

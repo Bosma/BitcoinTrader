@@ -65,7 +65,10 @@ class OrderInfo {
 long optionally_to_long(nlohmann::json object);
 double optionally_to_double(nlohmann::json object);
 int optionally_to_int(nlohmann::json object);
-std::string optionally_to_string(nlohmann::json object);
+std::string opt_double_to_string(nlohmann::json object);
+std::string opt_int_to_string(nlohmann::json object);
+
+double truncate_to(double, int);
 
 std::string dtos(double, int);
 

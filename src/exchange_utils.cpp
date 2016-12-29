@@ -24,7 +24,7 @@ int optionally_to_int(nlohmann::json object) {
     return object;
 }
 
-std::string optionally_to_string(nlohmann::json object) {
+std::string opt_double_to_string(nlohmann::json object) {
   if (object.is_string()) {
     return object.get<std::string>();
   }
@@ -32,10 +32,24 @@ std::string optionally_to_string(nlohmann::json object) {
     return std::to_string(object.get<double>());
 }
 
+std::string opt_int_to_string(nlohmann::json object) {
+  if (object.is_string()) {
+    return object.get<std::string>();
+  }
+  else
+    return std::to_string(object.get<int>());
+}
+
 std::string dtos(double n, int digits) {
   std::ostringstream n_ss;
   n_ss << std::fixed << std::setprecision(digits) << n;
   return n_ss.str();
+}
+
+double truncate_to(double to_round, int digits) {
+  int i = to_round * std::pow(10, digits);
+  double to_return = i / std::pow(10, digits);
+  return to_return;
 }
 
 // use this function for consistent timestamps

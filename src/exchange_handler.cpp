@@ -34,6 +34,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
       running_threads["long"] = make_shared<thread>([&]() {
         trading_log->output("LONGING");
         close_margin_short();
+        sleep_for(seconds(5));
         margin_long(2);
       });
     },
@@ -44,6 +45,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
       running_threads["short"] = make_shared<thread>([&]() {
         trading_log->output("SHORTING");
         close_margin_long();
+        sleep_for(seconds(5));
         margin_short(2);
       });
     }
@@ -137,6 +139,11 @@ void BitcoinTrader::handle_stops() {
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
+  exchange->set_open_callback(function<void()>(
+    [&]() {
+      exchange->subscribe_to_ticker();
+    }
+  ));
   exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(
     [&](minutes period, long timestamp, double open, double high,
       double low, double close, double volume, bool backfilling) {
@@ -145,11 +152,6 @@ void BitcoinTrader::setup_exchange_callbacks() {
             low, close, volume));
 
       mktdata[period]->add(bar, backfilling);
-    }
-  ));
-  exchange->set_open_callback(function<void()>(
-    [&]() {
-      exchange->subscribe_to_ticker();
     }
   ));
   exchange->set_ticker_callback(function<void(long, double, double, double)>(

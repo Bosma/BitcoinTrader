@@ -19,7 +19,6 @@ public:
   void reconnect() { exchange->reconnect = true; }
   void call_long_cb() { strategies[0]->long_cb(); }
   void call_short_cb() { strategies[0]->short_cb(); }
-  void orderinfo(std::string id) { exchange->orderinfo(id); }
   std::string status();
 
   // interfaces to Exchange

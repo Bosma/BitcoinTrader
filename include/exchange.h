@@ -39,47 +39,20 @@ class Exchange {
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
     virtual std::string status() = 0;
 
-    // SETTERS FOR
-    // SEMANTIC CALLBACKS FOR THE USER
-    // These are all synchronous, meaning they will lock a lock and unlock it when the callback is triggered
-    // this is to order websocket events and ensure that a client that sets a callback will get it triggered
-    // looks ugly, but see comments on first function below
-    void set_ticker_callback(std::function<void(long, double, double, double)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
-      // receive a callback callback
-      // try to lock the lock for 5 seconds
-      if (!ticker_lock.try_lock_for(timeout)) {
-        // someone else didn't fire the callback, so the lock wasn't unlocked
-        // so force fire the callback with failure parameters to force it unlocked
-        log->output("ticker callback not fired in time. Allowing new callback setter access.");
-        ticker_callback(0, 0, 0, 0);
-        // ticker_lock is now unlocked by the callback
-        // so lock it for this usage
-        ticker_lock.lock();
-      }
-      // save the original callback
-      ticker_callback_original = callback;
-      // the new callback will call the old one, then unlock the lock, allowing someone else to set this callback
-      ticker_callback = [&](long a, double b, double c, double d) { ticker_callback_original(a, b, c, d); ticker_lock.unlock(); };
+    // STREAMING CALLBACKS
+    // "SET AND FORGET"
+    void set_ticker_callback(std::function<void(long, double, double, double)> callback) {
+      ticker_callback = callback;
     }
-    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
-      if (!OHLC_lock.try_lock_for(timeout)) {
-        log->output("OHLC callback not fired in time. Allowing new callback setter access.");
-        OHLC_callback(std::chrono::minutes(0), 0, 0, 0, 0, 0, 0, false);
-        OHLC_lock.lock();
-      }
-      OHLC_callback_original = callback;
-      OHLC_callback = [&](std::chrono::minutes a, long b,
-          double c, double d, double e, double f, double g, bool h) { OHLC_callback_original(a, b, c, d, e, f, g, h); OHLC_lock.unlock(); };
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback) {
+      OHLC_callback = callback;
     }
     void set_open_callback(std::function<void()> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
-      if (!open_lock.try_lock_for(timeout)) {
-        log->output("open callback not fired in time. Allowing new callback setter access.");
-        open_callback();
-        open_lock.lock();
-      }
-      open_callback_original = callback;
-      open_callback = [&]() { open_callback_original(); open_lock.unlock(); };
+      open_callback = callback;
     }
+
+    // ONE-OFF CALLBACKS
+    // WILL HOLD LOCK UNTIL A RESPONSE OR TIMEOUT
     void set_trade_callback(std::function<void(std::string)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!trade_lock.try_lock_for(timeout)) {
         log->output("trade callback not fired in time. Allowing new callback setter access.");
@@ -87,7 +60,7 @@ class Exchange {
         trade_lock.lock();
       }
       trade_callback_original = callback;
-      trade_callback = [&](std::string a) { trade_callback_original(a); trade_lock.unlock(); };
+      trade_callback = [&](std::string a) { trade_callback_original(a); trade_callback = nullptr; trade_lock.unlock(); };
     }
     void set_orderinfo_callback(std::function<void(OrderInfo)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!orderinfo_lock.try_lock_for(timeout)) {
@@ -97,7 +70,7 @@ class Exchange {
         orderinfo_lock.lock();
       }
       orderinfo_callback_original = callback;
-      orderinfo_callback = [&](OrderInfo a) { orderinfo_callback_original(a); orderinfo_lock.unlock(); };
+      orderinfo_callback = [&](OrderInfo a) { orderinfo_callback_original(a); orderinfo_callback = nullptr; orderinfo_lock.unlock(); };
     }
     void set_userinfo_callback(std::function<void(UserInfo)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!userinfo_lock.try_lock_for(timeout)) {
@@ -108,7 +81,7 @@ class Exchange {
         userinfo_lock.lock();
       }
       userinfo_callback_original = callback;
-      userinfo_callback = [&](UserInfo a) { userinfo_callback_original(a); userinfo_lock.unlock(); };
+      userinfo_callback = [&](UserInfo a) { userinfo_callback_original(a); userinfo_callback = nullptr; userinfo_lock.unlock(); };
     }
     void set_filled_callback(std::function<void(double)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!filled_lock.try_lock_for(timeout)) {
@@ -117,7 +90,7 @@ class Exchange {
         filled_lock.lock();
       }
       filled_callback_original = callback;
-      filled_callback = [&](double a) { filled_callback_original(a); filled_lock.unlock(); };
+      filled_callback = [&](double a) { filled_callback_original(a); filled_callback = nullptr; filled_lock.unlock(); };
     }
     void set_pong_callback(std::function<void()> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!pong_lock.try_lock_for(timeout)) {
@@ -126,7 +99,7 @@ class Exchange {
         pong_lock.lock();
       }
       pong_callback_original = callback;
-      pong_callback = [&]() { pong_callback_original(); pong_lock.unlock(); };
+      pong_callback = [&]() { pong_callback_original(); pong_callback = nullptr; pong_lock.unlock(); };
     }
 
     std::string name;
@@ -140,16 +113,12 @@ class Exchange {
     std::shared_ptr<Config> config;
     std::shared_ptr<Log> log;
 
-    // SEMANTIC CALLBACKS FOR THE USER
+    // STREAMING CALLBACKS
     std::function<void(long, double, double, double)> ticker_callback;
-    std::function<void(long, double, double, double)> ticker_callback_original;
-    std::timed_mutex ticker_lock;
     std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> OHLC_callback;
-    std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> OHLC_callback_original;
-    std::timed_mutex OHLC_lock;
     std::function<void()> open_callback;
-    std::function<void()> open_callback_original;
-    std::timed_mutex open_lock;
+    
+    // ONE OFF CALLBACKS
     std::function<void(std::string)> trade_callback;
     std::function<void(std::string)> trade_callback_original;
     std::timed_mutex trade_lock;
