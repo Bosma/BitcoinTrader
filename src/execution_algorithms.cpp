@@ -62,6 +62,7 @@ void BitcoinTrader::margin_long(double equity_multiple) {
 // this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_short(double equity_multiple) {
   exchange->set_userinfo_callback([&, equity_multiple](Exchange::UserInfo info) {
+      std::cout << "free_btc: " << info.free_btc << std::endl;
     if (info.borrow_btc == 0 && info.borrow_cny == 0) {
       // grab price
       double price = tick.bid;
@@ -75,6 +76,8 @@ void BitcoinTrader::margin_short(double equity_multiple) {
       double btc_to_borrow = btc_to_buy_cny - info.free_btc;
       // borrow the BTC and sell it all
       double amount_borrowed = borrow(Currency::BTC, btc_to_borrow);
+      std::cout << "amount_borrowed: " << amount_borrowed << std::endl;
+      std::cout << "sum: " << info.free_btc + amount_borrowed << std::endl;
       if (amount_borrowed > 0) {
         sleep_for(seconds(1));
         market_sell(info.free_btc + amount_borrowed);
