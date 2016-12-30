@@ -62,6 +62,10 @@ void BitcoinTrader::margin_long(double equity_multiple) {
 // this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_short(double equity_multiple) {
   exchange->set_userinfo_callback([&, equity_multiple](Exchange::UserInfo info) {
+    set_market_callback([](double price, double amount, long date) {
+      std::cout << "market_callback: " << price << ", " << amount << std::endl;
+    });
+
     if (info.borrow_btc == 0 && info.borrow_cny == 0) {
       // grab price
       double price = tick.bid;
