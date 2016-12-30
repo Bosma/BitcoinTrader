@@ -85,7 +85,7 @@ protected:
   // that lock and unlock execution_lock
   
   // borrow amount and currency
-  bool borrow(Currency, double);
+  double borrow(Currency, double);
   
   // go margin long
   void margin_long(double);

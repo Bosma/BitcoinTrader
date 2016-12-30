@@ -31,14 +31,14 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     [&]() {
       trading_log->output("LONGING");
       close_margin_short();
-      sleep_for(seconds(5));
+      sleep_for(seconds(1));
       margin_long(2);
     },
     // short callback
     [&]() {
       trading_log->output("SHORTING");
       close_margin_long();
-      sleep_for(seconds(5));
+      sleep_for(seconds(1));
       margin_short(2);
     }
   ));

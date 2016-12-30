@@ -7,7 +7,7 @@ using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 using std::chrono::milliseconds;
 
-bool BitcoinTrader::borrow(Currency currency, double amount) {
+double BitcoinTrader::borrow(Currency currency, double amount) {
   if ((currency == BTC &&
        amount >= 0.01) ||
       (currency == CNY &&
@@ -18,10 +18,10 @@ bool BitcoinTrader::borrow(Currency currency, double amount) {
       trading_log->output("FAILED TO BORROW " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate));
     else {
       trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate) + " (" + result.id + ")");
-      return true;
+      return result.amount;
     }
   }
-  return false;
+  return 0;
 }
 
 // this assumes no position already (nothing borrowed)
@@ -40,8 +40,9 @@ void BitcoinTrader::margin_long(double equity_multiple) {
       double cny_to_borrow = cny_to_buy_btc - info.free_cny;
       // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
       // borrow the CNY and go all BTC
-      if (borrow(Currency::CNY, cny_to_borrow)) {
-        sleep_for(seconds(3));
+      double amount_borrowed = borrow(Currency::CNY, cny_to_borrow);
+      if (amount_borrowed > 0) {
+        sleep_for(seconds(1));
         market_buy(floor(cny_to_buy_btc));
       }
       // we failed to borrow, so just buy all CNY we own
@@ -73,8 +74,9 @@ void BitcoinTrader::margin_short(double equity_multiple) {
       // We own info.free_btc of BTC already, so need to borrow btc_to_buy_cny - info.free_btc of BTC
       double btc_to_borrow = btc_to_buy_cny - info.free_btc;
       // borrow the BTC and sell it all
-      if (borrow(Currency::BTC, btc_to_borrow)) {
-        sleep_for(seconds(3));
+      double amount_borrowed = borrow(Currency::BTC, btc_to_borrow);
+      if (amount_borrowed > 0) {
+        sleep_for(seconds(1));
         market_sell(btc_to_buy_cny);
       }
       else
@@ -94,7 +96,7 @@ void BitcoinTrader::close_margin_short() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     market_buy(floor(info.free_cny));
 
-    sleep_for(seconds(3));
+    sleep_for(seconds(1));
 
     double result = exchange->close_borrow(Currency::BTC);
     if (result == 0)
@@ -113,7 +115,7 @@ void BitcoinTrader::close_margin_long() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     market_sell(info.free_btc);
 
-    sleep_for(seconds(3));
+    sleep_for(seconds(1));
 
     double result = exchange->close_borrow(Currency::CNY);
     if (result == 0)
