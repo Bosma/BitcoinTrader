@@ -61,6 +61,13 @@ void OKCoin::on_message(string const & message) {
   try {
     auto j = json::parse(message);
 
+    if (j.is_array() && j[0].count("channel") == 1 &&
+        (j[0]["channel"] == "ok_sub_spotcny_btc_kline_15min" ||
+         j[0]["channel"] == "ok_sub_spotcny_btc_ticker")) {
+    }
+    else
+      std::cout << std::this_thread::get_id() << ": " << j << std::endl;
+
     // if our json is an array
     // it's a response from some channel
     if (j.is_array()) {

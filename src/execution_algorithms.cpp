@@ -231,12 +231,13 @@ void BitcoinTrader::market_sell(double amount) {
     if (market_callback) {
       exchange->set_orderinfo_callback(function<void(OrderInfo)>(
         [&](OrderInfo orderinfo) {
+          std::cout << std::this_thread::get_id() << ": market_sell orderinfo id: " << orderinfo.order_id << std::endl;
           market_callback(orderinfo.avg_price, orderinfo.filled_amount, orderinfo.create_date);
         }
       ));
       exchange->set_trade_callback(function<void(string)>(
         [&](string order_id) {
-          std::cout << "market_sell id: " << order_id << std::endl;
+          std::cout << std::this_thread::get_id() << ": market_sell id: " << order_id << std::endl;
           exchange->orderinfo(order_id);
         }
       ));
