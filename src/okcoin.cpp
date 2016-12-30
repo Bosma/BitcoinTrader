@@ -385,8 +385,9 @@ json OKCoin::lend_depth(Currency currency) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  auto j = json::parse(curl_post(url, post_fields.str()))["lend_depth"];
-  return j;
+  string response = curl_post(url, post_fields.str());
+  auto j = json::parse(response);
+  return j["lend_depth"];
 }
 
 json OKCoin::borrows_info(Currency currency) {
@@ -401,7 +402,8 @@ json OKCoin::borrows_info(Currency currency) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  auto j = json::parse(curl_post(url, post_fields.str()));
+  string response = curl_post(url, post_fields.str());
+  auto j = json::parse(response);
   return j;
 }
 
@@ -419,7 +421,9 @@ json OKCoin::unrepayments_info(Currency currency) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  return json::parse(curl_post(url, post_fields.str()))["unrepayments"];
+  string response = curl_post(url, post_fields.str());
+  auto j = json::parse(response);
+  return j["unrepayments"];
 }
 
 json OKCoin::borrow_money(Currency currency, double amount, double rate, int days) {
@@ -450,7 +454,9 @@ json OKCoin::repayment(string borrow_id) {
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
 
-  return json::parse(curl_post(url, post_fields.str()));
+  string response = curl_post(url, post_fields.str());
+  auto j = json::parse(response);
+  return j;
 }
 
 string OKCoin::sign(string parameters) {

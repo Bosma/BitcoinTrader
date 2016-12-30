@@ -84,6 +84,7 @@ std::string curl_post(std::string url, std::string post_fields) {
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
     if (!post_fields.empty())
       curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields.c_str());
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
