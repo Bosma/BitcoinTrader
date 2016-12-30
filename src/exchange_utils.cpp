@@ -90,7 +90,6 @@ std::string curl_post(std::string url, std::string post_fields) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output);
 
-    std::cout << "curl_easy_perform: " << url << ", " << post_fields << std::endl;
     res = curl_easy_perform(curl);
     if(res != CURLE_OK)
       curl_easy_strerror(res);

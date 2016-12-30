@@ -332,7 +332,6 @@ void OKCoin::userinfo() {
 }
 
 Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
-  std::cout << "called borrow" << std::endl;
   double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
   double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
 
@@ -387,7 +386,6 @@ json OKCoin::lend_depth(Currency currency) {
   post_fields << "&sign=" << signature;
 
   string response = curl_post(url, post_fields.str());
-  std::cout << "lend_depth response: " << response << std::endl;
   auto j = json::parse(response);
   return j["lend_depth"];
 }
@@ -445,7 +443,6 @@ json OKCoin::borrow_money(Currency currency, double amount, double rate, int day
   post_fields << "&sign=" << signature;
 
   string response = curl_post(url, post_fields.str());
-  std::cout << "response: " << response << std::endl;
   auto j = json::parse(response);
   return j;
 }
