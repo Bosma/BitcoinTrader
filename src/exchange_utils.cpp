@@ -24,20 +24,13 @@ int optionally_to_int(nlohmann::json object) {
     return object;
 }
 
-std::string opt_double_to_string(nlohmann::json object) {
+template <typename T>
+std::string opt_to_string(nlohmann::json object) {
   if (object.is_string()) {
     return object.get<std::string>();
   }
   else
-    return std::to_string(object.get<double>());
-}
-
-std::string opt_int_to_string(nlohmann::json object) {
-  if (object.is_string()) {
-    return object.get<std::string>();
-  }
-  else
-    return std::to_string(object.get<int>());
+    return std::to_string(object.get<T>());
 }
 
 std::string dtos(double n, int digits) {

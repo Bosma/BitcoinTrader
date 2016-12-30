@@ -26,7 +26,7 @@ class OrderInfo {
   public:
     OrderInfo(double amount,
               double avg_price,
-              long create_date,
+              std::string create_date,
               double filled_amount,
               std::string order_id,
               double price,
@@ -43,7 +43,7 @@ class OrderInfo {
 
     double amount;
     double avg_price;
-    long create_date;
+    std::string create_date;
     double filled_amount;
     std::string order_id;
     double price;
@@ -62,11 +62,10 @@ class OrderInfo {
     }
 };
 
-long optionally_to_long(nlohmann::json object);
-double optionally_to_double(nlohmann::json object);
-int optionally_to_int(nlohmann::json object);
-std::string opt_double_to_string(nlohmann::json object);
-std::string opt_int_to_string(nlohmann::json object);
+long optionally_to_long(nlohmann::json);
+double optionally_to_double(nlohmann::json);
+int optionally_to_int(nlohmann::json);
+template <typename T> std::string opt_to_string(nlohmann::json);
 
 double truncate_to(double, int);
 
