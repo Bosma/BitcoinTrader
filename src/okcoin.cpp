@@ -340,7 +340,10 @@ Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
 
   Exchange::BorrowInfo result;
   result.rate = rate;
-  result.amount = truncate_to(amount, 2);
+  switch (currency) {
+    case BTC : result.amount = truncate_to(amount, 2); break;
+    case CNY : result.amount = floor(amount); break;
+  }
 
   auto response = borrow_money(currency, amount, rate, 15);
 
