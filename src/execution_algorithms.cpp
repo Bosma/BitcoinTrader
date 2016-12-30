@@ -236,6 +236,7 @@ void BitcoinTrader::market_sell(double amount) {
       ));
       exchange->set_trade_callback(function<void(string)>(
         [&](string order_id) {
+          std::cout << "market_sell id: " << order_id << std::endl;
           exchange->orderinfo(order_id);
         }
       ));
