@@ -340,7 +340,7 @@ Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
 
   Exchange::BorrowInfo result;
   result.rate = rate;
-  result.amount = amount;
+  result.amount = truncate_to(amount, 2);
 
   auto response = borrow_money(currency, amount, rate, 15);
 
