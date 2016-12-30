@@ -16,14 +16,14 @@ OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
   Exchange("OKCoin", log, config),
   api_key((*config)["okcoin_apikey"]),
   secret_key((*config)["okcoin_secretkey"]),
-  ws(make_shared<websocket>(OKCOIN_URL)),
+  ws(websocket(OKCOIN_URL)),
   error_reasons()
 {
-  ws->set_open_callback( bind(&OKCoin::on_open, this) );
-  ws->set_message_callback( bind(&OKCoin::on_message, this, std::placeholders::_1) );
-  ws->set_close_callback( bind(&OKCoin::on_close, this) );
-  ws->set_fail_callback( bind(&OKCoin::on_fail, this) );
-  ws->set_error_callback( bind(&OKCoin::on_error, this, std::placeholders::_1) );
+  ws.set_open_callback( bind(&OKCoin::on_open, this) );
+  ws.set_message_callback( bind(&OKCoin::on_message, this, std::placeholders::_1) );
+  ws.set_close_callback( bind(&OKCoin::on_close, this) );
+  ws.set_fail_callback( bind(&OKCoin::on_fail, this) );
+  ws.set_error_callback( bind(&OKCoin::on_error, this, std::placeholders::_1) );
 
   populate_error_reasons();
 }
@@ -32,11 +32,11 @@ OKCoin::~OKCoin() {
 }
 
 void OKCoin::start() {
-  ws->connect();
+  ws.connect();
 }
 
 void OKCoin::on_open() {
-  log->output("OPENED SOCKET to " + ws->get_uri());
+  log->output("OPENED SOCKET to " + ws.get_uri());
   
   // if we're open, no need to reconnect
   reconnect = false;
@@ -46,10 +46,10 @@ void OKCoin::on_open() {
 }
 
 void OKCoin::on_close() {
-  log->output("CLOSE with reason: " + ws->get_error_reason());
+  log->output("CLOSE with reason: " + ws.get_error_reason());
 
   // 1001 is normal close
-  if (ws->get_close_code() != 1001) {
+  if (ws.get_close_code() != 1001) {
     log->output("WS ABNORMAL CLOSE CODE");
     reconnect = true;
   }
@@ -199,7 +199,7 @@ void OKCoin::on_message(string const & message) {
 }
 
 void OKCoin::on_fail() {
-  log->output("FAIL with error: " + ws->get_error_reason());
+  log->output("FAIL with error: " + ws.get_error_reason());
   reconnect = true;
 }
 
@@ -219,7 +219,7 @@ void OKCoin::subscribe_to_OHLC(minutes period) {
 void OKCoin::subscribe_to_channel(string const & channel) {
   log->output("SUBSCRIBING TO " + channel);
 
-  ws->send("{'event':'addChannel','channel':'" + channel + "'}");
+  ws.send("{'event':'addChannel','channel':'" + channel + "'}");
 
   shared_ptr<Channel> chan(new Channel(channel, "subscribing"));
   channels[channel] = chan;
@@ -255,7 +255,7 @@ void OKCoin::cancel_order(std::string order_id) {
 
   j["parameters"] = p;
 
-  ws->send(j.dump());
+  ws.send(j.dump());
 }
 
 void OKCoin::order(string type, string amount, string price) {
@@ -293,7 +293,7 @@ void OKCoin::order(string type, string amount, string price) {
 
   j["parameters"] = parameters;
 
-  ws->send(j.dump());
+  ws.send(j.dump());
 }
 
 void OKCoin::orderinfo(string order_id) {
@@ -314,7 +314,7 @@ void OKCoin::orderinfo(string order_id) {
 
     j["parameters"] = parameters;
 
-    ws->send(j.dump());
+    ws.send(j.dump());
   }
 }
 
@@ -328,7 +328,7 @@ void OKCoin::userinfo() {
   p["sign"] = sign("api_key=" + api_key + "&secret_key=" + secret_key);
 
   j["parameters"] = p;
-  ws->send(j.dump());
+  ws.send(j.dump());
 }
 
 Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
@@ -472,12 +472,12 @@ string OKCoin::sign(string parameters) {
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
   log->output("UNSUBSCRIBING TO " + channel);
-  ws->send("{'event':'removeChannel', 'channel':'" + channel + "'}");
+  ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
   channels[channel]->status = "unsubscribed";
 }
 
 void OKCoin::ping() {
-  ws->send("{'event':'ping'}");
+  ws.send("{'event':'ping'}");
 }
 
 string OKCoin::status() {

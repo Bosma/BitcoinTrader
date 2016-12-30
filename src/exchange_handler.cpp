@@ -29,25 +29,17 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   strategies.push_back(make_shared<SMACrossover>("SMACrossover",
     // long callback
     [&]() {
-      if (running_threads.count("long") == 1)
-        running_threads["long"]->join();
-      running_threads["long"] = make_shared<thread>([&]() {
-        trading_log->output("LONGING");
-        close_margin_short();
-        sleep_for(seconds(5));
-        margin_long(2);
-      });
+      trading_log->output("LONGING");
+      close_margin_short();
+      sleep_for(seconds(5));
+      margin_long(2);
     },
     // short callback
     [&]() {
-      if (running_threads.count("short") == 1)
-        running_threads["short"]->join();
-      running_threads["short"] = make_shared<thread>([&]() {
-        trading_log->output("SHORTING");
-        close_margin_long();
-        sleep_for(seconds(5));
-        margin_short(2);
-      });
+      trading_log->output("SHORTING");
+      close_margin_long();
+      sleep_for(seconds(5));
+      margin_short(2);
     }
   ));
 

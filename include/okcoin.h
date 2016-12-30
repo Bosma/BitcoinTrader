@@ -61,7 +61,7 @@ class OKCoin : public Exchange {
     const std::string OKCOIN_URL = "wss://real.okcoin.cn:10440/websocket/okcoinapi";
     std::string api_key;
     std::string secret_key;
-    std::shared_ptr<websocket> ws;
+    websocket ws;
     
     // INTERNAL REST COMMANDS
     // get lend depth
