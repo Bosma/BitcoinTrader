@@ -540,6 +540,8 @@ void OKCoin::orderinfo_handler(json order) {
     double avg_price = optionally_to_double(order["avg_price"]);
     long create_date = optionally_to_long(order["create_date"]);
     double filled_amount = optionally_to_double(order["deal_amount"]);
+    std::cout << "order_id: " << order["order_id"] << std::endl;
+    std::cout << "order_id: " << to_string(order["order_id"].get<int>()) << std::endl;
     string order_id = opt_int_to_string(order["order_id"]);
     double price = optionally_to_double(order["price"]);
     string status = statuses[optionally_to_int(order["status"])];
