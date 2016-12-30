@@ -96,7 +96,7 @@ void BitcoinTrader::close_margin_short() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     market_buy(floor(info.free_cny));
 
-    sleep_for(seconds(1));
+    sleep_for(seconds(2));
 
     double result = exchange->close_borrow(Currency::BTC);
     if (result == 0)
@@ -115,7 +115,7 @@ void BitcoinTrader::close_margin_long() {
   exchange->set_userinfo_callback([&](Exchange::UserInfo info) {
     market_sell(info.free_btc);
 
-    sleep_for(seconds(1));
+    sleep_for(seconds(2));
 
     double result = exchange->close_borrow(Currency::CNY);
     if (result == 0)
