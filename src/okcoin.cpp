@@ -16,7 +16,7 @@ OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
   Exchange("OKCoin", log, config),
   api_key((*config)["okcoin_apikey"]),
   secret_key((*config)["okcoin_secretkey"]),
-  ws(websocket(OKCOIN_URL)),
+  ws(OKCOIN_URL),
   error_reasons()
 {
   ws.set_open_callback( bind(&OKCoin::on_open, this) );
