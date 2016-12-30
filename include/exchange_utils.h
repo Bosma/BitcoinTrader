@@ -28,7 +28,7 @@ class OrderInfo {
               double avg_price,
               long create_date,
               double filled_amount,
-              int order_id,
+              std::string order_id,
               double price,
               std::string status,
               std::string symbol,
@@ -45,7 +45,7 @@ class OrderInfo {
     double avg_price;
     long create_date;
     double filled_amount;
-    int order_id;
+    std::string order_id;
     double price;
     std::string status;
     std::string symbol;
