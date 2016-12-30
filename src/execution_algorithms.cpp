@@ -43,7 +43,7 @@ void BitcoinTrader::margin_long(double equity_multiple) {
       double amount_borrowed = borrow(Currency::CNY, cny_to_borrow);
       if (amount_borrowed > 0) {
         sleep_for(seconds(1));
-        market_buy(floor(cny_to_buy_btc));
+        market_buy(floor(info.free_cny + amount_borrowed));
       }
       // we failed to borrow, so just buy all CNY we own
       else
@@ -77,7 +77,7 @@ void BitcoinTrader::margin_short(double equity_multiple) {
       double amount_borrowed = borrow(Currency::BTC, btc_to_borrow);
       if (amount_borrowed > 0) {
         sleep_for(seconds(1));
-        market_sell(btc_to_buy_cny);
+        market_sell(info.free_btc + amount_borrowed);
       }
       else
         market_sell(info.free_btc);
