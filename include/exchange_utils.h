@@ -2,6 +2,8 @@
 
 #include <string>
 #include <chrono>
+#include <functional>
+#include <thread>
 
 #include <curl/curl.h>
 #include <json.hpp>
@@ -76,3 +78,5 @@ std::chrono::nanoseconds timestamp_now();
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
 
 std::string curl_post(std::string, std::string = "");
+
+bool wait_until(std::function<bool()>, std::chrono::milliseconds test_time, std::chrono::milliseconds time_between_checks = std::chrono::milliseconds(50));

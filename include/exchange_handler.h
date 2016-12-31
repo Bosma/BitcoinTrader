@@ -49,7 +49,7 @@ protected:
 
   // vector of threads performing some recurring actions
   // used for destructor
-  std::map<std::string, std::shared_ptr<std::thread>> running_threads;
+  std::vector<std::shared_ptr<std::thread>> running_threads;
 
   // used to check if the exchange is working
   void check_connection();
@@ -80,26 +80,31 @@ protected:
   // set up the exchange callbacks
   void setup_exchange_callbacks();
 
+  // USERINFO FETCHING
+  // so execution algos can check if their actions have resulted in changed
+  // balance values
+  bool fetching_userinfo_already;
+  bool subscribe;
+  void fetch_userinfo();
+  std::atomic<Exchange::UserInfo> userinfo;
+
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
   
   // borrow amount and currency
-  double borrow(Currency, double);
+  Exchange::BorrowInfo borrow(Currency, double);
   
-  // go margin long
+  void close_short_then_long(double = 1);
+  void close_long_then_short(double = 1);
+
   void margin_long(double);
   void margin_short(double);
-
-  // sell all BTC and repay all CNY
-  void close_margin_long();
-  // buy all BTC and repay all BTC
-  void close_margin_short();
   
   // generic market buy / sell amount of BTC
   void market_buy(double);
   void market_sell(double);
-  void set_market_callback(std::function<void(double, double, long)> cb,
+  void set_market_callback(std::function<void(double, double, std::string)> cb,
       std::chrono::seconds timeout = std::chrono::seconds(10)) {
     if (!market_lock.try_lock_for(timeout)) {
       exchange_log->output("market callback not fired in time. Allowing new callback setter access.");
@@ -107,15 +112,16 @@ protected:
       market_lock.lock();
     }
     market_callback_original = cb;
-    market_callback = [&](double a, double b, long c) {
+    market_callback = [&](double a, double b, std::string c) {
       market_callback_original(a, b, c);
       market_callback = nullptr;
       market_lock.unlock();
     };
   }
   std::timed_mutex market_lock;
-  std::function<void(double, double, long)> market_callback;
-  std::function<void(double, double, long)> market_callback_original;
+  std::function<void(double, double, std::string)> market_callback;
+  std::function<void(double, double, std::string)> market_callback_original;
+  std::atomic<OrderInfo> current_order;
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
@@ -162,11 +168,4 @@ protected:
   std::timed_mutex GTC_lock;
   std::function<void(std::string)> GTC_callback;
   std::function<void(std::string)> GTC_callback_original;
-
-  // functions and data relating to limit execution
-  // currently will hold a limit for some seconds then cancel
-  // it if not filled in time
-  std::string current_limit;
-  bool done_limit_check;
-  double filled_amount;
 };

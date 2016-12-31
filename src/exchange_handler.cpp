@@ -12,7 +12,7 @@ using std::chrono::minutes;        using std::bind;
 using std::to_string;              using std::ostringstream;
 using std::make_shared;            using std::make_unique;
 using namespace std::placeholders; using std::to_string;
-using std::floor;
+using std::floor;                  using std::chrono::milliseconds;
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   config(config),
@@ -23,23 +23,20 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   tick(),
   mktdata(),
   strategies(),
-  received_a_tick(false) {
+  received_a_tick(false),
+  fetching_userinfo_already(false) {
    
   // create the strategies
   strategies.push_back(make_shared<SMACrossover>("SMACrossover",
     // long callback
     [&]() {
       trading_log->output("LONGING");
-      close_margin_short();
-      sleep_for(seconds(1));
-      margin_long(2);
+      close_short_then_long(2);
     },
     // short callback
     [&]() {
       trading_log->output("SHORTING");
-      close_margin_long();
-      sleep_for(seconds(1));
-      margin_short(2);
+      close_long_then_short(2);
     }
   ));
 
@@ -57,8 +54,8 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 BitcoinTrader::~BitcoinTrader() {
   done = true;
   for (auto t : running_threads)
-    if (t.second && t.second->joinable())
-      t.second->join();
+    if (t && t->joinable())
+      t->join();
 }
 
 string BitcoinTrader::status() {
@@ -88,7 +85,7 @@ void BitcoinTrader::start() {
 }
 
 void BitcoinTrader::check_connection() {
-  running_threads["connection_checker"] = std::make_shared<thread>(
+  running_threads.push_back(make_shared<thread>(
     [&]() {
       bool warm_up = true;
       while (!done) {
@@ -115,7 +112,7 @@ void BitcoinTrader::check_connection() {
         }
       }
     }
-  );
+  ));
 }
 
 void BitcoinTrader::handle_stops() {
@@ -130,10 +127,27 @@ void BitcoinTrader::handle_stops() {
   }
 }
 
+void BitcoinTrader::fetch_userinfo() {
+  fetching_userinfo_already = true;
+  running_threads.push_back(make_shared<thread>([&]() {
+    while (!done) {
+      exchange->set_userinfo_callback([&](Exchange::UserInfo uinfo) {
+        userinfo = uinfo;
+        if (subscribe)
+          exchange->subscribe_to_ticker();
+      });
+      exchange->userinfo();
+      sleep_for(milliseconds(250));
+    }
+  }));
+}
+
 void BitcoinTrader::setup_exchange_callbacks() {
   exchange->set_open_callback(function<void()>(
     [&]() {
-      exchange->subscribe_to_ticker();
+      subscribe = true;
+      if (!fetching_userinfo_already)
+        fetch_userinfo();
     }
   ));
   exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(

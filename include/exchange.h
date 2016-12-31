@@ -29,9 +29,9 @@ class Exchange {
     virtual void limit_sell(double, double) = 0;
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
-    struct UserInfo { double asset_net; double free_btc; double free_cny; double borrow_btc; double borrow_cny; };
+    struct UserInfo { double asset_net = 0; double free_btc = 0; double free_cny = 0; double borrow_btc = 0; double borrow_cny = 0; };
     virtual void userinfo() = 0;
-    struct BorrowInfo { std::string id; double amount; double rate; };
+    struct BorrowInfo { std::string id = ""; double amount = 0; double rate = 0; };
     virtual BorrowInfo borrow(Currency, double = 1) = 0;
     virtual double close_borrow(Currency) = 0;
 

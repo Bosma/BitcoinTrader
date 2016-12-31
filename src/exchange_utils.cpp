@@ -1,5 +1,10 @@
 #include "../include/exchange_utils.h"
 
+using std::chrono::milliseconds;
+using std::chrono::seconds;
+using std::function;
+using std::this_thread::sleep_for;
+
 long optionally_to_long(nlohmann::json object) {
   if (object.is_string()) {
     return stol(object.get<std::string>());
@@ -85,9 +90,27 @@ std::string curl_post(std::string url, std::string post_fields) {
 
     res = curl_easy_perform(curl);
     if(res != CURLE_OK)
-      curl_easy_strerror(res);
+      std::cout << curl_easy_strerror(res) << std::endl;
 
     curl_easy_cleanup(curl);
   } 
   return output;
+}
+
+bool wait_until(function<bool()> test, seconds test_time, milliseconds time_between_checks) {
+  auto t1 = timestamp_now();
+  bool complete = false;
+  bool completed_on_time = true;
+  do {
+    if (timestamp_now() - t1 > test_time)
+      completed_on_time = false;
+    else {
+      if (test())
+        complete = true;
+      else
+        sleep_for(time_between_checks);
+    }
+  } while (complete);
+
+  return completed_on_time;
 }
