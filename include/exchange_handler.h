@@ -139,43 +139,17 @@ protected:
   void limit_buy(double, double, std::chrono::seconds);
   void limit_sell(double, double, std::chrono::seconds);
   void limit_algorithm(std::chrono::seconds);
-  void set_limit_callback(std::function<void(double)> cb,
-      std::chrono::seconds timeout = std::chrono::seconds(10)) {
-    if (!limit_lock.try_lock_for(timeout)) {
-      exchange_log->output("limit callback not fired in time. Allowing new callback setter access.");
-      limit_callback(0);
-      limit_lock.lock();
-    }
-    limit_callback_original = cb;
-    limit_callback = [&](double a) {
-      limit_callback_original(a);
-      limit_callback = nullptr;
-      limit_lock.unlock();
-    };
+  void set_limit_callback(std::function<void(double)> cb) {
+    limit_callback = cb;
   }
-  std::timed_mutex limit_lock;
   std::function<void(double)> limit_callback;
-  std::function<void(double)> limit_callback_original;
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
   void GTC_buy(double, double);
   void GTC_sell(double, double);
-  void set_GTC_callback(std::function<void(std::string)> cb,
-      std::chrono::seconds timeout = std::chrono::seconds(5)) {
-    if (!GTC_lock.try_lock_for(timeout)) {
-      exchange_log->output("GTC callback not fired in time. Allowing new callback setter access.");
-      GTC_callback(0);
-      GTC_lock.lock();
-    }
-    GTC_callback_original = cb;
-    GTC_callback = [&](std::string a) {
-      GTC_callback_original(a);
-      GTC_callback = nullptr;
-      GTC_lock.unlock();
-    };
+  void set_GTC_callback(std::function<void(std::string)> cb) {
+    GTC_callback = cb;
   }
-  std::timed_mutex GTC_lock;
   std::function<void(std::string)> GTC_callback;
-  std::function<void(std::string)> GTC_callback_original;
 };
