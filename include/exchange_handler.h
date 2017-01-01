@@ -104,8 +104,8 @@ protected:
   // borrow amount and currency
   Exchange::BorrowInfo borrow(Currency, double);
   
-  void close_short_then_long(double = 1);
-  void close_long_then_short(double = 1);
+  void close_short();
+  void close_long();
 
   void margin_long(double);
   void margin_short(double);
@@ -113,23 +113,10 @@ protected:
   // generic market buy / sell amount of BTC
   void market_buy(double);
   void market_sell(double);
-  void set_market_callback(std::function<void(double, double, std::string)> cb,
-      std::chrono::seconds timeout = std::chrono::seconds(10)) {
-    if (!market_lock.try_lock_for(timeout)) {
-      exchange_log->output("market callback not fired in time. Allowing new callback setter access.");
-      market_callback(0, 0, 0);
-      market_lock.lock();
-    }
-    market_callback_original = cb;
-    market_callback = [&](double a, double b, std::string c) {
-      market_callback_original(a, b, c);
-      market_callback = nullptr;
-      market_lock.unlock();
-    };
+  void set_market_callback(std::function<void(double, double, std::string)> cb) {
+    market_callback = cb;
   }
-  std::timed_mutex market_lock;
   std::function<void(double, double, std::string)> market_callback;
-  std::function<void(double, double, std::string)> market_callback_original;
   OrderInfo current_order;
   std::mutex current_order_lock;
   void set_current_order(OrderInfo new_info) {

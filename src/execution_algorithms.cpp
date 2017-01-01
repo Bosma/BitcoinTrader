@@ -49,18 +49,17 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
   return result;
 }
 
-void BitcoinTrader::close_short_then_long(double leverage) {
+void BitcoinTrader::close_short() {
   trading_log->output("CLOSING MARGIN SHORT");
 
   Exchange::UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&, leverage](double amount, double price, string date) {
+  auto new_market_callback = [&](double amount, double price, string date) {
     if (date != "") {
       trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(price));
 
-      auto successfully_closed_borrow = [&, leverage]() -> bool {
+      auto successfully_closed_borrow = [&]() -> bool {
         double result = exchange->close_borrow(Currency::BTC);
-        std::cout << "successfully_closed_borrow: " << result << std::endl;
 
         if (result == 0)
           trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
@@ -71,11 +70,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
         
         return (result >= 0);
       };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
-        std::cout << "going to margin long" << std::endl;
-        margin_long(leverage);
-      }
-      else
+      if (!check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
     else
@@ -86,16 +81,16 @@ void BitcoinTrader::close_short_then_long(double leverage) {
   market_buy(floor(info.free_cny));
 }
 
-void BitcoinTrader::close_long_then_short(double leverage) {
+void BitcoinTrader::close_long() {
   trading_log->output("CLOSING MARGIN LONG");
 
   Exchange::UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&, leverage](double amount, double price, string date) {
+  auto new_market_callback = [&](double amount, double price, string date) {
     if (date != "") {
       trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(price));
 
-      auto successfully_closed_borrow = [&, leverage]() -> bool {
+      auto successfully_closed_borrow = [&]() -> bool {
         double result = exchange->close_borrow(Currency::CNY);
 
         if (result == 0)
@@ -108,9 +103,7 @@ void BitcoinTrader::close_long_then_short(double leverage) {
         // we do not consider having nothing borrowed failure
         return (result >= 0);
       };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
-        margin_short(leverage);
-      else
+      if (!check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
     else
@@ -121,7 +114,6 @@ void BitcoinTrader::close_long_then_short(double leverage) {
   market_sell(info.free_btc);
 }
 
-// this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_long(double leverage) {
 
   trading_log->output("MARGIN LONGING " + to_string(leverage * 100) + "% of equity");
@@ -146,6 +138,7 @@ void BitcoinTrader::margin_long(double leverage) {
     // borrow the CNY and go all BTC
     Exchange::BorrowInfo result = borrow(Currency::CNY, cny_to_borrow);
 
+    market_callback = nullptr;
     if (result.amount > 0) {
       market_buy(floor(info.free_cny + result.amount));
     }
@@ -158,7 +151,6 @@ void BitcoinTrader::margin_long(double leverage) {
 
 }
 
-// this assumes no position already (nothing borrowed)
 void BitcoinTrader::margin_short(double leverage) {
 
   trading_log->output("MARGIN SHORTING " + to_string(leverage * 100) + "% of equity");
