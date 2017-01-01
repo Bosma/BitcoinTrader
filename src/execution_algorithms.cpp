@@ -20,7 +20,7 @@ bool check_until(function<bool()> test, seconds test_time, milliseconds time_bet
       else
         sleep_for(time_between_checks);
     }
-  } while (complete);
+  } while (!complete);
 
   return completed_on_time;
 }
