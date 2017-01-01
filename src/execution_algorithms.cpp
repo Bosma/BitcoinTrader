@@ -333,7 +333,7 @@ void BitcoinTrader::market_sell(double amount) {
     }
 
     trading_log->output("MARKET SELLING " + to_string(amount) + " BTC @ " + to_string(tick.bid));
-    exchange->market_buy(amount);
+    exchange->market_sell(amount);
 
     if (market_callback) {
       auto order_filled = [&]() -> bool {
