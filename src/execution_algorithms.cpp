@@ -295,6 +295,7 @@ void BitcoinTrader::market_buy(double amount) {
         OrderInfo info = get_current_order();
         return (info.status == "fully filled");
       };
+      clear_current_order();
       if (check_until(order_filled, seconds(5))) {
         OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);
@@ -340,6 +341,7 @@ void BitcoinTrader::market_sell(double amount) {
         OrderInfo info = get_current_order();
         return (info.status == "fully filled");
       };
+      clear_current_order();
       if (check_until(order_filled, seconds(5))) {
         OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);

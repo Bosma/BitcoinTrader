@@ -127,6 +127,11 @@ protected:
     std::lock_guard<std::mutex> l(current_order_lock);
     return current_order;
   }
+  void clear_current_order() {
+    std::lock_guard<std::mutex> l(current_order_lock);
+    OrderInfo cleared;
+    current_order = cleared;
+  }
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
