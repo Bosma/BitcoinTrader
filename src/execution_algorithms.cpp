@@ -37,7 +37,7 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
       result = exchange->borrow(currency, amount);
       return result.id != "failed";
     };
-    if (check_until(successful_borrow, seconds(5), milliseconds(500))) {
+    if (check_until(successful_borrow, seconds(10), seconds(1))) {
       string cur = (currency == BTC) ? "BTC" : "CNY";
       trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate) + " (" + result.id + ")");
     }
@@ -56,6 +56,8 @@ void BitcoinTrader::close_short_then_long(double leverage) {
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
+      trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(price));
+
       auto successfully_closed_borrow = [&, leverage]() -> bool {
         double result = exchange->close_borrow(Currency::BTC);
 
@@ -66,7 +68,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
         else
           trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
         
-        return (result > 0);
+        return (result >= 0);
       };
       if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
         margin_long(leverage);
@@ -88,6 +90,8 @@ void BitcoinTrader::close_long_then_short(double leverage) {
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
+      trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(price));
+
       auto successfully_closed_borrow = [&, leverage]() -> bool {
         double result = exchange->close_borrow(Currency::CNY);
 
@@ -253,16 +257,14 @@ void BitcoinTrader::market_buy(double amount) {
     if (market_callback) {
       // for 5 seconds, once a trade is confirmed, fetch its orderinfo
       auto new_trade_callback = [&](string order_id) {
-        std::cout << "requesting orderinfo" << std::endl;
         auto t1 = timestamp_now();
         do {
           auto new_orderinfo_callback = [&](OrderInfo orderinfo) {
-            std::cout << "received new orderinfo" << std::endl;
             set_current_order(orderinfo);
           };
           exchange->set_orderinfo_callback(new_orderinfo_callback);
           exchange->orderinfo(order_id);
-          sleep_for(milliseconds(200));
+          sleep_for(milliseconds(1000));
         } while(timestamp_now() - t1 < seconds(5));
       };
       exchange->set_trade_callback(new_trade_callback);
@@ -274,7 +276,6 @@ void BitcoinTrader::market_buy(double amount) {
     if (market_callback) {
       auto order_filled = [&]() -> bool {
         OrderInfo info = get_current_order();
-        std::cout << "checking orderinfo: " << info.status << std::endl;
         return (info.status == "fully filled");
       };
       if (check_until(order_filled, seconds(5), milliseconds(50))) {
@@ -308,7 +309,7 @@ void BitcoinTrader::market_sell(double amount) {
           };
           exchange->set_orderinfo_callback(new_orderinfo_callback);
           exchange->orderinfo(order_id);
-          sleep_for(milliseconds(200));
+          sleep_for(milliseconds(1000));
         } while(timestamp_now() - t1 < seconds(5));
       };
       exchange->set_trade_callback(new_trade_callback);
