@@ -120,6 +120,8 @@ void BitcoinTrader::margin_long(double leverage) {
 
   auto no_open_position = [&]() -> bool {
     Exchange::UserInfo info = get_userinfo();
+    std::cout << "CNY: " << info.free_cny << std::endl;
+    std::cout << "BTC: " << info.free_btc << std::endl;
     return (info.borrow_btc == 0 && info.borrow_cny == 0);
   };
   if (check_until(no_open_position, seconds(5), milliseconds(50))) {
