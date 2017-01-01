@@ -70,7 +70,9 @@ void BitcoinTrader::close_short() {
         
         return (result >= 0);
       };
-      if (!check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
+        margin_long(2);
+      else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
     else
@@ -103,7 +105,9 @@ void BitcoinTrader::close_long() {
         // we do not consider having nothing borrowed failure
         return (result >= 0);
       };
-      if (!check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
+        margin_short(2);
+      else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
     else
@@ -118,14 +122,8 @@ void BitcoinTrader::margin_long(double leverage) {
 
   trading_log->output("MARGIN LONGING " + to_string(leverage * 100) + "% of equity");
 
-  auto no_open_position = [&]() -> bool {
-    Exchange::UserInfo info = get_userinfo();
-    std::cout << "CNY: " << info.free_cny << std::endl;
-    std::cout << "BTC: " << info.free_btc << std::endl;
-    return (info.borrow_btc == 0 && info.borrow_cny == 0);
-  };
-  if (check_until(no_open_position, seconds(5), milliseconds(50))) {
-    Exchange::UserInfo info = get_userinfo();
+  Exchange::UserInfo info = get_userinfo();
+  if (info.borrow_btc == 0 && info.borrow_cny == 0) {
     // grab price
     double price = tick.ask;
     // We have info.asset_net CNY of assets, so must own (equity_multiple * info.asset_net) / price of BTC
@@ -157,12 +155,8 @@ void BitcoinTrader::margin_short(double leverage) {
 
   trading_log->output("MARGIN SHORTING " + to_string(leverage * 100) + "% of equity");
 
-  auto no_open_position = [&]() -> bool {
-    Exchange::UserInfo info = get_userinfo();
-    return (info.borrow_btc == 0 && info.borrow_cny == 0);
-  };
-  if (check_until(no_open_position, seconds(5), milliseconds(50))) {
-    Exchange::UserInfo info = get_userinfo();
+  Exchange::UserInfo info = get_userinfo();
+  if (info.borrow_btc == 0 && info.borrow_cny == 0) {
     // grab price
     double price = tick.bid;
     // We have info.asset_net of assets, so to be fully short must own info.asset_net * leverage of CNY
@@ -176,6 +170,7 @@ void BitcoinTrader::margin_short(double leverage) {
     // borrow the BTC and sell it all
     Exchange::BorrowInfo result = borrow(Currency::BTC, btc_to_borrow);
 
+    market_callback = nullptr;
     if (result.amount > 0) {
       market_sell(info.free_btc + result.amount);
     }
