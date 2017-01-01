@@ -132,9 +132,10 @@ void BitcoinTrader::fetch_userinfo() {
   running_threads.push_back(make_shared<thread>([&]() {
     while (!done) {
       exchange->set_userinfo_callback([&](Exchange::UserInfo uinfo) {
-        userinfo = uinfo;
+        set_userinfo(uinfo);
         if (subscribe)
           exchange->subscribe_to_ticker();
+        subscribe = false;
       });
       exchange->userinfo();
       sleep_for(milliseconds(250));

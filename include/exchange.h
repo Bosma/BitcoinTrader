@@ -47,8 +47,11 @@ class Exchange {
     void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback) {
       OHLC_callback = callback;
     }
-    void set_open_callback(std::function<void()> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
+    void set_open_callback(std::function<void()> callback) {
       open_callback = callback;
+    }
+    void set_userinfo_callback(std::function<void(UserInfo)> callback) {
+      userinfo_callback = callback;
     }
 
     // ONE-OFF CALLBACKS
@@ -71,17 +74,6 @@ class Exchange {
       }
       orderinfo_callback_original = callback;
       orderinfo_callback = [&](OrderInfo a) { orderinfo_callback_original(a); orderinfo_callback = nullptr; orderinfo_lock.unlock(); };
-    }
-    void set_userinfo_callback(std::function<void(UserInfo)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
-      if (!userinfo_lock.try_lock_for(timeout)) {
-        log->output("userinfo callback not fired in time. Allowing new callback setter access.");
-        UserInfo a;
-        a.asset_net = 0;
-        userinfo_callback(a);
-        userinfo_lock.lock();
-      }
-      userinfo_callback_original = callback;
-      userinfo_callback = [&](UserInfo a) { userinfo_callback_original(a); userinfo_callback = nullptr; userinfo_lock.unlock(); };
     }
     void set_filled_callback(std::function<void(double)> callback, std::chrono::seconds timeout = std::chrono::seconds(10)) {
       if (!filled_lock.try_lock_for(timeout)) {
@@ -117,6 +109,7 @@ class Exchange {
     std::function<void(long, double, double, double)> ticker_callback;
     std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> OHLC_callback;
     std::function<void()> open_callback;
+    std::function<void(UserInfo)> userinfo_callback;
     
     // ONE OFF CALLBACKS
     std::function<void(std::string)> trade_callback;
@@ -125,9 +118,6 @@ class Exchange {
     std::function<void(OrderInfo)> orderinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback_original;
     std::timed_mutex orderinfo_lock;
-    std::function<void(UserInfo)> userinfo_callback;
-    std::function<void(UserInfo)> userinfo_callback_original;
-    std::timed_mutex userinfo_lock;
     std::function<void(double)> filled_callback;
     std::function<void(double)> filled_callback_original;
     std::timed_mutex filled_lock;

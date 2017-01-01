@@ -7,6 +7,24 @@ using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 using std::chrono::milliseconds;
 
+bool check_until(function<bool()> test, seconds test_time, milliseconds time_between_checks) {
+  auto t1 = timestamp_now();
+  bool complete = false;
+  bool completed_on_time = true;
+  do {
+    if (timestamp_now() - t1 > test_time)
+      completed_on_time = false;
+    else {
+      if (test())
+        complete = true;
+      else
+        sleep_for(time_between_checks);
+    }
+  } while (complete);
+
+  return completed_on_time;
+}
+
 Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
   Exchange::BorrowInfo result;
 
@@ -19,7 +37,7 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
       result = exchange->borrow(currency, amount);
       return result.id != "failed";
     };
-    if (wait_until(successful_borrow, seconds(5), milliseconds(100))) {
+    if (check_until(successful_borrow, seconds(5), milliseconds(500))) {
       string cur = (currency == BTC) ? "BTC" : "CNY";
       trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate) + " (" + result.id + ")");
     }
@@ -34,7 +52,7 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
 void BitcoinTrader::close_short_then_long(double leverage) {
   trading_log->output("CLOSING MARGIN SHORT");
 
-  Exchange::UserInfo info = userinfo;
+  Exchange::UserInfo info = get_userinfo();
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
@@ -50,7 +68,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
         
         return (result > 0);
       };
-      if (wait_until(successfully_closed_borrow, seconds(5)))
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
         margin_long(leverage);
       else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
@@ -66,7 +84,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
 void BitcoinTrader::close_long_then_short(double leverage) {
   trading_log->output("CLOSING MARGIN LONG");
 
-  Exchange::UserInfo info = userinfo;
+  Exchange::UserInfo info = get_userinfo();
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
@@ -83,7 +101,7 @@ void BitcoinTrader::close_long_then_short(double leverage) {
         // we do not consider having nothing borrowed failure
         return (result >= 0);
       };
-      if (wait_until(successfully_closed_borrow, seconds(5)))
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
         margin_short(leverage);
       else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
@@ -102,11 +120,11 @@ void BitcoinTrader::margin_long(double leverage) {
   trading_log->output("MARGIN LONGING " + to_string(leverage * 100) + "% of equity");
 
   auto no_open_position = [&]() -> bool {
-    Exchange::UserInfo info = userinfo;
+    Exchange::UserInfo info = get_userinfo();
     return (info.borrow_btc == 0 && info.borrow_cny == 0);
   };
-  if (wait_until(no_open_position, seconds(5))) {
-    Exchange::UserInfo info = userinfo;
+  if (check_until(no_open_position, seconds(5), milliseconds(50))) {
+    Exchange::UserInfo info = get_userinfo();
     // grab price
     double price = tick.ask;
     // We have info.asset_net CNY of assets, so must own (equity_multiple * info.asset_net) / price of BTC
@@ -139,11 +157,11 @@ void BitcoinTrader::margin_short(double leverage) {
   trading_log->output("MARGIN SHORTING " + to_string(leverage * 100) + "% of equity");
 
   auto no_open_position = [&]() -> bool {
-    Exchange::UserInfo info = userinfo;
+    Exchange::UserInfo info = get_userinfo();
     return (info.borrow_btc == 0 && info.borrow_cny == 0);
   };
-  if (wait_until(no_open_position, seconds(5))) {
-    Exchange::UserInfo info = userinfo;
+  if (check_until(no_open_position, seconds(5), milliseconds(50))) {
+    Exchange::UserInfo info = get_userinfo();
     // grab price
     double price = tick.bid;
     // We have info.asset_net of assets, so to be fully short must own info.asset_net * leverage of CNY
@@ -235,10 +253,12 @@ void BitcoinTrader::market_buy(double amount) {
     if (market_callback) {
       // for 5 seconds, once a trade is confirmed, fetch its orderinfo
       auto new_trade_callback = [&](string order_id) {
+        std::cout << "requesting orderinfo" << std::endl;
         auto t1 = timestamp_now();
         do {
           auto new_orderinfo_callback = [&](OrderInfo orderinfo) {
-            current_order = orderinfo;
+            std::cout << "received new orderinfo" << std::endl;
+            set_current_order(orderinfo);
           };
           exchange->set_orderinfo_callback(new_orderinfo_callback);
           exchange->orderinfo(order_id);
@@ -253,11 +273,12 @@ void BitcoinTrader::market_buy(double amount) {
 
     if (market_callback) {
       auto order_filled = [&]() -> bool {
-        OrderInfo info = current_order;
+        OrderInfo info = get_current_order();
+        std::cout << "checking orderinfo: " << info.filled_amount << std::endl;
         return (info.status == "fully filled");
       };
-      if (wait_until(order_filled, seconds(5))) {
-        OrderInfo info = current_order;
+      if (check_until(order_filled, seconds(5), milliseconds(50))) {
+        OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
       else {
@@ -283,7 +304,7 @@ void BitcoinTrader::market_sell(double amount) {
         auto t1 = timestamp_now();
         do {
           auto new_orderinfo_callback = [&](OrderInfo orderinfo) {
-            current_order = orderinfo;
+            set_current_order(orderinfo);
           };
           exchange->set_orderinfo_callback(new_orderinfo_callback);
           exchange->orderinfo(order_id);
@@ -298,11 +319,11 @@ void BitcoinTrader::market_sell(double amount) {
 
     if (market_callback) {
       auto order_filled = [&]() -> bool {
-        OrderInfo info = current_order;
+        OrderInfo info = get_current_order();
         return (info.status == "fully filled");
       };
-      if (wait_until(order_filled, seconds(5))) {
-        OrderInfo info = current_order;
+      if (check_until(order_filled, seconds(5), milliseconds(50))) {
+        OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
       else {

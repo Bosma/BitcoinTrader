@@ -86,7 +86,16 @@ protected:
   bool fetching_userinfo_already;
   bool subscribe;
   void fetch_userinfo();
-  std::atomic<Exchange::UserInfo> userinfo;
+  Exchange::UserInfo userinfo;
+  std::mutex userinfo_lock;
+  void set_userinfo(Exchange::UserInfo new_info) {
+    std::lock_guard<std::mutex> l(userinfo_lock);
+    userinfo = new_info;
+  }
+  Exchange::UserInfo get_userinfo() {
+    std::lock_guard<std::mutex> l(userinfo_lock);
+    return userinfo;
+  }
 
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
@@ -121,7 +130,16 @@ protected:
   std::timed_mutex market_lock;
   std::function<void(double, double, std::string)> market_callback;
   std::function<void(double, double, std::string)> market_callback_original;
-  std::atomic<OrderInfo> current_order;
+  OrderInfo current_order;
+  std::mutex current_order_lock;
+  void set_current_order(OrderInfo new_info) {
+    std::lock_guard<std::mutex> l(current_order_lock);
+    current_order = new_info;
+  }
+  OrderInfo get_current_order() {
+    std::lock_guard<std::mutex> l(current_order_lock);
+    return current_order;
+  }
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given

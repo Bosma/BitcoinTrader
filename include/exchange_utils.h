@@ -4,6 +4,7 @@
 #include <chrono>
 #include <functional>
 #include <thread>
+#include <mutex>
 
 #include <curl/curl.h>
 #include <json.hpp>
@@ -39,8 +40,8 @@ class OrderInfo {
       filled_amount(filled_amount), order_id(order_id), price(price),
       status(status), symbol(symbol), type(type) { }
     OrderInfo() :
-      amount(0), avg_price(0), create_date(0),
-      filled_amount(0), order_id(0), price(0),
+      amount(0), avg_price(0), create_date(""),
+      filled_amount(0), order_id(""), price(0),
       status(""), symbol(""), type("") { }
 
     double amount;
@@ -67,7 +68,13 @@ class OrderInfo {
 long optionally_to_long(nlohmann::json);
 double optionally_to_double(nlohmann::json);
 int optionally_to_int(nlohmann::json);
-template <typename T> std::string opt_to_string(nlohmann::json);
+template <typename T> std::string opt_to_string(nlohmann::json object) {
+  if (object.is_string()) {
+    return object.get<std::string>();
+  }
+  else
+    return std::to_string(object.get<T>());
+}
 
 double truncate_to(double, int);
 
@@ -78,5 +85,3 @@ std::chrono::nanoseconds timestamp_now();
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
 
 std::string curl_post(std::string, std::string = "");
-
-bool wait_until(std::function<bool()>, std::chrono::milliseconds test_time, std::chrono::milliseconds time_between_checks = std::chrono::milliseconds(50));

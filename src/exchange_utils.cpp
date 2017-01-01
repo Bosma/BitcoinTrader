@@ -29,15 +29,6 @@ int optionally_to_int(nlohmann::json object) {
     return object;
 }
 
-template <typename T>
-std::string opt_to_string(nlohmann::json object) {
-  if (object.is_string()) {
-    return object.get<std::string>();
-  }
-  else
-    return std::to_string(object.get<T>());
-}
-
 std::string dtos(double n, int digits) {
   std::ostringstream n_ss;
   n_ss << std::fixed << std::setprecision(digits) << n;
@@ -97,20 +88,3 @@ std::string curl_post(std::string url, std::string post_fields) {
   return output;
 }
 
-bool wait_until(function<bool()> test, seconds test_time, milliseconds time_between_checks) {
-  auto t1 = timestamp_now();
-  bool complete = false;
-  bool completed_on_time = true;
-  do {
-    if (timestamp_now() - t1 > test_time)
-      completed_on_time = false;
-    else {
-      if (test())
-        complete = true;
-      else
-        sleep_for(time_between_checks);
-    }
-  } while (complete);
-
-  return completed_on_time;
-}
