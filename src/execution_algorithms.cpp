@@ -7,7 +7,7 @@ using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 using std::chrono::milliseconds;
 
-bool check_until(function<bool()> test, seconds test_time, milliseconds time_between_checks) {
+bool check_until(function<bool()> test, seconds test_time, milliseconds time_between_checks = milliseconds(50)) {
   auto t1 = timestamp_now();
   bool complete = false;
   bool completed_on_time = true;
@@ -140,9 +140,18 @@ void BitcoinTrader::margin_long(double leverage) {
 
     market_callback = nullptr;
     if (result.amount > 0) {
-      market_buy(floor(info.free_cny + result.amount));
+      // we've borrowed, but wait until we can spend the money
+      auto borrow_spendable = [&]() -> bool {
+        Exchange::UserInfo info = get_userinfo();
+        return (info.free_cny >= result.amount);
+      };
+      if (check_until(borrow_spendable, seconds(10)))
+        market_buy(floor(info.free_cny + result.amount));
+      else {
+        trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE, BUYING ALL BTC ANYWAY");
+        market_buy(floor(info.free_cny));
+      }
     }
-    // we failed to borrow, so just buy all CNY we own
     else
       market_buy(floor(info.free_cny));
   }
@@ -172,7 +181,23 @@ void BitcoinTrader::margin_short(double leverage) {
 
     market_callback = nullptr;
     if (result.amount > 0) {
-      market_sell(info.free_btc + result.amount);
+      // we've borrowed, but wait until we can spend the money
+      auto borrow_spendable = [&]() -> bool {
+        Exchange::UserInfo info = get_userinfo();
+        return (info.free_btc >= result.amount);
+      };
+      if (check_until(borrow_spendable, seconds(10)))
+        market_sell(info.free_btc + result.amount);
+      else {
+        trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE, SELLING ALL BTC ANYWAY");
+        market_sell(floor(info.free_btc));
+      }
+    }
+    else
+      market_sell(floor(info.free_btc));
+
+    market_callback = nullptr;
+    if (result.amount > 0) {
     }
     // we failed to borrow, so just sell all BTC we own
     else
@@ -270,7 +295,7 @@ void BitcoinTrader::market_buy(double amount) {
         OrderInfo info = get_current_order();
         return (info.status == "fully filled");
       };
-      if (check_until(order_filled, seconds(5), milliseconds(50))) {
+      if (check_until(order_filled, seconds(5))) {
         OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
@@ -315,7 +340,7 @@ void BitcoinTrader::market_sell(double amount) {
         OrderInfo info = get_current_order();
         return (info.status == "fully filled");
       };
-      if (check_until(order_filled, seconds(5), milliseconds(50))) {
+      if (check_until(order_filled, seconds(5))) {
         OrderInfo info = get_current_order();
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
