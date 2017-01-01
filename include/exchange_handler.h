@@ -104,8 +104,8 @@ protected:
   // borrow amount and currency
   Exchange::BorrowInfo borrow(Currency, double);
   
-  void close_short();
-  void close_long();
+  void close_short_then_long(double);
+  void close_long_then_short(double);
 
   void margin_long(double);
   void margin_short(double);

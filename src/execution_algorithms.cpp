@@ -49,12 +49,12 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
   return result;
 }
 
-void BitcoinTrader::close_short() {
+void BitcoinTrader::close_short_then_long(double leverage) {
   trading_log->output("CLOSING MARGIN SHORT");
 
   Exchange::UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&](double amount, double price, string date) {
+  auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
       trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(price));
 
@@ -70,8 +70,16 @@ void BitcoinTrader::close_short() {
         
         return (result >= 0);
       };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
-        margin_long(2);
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
+        auto reflected_in_userinfo = [&]() -> bool {
+          Exchange::UserInfo info = get_userinfo();
+          return (info.borrow_btc == 0);
+        };
+        if (check_until(reflected_in_userinfo, seconds(5)))
+          margin_long(leverage);
+        else
+          trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+      }
       else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
@@ -83,12 +91,12 @@ void BitcoinTrader::close_short() {
   market_buy(floor(info.free_cny));
 }
 
-void BitcoinTrader::close_long() {
+void BitcoinTrader::close_long_then_short(double leverage) {
   trading_log->output("CLOSING MARGIN LONG");
 
   Exchange::UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&](double amount, double price, string date) {
+  auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
       trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(price));
 
@@ -105,8 +113,16 @@ void BitcoinTrader::close_long() {
         // we do not consider having nothing borrowed failure
         return (result >= 0);
       };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
-        margin_short(2);
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
+        auto reflected_in_userinfo = [&]() -> bool {
+          Exchange::UserInfo info = get_userinfo();
+          return (info.borrow_cny == 0);
+        };
+        if (check_until(reflected_in_userinfo, seconds(5)))
+          margin_short(leverage);
+        else
+          trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+      }
       else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
