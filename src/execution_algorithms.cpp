@@ -274,7 +274,7 @@ void BitcoinTrader::market_buy(double amount) {
     if (market_callback) {
       auto order_filled = [&]() -> bool {
         OrderInfo info = get_current_order();
-        std::cout << "checking orderinfo: " << info.filled_amount << std::endl;
+        std::cout << "checking orderinfo: " << info.status << std::endl;
         return (info.status == "fully filled");
       };
       if (check_until(order_filled, seconds(5), milliseconds(50))) {

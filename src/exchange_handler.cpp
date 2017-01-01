@@ -138,7 +138,7 @@ void BitcoinTrader::fetch_userinfo() {
         subscribe = false;
       });
       exchange->userinfo();
-      sleep_for(milliseconds(250));
+      sleep_for(seconds(1));
     }
   }));
 }
