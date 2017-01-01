@@ -60,6 +60,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
 
       auto successfully_closed_borrow = [&, leverage]() -> bool {
         double result = exchange->close_borrow(Currency::BTC);
+        std::cout << "successfully_closed_borrow: " << result << std::endl;
 
         if (result == 0)
           trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
@@ -70,8 +71,10 @@ void BitcoinTrader::close_short_then_long(double leverage) {
         
         return (result >= 0);
       };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500)))
+      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
+        std::cout << "going to margin long" << std::endl;
         margin_long(leverage);
+      }
       else
         trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
     }
