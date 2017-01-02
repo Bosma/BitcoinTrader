@@ -25,8 +25,8 @@ bool check_until(function<bool()> test, seconds test_time, milliseconds time_bet
   return completed_on_time;
 }
 
-Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
-  Exchange::BorrowInfo result;
+BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
+  BorrowInfo result;
 
   if ((currency == BTC &&
        amount >= 0.01) ||
@@ -52,7 +52,7 @@ Exchange::BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
 void BitcoinTrader::close_short_then_long(double leverage) {
   trading_log->output("CLOSING MARGIN SHORT");
 
-  Exchange::UserInfo info = get_userinfo();
+  UserInfo info = get_userinfo();
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
@@ -72,7 +72,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
       };
       if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
         auto reflected_in_userinfo = [&]() -> bool {
-          Exchange::UserInfo info = get_userinfo();
+          UserInfo info = get_userinfo();
           return (info.borrow_btc == 0);
         };
         if (check_until(reflected_in_userinfo, seconds(5)))
@@ -94,7 +94,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
 void BitcoinTrader::close_long_then_short(double leverage) {
   trading_log->output("CLOSING MARGIN LONG");
 
-  Exchange::UserInfo info = get_userinfo();
+  UserInfo info = get_userinfo();
 
   auto new_market_callback = [&, leverage](double amount, double price, string date) {
     if (date != "") {
@@ -115,7 +115,7 @@ void BitcoinTrader::close_long_then_short(double leverage) {
       };
       if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
         auto reflected_in_userinfo = [&]() -> bool {
-          Exchange::UserInfo info = get_userinfo();
+          UserInfo info = get_userinfo();
           return (info.borrow_cny == 0);
         };
         if (check_until(reflected_in_userinfo, seconds(5)))
@@ -138,7 +138,7 @@ void BitcoinTrader::margin_long(double leverage) {
 
   trading_log->output("MARGIN LONGING " + to_string(leverage * 100) + "% of equity");
 
-  Exchange::UserInfo info = get_userinfo();
+  UserInfo info = get_userinfo();
   if (info.borrow_btc == 0 && info.borrow_cny == 0) {
     // grab price
     double price = tick.ask;
@@ -152,13 +152,13 @@ void BitcoinTrader::margin_long(double leverage) {
     double cny_to_borrow = cny_to_buy_btc - info.free_cny;
     // We own info.free_cny of btc, so need to borrow cny_to_buy_btc - info.free_cny worth of CNY
     // borrow the CNY and go all BTC
-    Exchange::BorrowInfo result = borrow(Currency::CNY, cny_to_borrow);
+    BorrowInfo result = borrow(Currency::CNY, cny_to_borrow);
 
     market_callback = nullptr;
     if (result.amount > 0) {
       // we've borrowed, but wait until we can spend the money
       auto borrow_spendable = [&]() -> bool {
-        Exchange::UserInfo info = get_userinfo();
+        UserInfo info = get_userinfo();
         return (info.free_cny >= result.amount);
       };
       if (check_until(borrow_spendable, seconds(10)))
@@ -180,7 +180,7 @@ void BitcoinTrader::margin_short(double leverage) {
 
   trading_log->output("MARGIN SHORTING " + to_string(leverage * 100) + "% of equity");
 
-  Exchange::UserInfo info = get_userinfo();
+  UserInfo info = get_userinfo();
   if (info.borrow_btc == 0 && info.borrow_cny == 0) {
     // grab price
     double price = tick.bid;
@@ -193,13 +193,13 @@ void BitcoinTrader::margin_short(double leverage) {
     // We own info.free_btc of BTC already, so need to borrow btc_to_buy_cny - info.free_btc of BTC
     double btc_to_borrow = btc_to_buy_cny - info.free_btc;
     // borrow the BTC and sell it all
-    Exchange::BorrowInfo result = borrow(Currency::BTC, btc_to_borrow);
+    BorrowInfo result = borrow(Currency::BTC, btc_to_borrow);
 
     market_callback = nullptr;
     if (result.amount > 0) {
       // we've borrowed, but wait until we can spend the money
       auto borrow_spendable = [&]() -> bool {
-        Exchange::UserInfo info = get_userinfo();
+        UserInfo info = get_userinfo();
         return (info.free_btc >= result.amount);
       };
       if (check_until(borrow_spendable, seconds(10)))

@@ -331,14 +331,14 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
-Exchange::BorrowInfo OKCoin::borrow(Currency currency, double amount) {
+BorrowInfo OKCoin::borrow(Currency currency, double amount) {
   double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
   double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
 
   if (amount > can_borrow)
     amount = can_borrow;
 
-  Exchange::BorrowInfo result;
+  BorrowInfo result;
   result.rate = rate;
   switch (currency) {
     case BTC : result.amount = truncate_to(amount, 2); break;
@@ -508,7 +508,8 @@ void OKCoin::OHLC_handler(string period, json trade, bool backfilling) {
     double low = optionally_to_double(trade[3]);
     double close = optionally_to_double(trade[4]);
     double volume = optionally_to_double(trade[5]);
-    OHLC_callback(period_conversions(period), timestamp, open, high, low, close, volume, backfilling);
+    OHLC new_bar(timestamp, open, high, low, close, volume);
+    OHLC_callback(period_conversions(period), new_bar, backfilling);
   }
 }
 
@@ -518,8 +519,9 @@ void OKCoin::ticker_handler(json tick) {
     double last = optionally_to_double(tick["last"]);
     double bid = optionally_to_double(tick["buy"]);
     double ask = optionally_to_double(tick["sell"]);
+    Ticker tick(timestamp, last, bid, ask);
 
-    ticker_callback(timestamp, last, bid, ask);
+    ticker_callback(tick);
   }
 }
 

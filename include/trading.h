@@ -12,57 +12,12 @@
 #include <boost/circular_buffer.hpp>
 
 #include "../include/strategies.h"
-
-class OHLC {
-  public:
-    OHLC(long timestamp, double open, double high,
-        double low, double close, double volume) :
-      timestamp(timestamp),
-      open(open),
-      high(high),
-      low(low),
-      close(close),
-      volume(volume) { }
-
-    long timestamp;
-    double open;
-    double high;
-    double low;
-    double close;
-    double volume;
-             // strategy name
-    std::map<std::string,
-                      // indicator name
-             std::map<std::string,
-                               // column name
-                      std::map<std::string,
-                               // indicator value 
-                               double>>> indis;
-
-    std::string to_string() {
-      std::ostringstream os;
-      os << "timestamp=" << timestamp <<
-        ",open=" << open << ",high=" << high <<
-        ",low=" << low << ",close=" << close <<
-        ",volume=" << volume;
-      for (auto strategy : indis) {
-        os << "," << strategy.first << "={ ";
-        for (auto indicator : strategy.second) {
-          os << indicator.first << "=(";
-          for (auto column : indicator.second)
-            os << column.first << "=" << column.second;
-          os << ")";
-        }
-        os << " }";
-      }
-      return os.str();
-    }
-};
+#include "../include/exchange_utils.h"
 
 class Indicator {
   public:
     Indicator(std::string name, int period) : name(name), period(period) { }
-    virtual std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>>) = 0;
+    virtual std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>>) = 0;
     std::string name;
     int period;
 };
@@ -72,15 +27,15 @@ class MovingAverage : public Indicator {
     MovingAverage(std::string name, int period) :
       Indicator(name, period) { }
 
-    std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars) {
+    std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
       std::map<std::string, double> values;
       double ma_value;
       if (period <= bars->size()) {
-        std::vector<std::shared_ptr<OHLC>> period_bars(bars->end() - period, bars->end());
+        std::vector<OHLC> period_bars(bars->end() - period, bars->end());
 
         double sum = 0;
         for (auto bar : period_bars)
-          sum += bar->close;
+          sum += bar.close;
 
         ma_value = sum / period;
       }
@@ -97,10 +52,10 @@ class BollingerBands : public Indicator {
     BollingerBands(std::string name, int period = 20, double sd = 2) :
       Indicator(name, period), sd(sd) { }
 
-    std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<std::shared_ptr<OHLC>>> bars) {
+    std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
       std::map<std::string, double> values;
       if (period <= bars->size()) {
-        std::vector<std::shared_ptr<OHLC>> period_bars(bars->end() - period, bars->end());
+        std::vector<OHLC> period_bars(bars->end() - period, bars->end());
         auto welford = welfords_algorithm(period_bars);
 
         double mavg = welford.first;
@@ -120,33 +75,22 @@ class BollingerBands : public Indicator {
       return values;
     }
 
-    std::pair<double, double> welfords_algorithm(std::vector<std::shared_ptr<OHLC>> bars) {
+    std::pair<double, double> welfords_algorithm(std::vector<OHLC> bars) {
       int n = 0;
       double mean = 0;
       double M2 = 0;
 
       for (auto x : bars) {
         n += 1;
-        double delta = x->close - mean;
+        double delta = x.close - mean;
         mean += delta / n;
-        M2 += delta * (x->close - mean);
+        M2 += delta * (x.close - mean);
       }
 
       return std::make_pair(mean, M2 / (n - 1));
     }
 
     double sd;
-};
-
-class Ticker {
-  public:
-    Ticker(long ts, double b, double a, double l) :
-      timestamp(ts), bid(b), ask(a), last(l) { }
-    Ticker() { }
-    long timestamp;
-    double bid;
-    double ask;
-    double last;
 };
 
 class Stop {

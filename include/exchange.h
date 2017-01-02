@@ -29,9 +29,7 @@ class Exchange {
     virtual void limit_sell(double, double) = 0;
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
-    struct UserInfo { double asset_net = 0; double free_btc = 0; double free_cny = 0; double borrow_btc = 0; double borrow_cny = 0; };
     virtual void userinfo() = 0;
-    struct BorrowInfo { std::string id = ""; double amount = 0; double rate = 0; };
     virtual BorrowInfo borrow(Currency, double = 1) = 0;
     virtual double close_borrow(Currency) = 0;
 
@@ -39,10 +37,10 @@ class Exchange {
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
     virtual std::string status() = 0;
 
-    void set_ticker_callback(std::function<void(long, double, double, double)> callback) {
+    void set_ticker_callback(std::function<void(Ticker)> callback) {
       ticker_callback = callback;
     }
-    void set_OHLC_callback(std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> callback) {
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, OHLC, bool)> callback) {
       OHLC_callback = callback;
     }
     void set_open_callback(std::function<void()> callback) {
@@ -75,8 +73,8 @@ class Exchange {
     std::shared_ptr<Config> config;
     std::shared_ptr<Log> log;
 
-    std::function<void(long, double, double, double)> ticker_callback;
-    std::function<void(std::chrono::minutes, long, double, double, double, double, double, bool)> OHLC_callback;
+    std::function<void(Ticker)> ticker_callback;
+    std::function<void(std::chrono::minutes, OHLC, bool)> OHLC_callback;
     std::function<void()> open_callback;
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(std::string)> trade_callback;

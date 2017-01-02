@@ -79,6 +79,8 @@ protected:
 
   // set up the exchange callbacks
   void setup_exchange_callbacks();
+  std::mutex OHLC_lock;
+  std::mutex ticker_lock;
 
   // USERINFO FETCHING
   // so execution algos can check if their actions have resulted in changed
@@ -86,13 +88,13 @@ protected:
   bool fetching_userinfo_already;
   bool subscribe;
   void fetch_userinfo();
-  Exchange::UserInfo userinfo;
+  UserInfo userinfo;
   std::mutex userinfo_lock;
-  void set_userinfo(Exchange::UserInfo new_info) {
+  void set_userinfo(UserInfo new_info) {
     std::lock_guard<std::mutex> l(userinfo_lock);
     userinfo = new_info;
   }
-  Exchange::UserInfo get_userinfo() {
+  UserInfo get_userinfo() {
     std::lock_guard<std::mutex> l(userinfo_lock);
     return userinfo;
   }
@@ -102,7 +104,7 @@ protected:
   // that lock and unlock execution_lock
   
   // borrow amount and currency
-  Exchange::BorrowInfo borrow(Currency, double);
+  BorrowInfo borrow(Currency, double);
   
   void close_short_then_long(double);
   void close_long_then_short(double);

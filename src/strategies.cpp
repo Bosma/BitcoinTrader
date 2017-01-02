@@ -17,15 +17,15 @@ SMACrossover::SMACrossover(string name,
   crossed_above(false),
   crossed_below(false) { }
 
-void SMACrossover::apply(shared_ptr<OHLC> bar) {
-  if (bar->indis[name]["sma_fast"]["mavg"] > bar->indis[name]["sma_slow"]["mavg"] &&
+void SMACrossover::apply(OHLC bar) {
+  if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_above) {
     long_cb();
 
     crossed_above = true;
     crossed_below = false;
   }
-  else if (bar->indis[name]["sma_fast"]["mavg"] < bar->indis[name]["sma_slow"]["mavg"] &&
+  else if (bar.indis[name]["sma_fast"]["mavg"] < bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_below) {
     short_cb();
 

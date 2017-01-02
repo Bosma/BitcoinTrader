@@ -21,7 +21,7 @@ class Strategy {
       indicators(indicators),
       long_cb(lc), short_cb(sc) { }
 
-    virtual void apply(std::shared_ptr<OHLC>) = 0;
+    virtual void apply(OHLC) = 0;
 
     std::string name;
     std::chrono::minutes period;
@@ -45,7 +45,7 @@ class SMACrossover : public Strategy {
         std::function<void()>,
         std::function<void()>);
 
-    void apply(std::shared_ptr<OHLC> bar);
+    void apply(OHLC bar);
 
   private:
     bool crossed_above;

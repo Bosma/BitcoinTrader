@@ -64,7 +64,7 @@ string BitcoinTrader::status() {
   for (auto m : mktdata) {
     os << "MktData with period: " <<  m.second->period.count();
     os << ", size: " << m.second->bars->size() << endl;
-    os << "last: " << m.second->bars->back()->to_string() << endl;
+    os << "last: " << m.second->bars->back().to_string() << endl;
   }
   return os.str();
 }
@@ -131,7 +131,7 @@ void BitcoinTrader::fetch_userinfo() {
   fetching_userinfo_already = true;
   running_threads.push_back(make_shared<thread>([&]() {
     while (!done) {
-      exchange->set_userinfo_callback([&](Exchange::UserInfo uinfo) {
+      exchange->set_userinfo_callback([&](UserInfo uinfo) {
         set_userinfo(uinfo);
         if (subscribe)
           exchange->subscribe_to_ticker();
@@ -151,22 +151,17 @@ void BitcoinTrader::setup_exchange_callbacks() {
         fetch_userinfo();
     }
   ));
-  exchange->set_OHLC_callback(function<void(minutes, long, double, double, double, double, double, bool)>(
-    [&](minutes period, long timestamp, double open, double high,
-      double low, double close, double volume, bool backfilling) {
-
-      shared_ptr<OHLC> bar(new OHLC(timestamp, open, high,
-            low, close, volume));
-
+  exchange->set_OHLC_callback(function<void(minutes, OHLC, bool)>(
+    [&](minutes period, OHLC bar, bool backfilling) {
+      lock_guard<mutex> lock(OHLC_lock);
       mktdata[period]->add(bar, backfilling);
     }
   ));
-  exchange->set_ticker_callback(function<void(long, double, double, double)>(
-    [&](long timestamp, double last, double bid, double ask) {
-      tick.timestamp = timestamp;
-      tick.last = last;
-      tick.bid = bid;
-      tick.ask = ask;
+  exchange->set_ticker_callback(function<void(Ticker)>(
+    [&](Ticker new_tick) {
+      lock_guard<mutex> lock(ticker_lock);
+
+      tick = new_tick;
 
       if (!received_a_tick) {
         received_a_tick = true;
