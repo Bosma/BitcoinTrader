@@ -54,41 +54,49 @@ void BitcoinTrader::close_short_then_long(double leverage) {
 
   UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&, leverage](double amount, double price, string date) {
-    if (date != "") {
-      trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(price));
+  // if we're borrowing no BTC, we can go straight to margin_longing
+  if (info.borrow_btc == 0) {
+    margin_long(leverage);
+  }
+  // we have to close our short position first
+  else {
+    auto new_market_callback = [&, leverage](double amount, double price, string date) {
+      if (date != "") {
+        trading_log->output("BOUGHT " + to_string(amount) + " BTC @ " + to_string(price));
 
-      auto successfully_closed_borrow = [&]() -> bool {
-        double result = exchange->close_borrow(Currency::BTC);
+        auto successfully_closed_borrow = [&]() -> bool {
+          double result = exchange->close_borrow(Currency::BTC);
 
-        if (result == 0)
-          trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
-        else if (result == -1)
-          trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
-        else
-          trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
-        
-        return (result >= 0);
-      };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
-        auto reflected_in_userinfo = [&]() -> bool {
-          UserInfo info = get_userinfo();
-          return (info.borrow_btc == 0);
+          if (result == 0)
+            trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+          else if (result == -1)
+            trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
+          else
+            trading_log->output("CLOSED " + to_string(result) + " BTC BORROW");
+
+          return (result >= 0);
         };
-        if (check_until(reflected_in_userinfo, seconds(5)))
-          margin_long(leverage);
+        if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
+          auto reflected_in_userinfo = [&]() -> bool {
+            UserInfo info = get_userinfo();
+            return (info.borrow_btc == 0);
+          };
+          if (check_until(reflected_in_userinfo, seconds(5)))
+            margin_long(leverage);
+          else
+            trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+        }
         else
-          trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+          trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
       }
       else
-        trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
-    }
-    else
-      trading_log->output("FAILED TO BUY BTC, CANNOT PAY BACK");
-  };
-  set_market_callback(new_market_callback);
+        trading_log->output("FAILED TO BUY BTC, CANNOT PAY BACK");
+    };
+    set_market_callback(new_market_callback);
 
-  market_buy(floor(info.free_cny));
+    market_buy(floor(info.free_cny));
+  }
+
 }
 
 void BitcoinTrader::close_long_then_short(double leverage) {
@@ -96,42 +104,47 @@ void BitcoinTrader::close_long_then_short(double leverage) {
 
   UserInfo info = get_userinfo();
 
-  auto new_market_callback = [&, leverage](double amount, double price, string date) {
-    if (date != "") {
-      trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(price));
+  if (info.borrow_cny == 0) {
+    margin_short(leverage);
+  }
+  else {
+    auto new_market_callback = [&, leverage](double amount, double price, string date) {
+      if (date != "") {
+        trading_log->output("SOLD " + to_string(amount) + " BTC @ " + to_string(price));
 
-      auto successfully_closed_borrow = [&]() -> bool {
-        double result = exchange->close_borrow(Currency::CNY);
+        auto successfully_closed_borrow = [&]() -> bool {
+          double result = exchange->close_borrow(Currency::CNY);
 
-        if (result == 0)
-          trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
-        else if (result == -1)
-          trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
-        else
-          trading_log->output("CLOSED " + to_string(result) + " CNY BORROW");
-        
-        // we do not consider having nothing borrowed failure
-        return (result >= 0);
-      };
-      if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
-        auto reflected_in_userinfo = [&]() -> bool {
-          UserInfo info = get_userinfo();
-          return (info.borrow_cny == 0);
+          if (result == 0)
+            trading_log->output("REQUESTED CLOSE BORROW BUT NOTHING BORROWED");
+          else if (result == -1)
+            trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
+          else
+            trading_log->output("CLOSED " + to_string(result) + " CNY BORROW");
+
+          // we do not consider having nothing borrowed failure
+          return (result >= 0);
         };
-        if (check_until(reflected_in_userinfo, seconds(5)))
-          margin_short(leverage);
+        if (check_until(successfully_closed_borrow, seconds(5), milliseconds(500))) {
+          auto reflected_in_userinfo = [&]() -> bool {
+            UserInfo info = get_userinfo();
+            return (info.borrow_cny == 0);
+          };
+          if (check_until(reflected_in_userinfo, seconds(5)))
+            margin_short(leverage);
+          else
+            trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+        }
         else
-          trading_log->output("CLOSED BORROW BUT NOT REFLECTED IN USERINFO");
+          trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
       }
       else
-        trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
-    }
-    else
-      trading_log->output("FAILED TO SELL BTC, CANNOT PAY BACK");
-  };
-  set_market_callback(new_market_callback);
+        trading_log->output("FAILED TO SELL BTC, CANNOT PAY BACK");
+    };
+    set_market_callback(new_market_callback);
 
-  market_sell(info.free_btc);
+    market_sell(info.free_btc);
+  }
 }
 
 void BitcoinTrader::margin_long(double leverage) {
