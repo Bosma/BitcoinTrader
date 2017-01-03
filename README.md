@@ -10,7 +10,6 @@ C++ OKCoin spot CNY (multiple exchange support in the future) algo trader.
 ## Build Instructions
 ```bash
 git clone https://github.com/Bosma/BitcoinTrader.git && cd BitcoinTrader
-git submodule update --init --recursive
 mkdir build && cd build
 ln -s ../okcoin_error_reasons.txt ./
 cp ../bitcointrader.conf ./
