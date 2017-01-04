@@ -8,6 +8,8 @@
 
 using stops_t = std::vector<std::shared_ptr<Stop>>;
 
+enum Direction { Long, Short };
+
 class BitcoinTrader {
 public:
   BitcoinTrader(std::shared_ptr<Config>);
@@ -113,8 +115,7 @@ protected:
   void margin_short(double);
   
   // generic market buy / sell amount of BTC
-  void market_buy(double);
-  void market_sell(double);
+  void market(Direction, double);
   void set_market_callback(std::function<void(double, double, std::string)> cb) {
     market_callback = cb;
   }

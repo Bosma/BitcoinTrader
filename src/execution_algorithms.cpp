@@ -94,7 +94,7 @@ void BitcoinTrader::close_short_then_long(double leverage) {
     };
     set_market_callback(new_market_callback);
 
-    market_buy(floor(info.free_cny));
+    market(Direction::Long, floor(info.free_cny));
   }
 
 }
@@ -143,7 +143,7 @@ void BitcoinTrader::close_long_then_short(double leverage) {
     };
     set_market_callback(new_market_callback);
 
-    market_sell(info.free_btc);
+    market(Direction::Short, info.free_btc);
   }
 }
 
@@ -175,14 +175,14 @@ void BitcoinTrader::margin_long(double leverage) {
         return (info.free_cny >= result.amount);
       };
       if (check_until(borrow_spendable, seconds(10)))
-        market_buy(floor(info.free_cny + result.amount));
+        market(Direction::Long, floor(info.free_cny + result.amount));
       else {
         trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE, BUYING ALL BTC ANYWAY");
-        market_buy(floor(info.free_cny));
+        market(Direction::Long, floor(info.free_cny));
       }
     }
     else
-      market_buy(floor(info.free_cny));
+      market(Direction::Long, floor(info.free_cny));
   }
   else
     trading_log->output("ATTEMPTING TO MARGIN LONG WITH OPEN POSITION");
@@ -216,21 +216,21 @@ void BitcoinTrader::margin_short(double leverage) {
         return (info.free_btc >= result.amount);
       };
       if (check_until(borrow_spendable, seconds(10)))
-        market_sell(info.free_btc + result.amount);
+        market(Direction::Short, info.free_btc + result.amount);
       else {
         trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE, SELLING ALL BTC ANYWAY");
-        market_sell(floor(info.free_btc));
+        market(Direction::Short, floor(info.free_btc));
       }
     }
     else
-      market_sell(floor(info.free_btc));
+      market(Direction::Short, floor(info.free_btc));
 
     market_callback = nullptr;
     if (result.amount > 0) {
     }
     // we failed to borrow, so just sell all BTC we own
     else
-      market_sell(floor(info.free_btc));
+      market(Direction::Short, floor(info.free_btc));
   }
   else
     trading_log->output("ATTEMPTING TO MARGIN SHORT WITH OPEN POSITION");
@@ -295,10 +295,15 @@ void BitcoinTrader::limit_algorithm(seconds limit) {
   ));
 }
 
-void BitcoinTrader::market_buy(double amount) {
+void BitcoinTrader::market(Direction direction, double amount) {
   amount = truncate_to(amount, 2);
 
-  if (amount > 0.01 * tick.ask) {
+  string action = (direction == Direction::Long) ? "BUY" : "SELL";
+  string currency = (direction == Direction::Long) ? "CNY" : "BTC";
+  double estimated_price = (direction == Direction::Long) ? tick.ask : tick.bid;
+
+  if ((direction == Direction::Long && amount > 0.01 * tick.ask) ||
+      (direction == Direction::Short && amount > 0.01)) {
     // none of this is required if we don't have a callback
     if (market_callback) {
       // for 5 seconds, once a trade is confirmed, fetch its orderinfo
@@ -316,8 +321,11 @@ void BitcoinTrader::market_buy(double amount) {
       exchange->set_trade_callback(new_trade_callback);
     }
 
-    trading_log->output("MARKET BUYING " + to_string(amount) + " CNY @ " + to_string(tick.ask));
-    exchange->market_buy(amount);
+    trading_log->output("MARKET " + action + "ING " + to_string(amount) + " " + currency + " @ " + to_string(estimated_price));
+    if (direction == Direction::Long)
+      exchange->market_buy(amount);
+    else
+      exchange->market_sell(amount);
 
     if (market_callback) {
       auto order_filled = [&]() -> bool {
@@ -330,53 +338,7 @@ void BitcoinTrader::market_buy(double amount) {
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
       else {
-        trading_log->output("MARKET BUY NOT FILLED AFTER 5 SECONDS");
-        market_callback(0, 0, "");
-      }
-    }
-  }
-  else {
-    if (market_callback)
-      market_callback(0, 0, "");
-  }
-}
-
-void BitcoinTrader::market_sell(double amount) {
-  amount = truncate_to(amount, 2);
-
-  if (amount > 0.01) {
-    // none of this is required if we don't have a callback
-    if (market_callback) {
-      // for 5 seconds, once a trade is confirmed, fetch its orderinfo
-      auto new_trade_callback = [&](string order_id) {
-        auto t1 = timestamp_now();
-        do {
-          auto new_orderinfo_callback = [&](OrderInfo orderinfo) {
-            set_current_order(orderinfo);
-          };
-          exchange->set_orderinfo_callback(new_orderinfo_callback);
-          exchange->orderinfo(order_id);
-          sleep_for(milliseconds(1000));
-        } while(timestamp_now() - t1 < seconds(5));
-      };
-      exchange->set_trade_callback(new_trade_callback);
-    }
-
-    trading_log->output("MARKET SELLING " + to_string(amount) + " BTC @ " + to_string(tick.bid));
-    exchange->market_sell(amount);
-
-    if (market_callback) {
-      auto order_filled = [&]() -> bool {
-        OrderInfo info = get_current_order();
-        return (info.status == "fully filled");
-      };
-      clear_current_order();
-      if (check_until(order_filled, seconds(5))) {
-        OrderInfo info = get_current_order();
-        market_callback(info.filled_amount, info.avg_price, info.create_date);
-      }
-      else {
-        trading_log->output("MARKET SELL NOT FILLED AFTER 5 SECONDS");
+        trading_log->output("MARKET " + action + " NOT FILLED AFTER 5 SECONDS");
         market_callback(0, 0, "");
       }
     }
