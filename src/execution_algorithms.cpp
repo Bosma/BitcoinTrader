@@ -99,6 +99,7 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
 
 void BitcoinTrader::margin(Direction direction, double leverage) {
   Currency currency = to_Currency(direction);
+  Currency other = (currency == Currency::BTC) ? Currency::CNY : Currency::BTC;
 
   trading_log->output("MARGIN " + to_position(direction) + "ING " + to_string(leverage * 100) + "% of equity");
 
@@ -107,12 +108,12 @@ void BitcoinTrader::margin(Direction direction, double leverage) {
     double price = to_price(direction);
     double amount_used_to_transact;
     if (direction == Direction::Long)
-      amount_used_to_transact = (((leverage * info.asset_net) / price) - info.free[currency]) * price;
+      amount_used_to_transact = (((leverage * info.asset_net) / price) - info.free[other]) * price;
     else
-      amount_used_to_transact = ((info.asset_net * leverage) - info.free[currency]) / price;
+      amount_used_to_transact = ((info.asset_net * leverage) - info.free[other]) / price;
     double amount_to_borrow = amount_used_to_transact - info.free[currency];
 
-    BorrowInfo result = borrow(to_Currency(direction), amount_to_borrow);
+    BorrowInfo result = borrow(currency, amount_to_borrow);
 
     market_callback = nullptr;
     if (result.amount > 0) {
