@@ -237,27 +237,7 @@ void BitcoinTrader::margin_short(double leverage) {
 
 }
 
-void BitcoinTrader::limit_buy(double amount, double price, seconds cancel_time) {
-  limit_algorithm(cancel_time);
-
-  ostringstream os;
-  os << "limit_buy: LIMIT BUYING " << amount << " BTC @ " << price;
-  trading_log->output(os.str());
-
-  exchange->limit_buy(amount, price);
-}
-
-void BitcoinTrader::limit_sell(double amount, double price, seconds cancel_time) {
-  limit_algorithm(cancel_time);
-
-  ostringstream os;
-  os << "limit_sell: LIMIT SELLING " << amount << " BTC @ " << price;
-  trading_log->output(os.str());
-
-  exchange->limit_sell(amount, price);
-}
-
-void BitcoinTrader::limit_algorithm(seconds limit) {
+void BitcoinTrader::limit(Direction direction, double amount, double price, seconds cancel_time) {
   exchange->set_trade_callback(function<void(string)>(
     [&](string order_id) {
       double filled_amount = 0;
@@ -267,7 +247,7 @@ void BitcoinTrader::limit_algorithm(seconds limit) {
       // we fully filled for the entire amount
       // or some seconds have passed
       while (!done && !done_limit_check &&
-          timestamp_now() - start_time < limit) {
+          timestamp_now() - start_time < cancel_time) {
         // fetch the orderinfo every 2 seconds
         exchange->set_orderinfo_callback(function<void(OrderInfo)>(
           [&](OrderInfo orderinfo) {
@@ -285,14 +265,21 @@ void BitcoinTrader::limit_algorithm(seconds limit) {
       exchange->cancel_order(order_id);
       
       if (filled_amount != 0) {
-        trading_log->output("limit_algorithm: FILLED FOR " + to_string(filled_amount) + " BTC");
+        trading_log->output("FILLED FOR " + to_string(filled_amount) + " BTC");
         if (limit_callback)
           limit_callback(filled_amount);
       }
       else
-        trading_log->output("limit_algorithm: NOT FILLED IN TIME");
+        trading_log->output("NOT FILLED IN TIME");
     }
   ));
+
+  trading_log->output("LIMIT " + to_action(direction) + "ING " + to_string(amount) + " " + to_currency(direction) + " @ " + to_string(price));
+
+  if (direction == Direction::Long)
+    exchange->limit_buy(amount, price);
+  else
+    exchange->limit_sell(amount, price);
 }
 
 void BitcoinTrader::market(Direction direction, double amount) {
@@ -346,7 +333,7 @@ void BitcoinTrader::market(Direction direction, double amount) {
   }
 }
 
-void BitcoinTrader::GTC_buy(double amount, double price) {
+void BitcoinTrader::GTC(Direction direction, double amount, double price) {
   if (GTC_callback) {
     exchange->set_trade_callback(function<void(string)>(
       [&](string order_id) {
@@ -357,25 +344,11 @@ void BitcoinTrader::GTC_buy(double amount, double price) {
   }
 
   ostringstream os;
-  os << "GTC_buy: LIMIT BUYING " << amount << " BTC @ " << price;
+  os << "LIMIT " + to_action(direction) + "ING " << amount << " " + to_currency(direction) + " @ " << price;
   trading_log->output(os.str());
 
-  exchange->limit_buy(amount, price);
-}
-
-void BitcoinTrader::GTC_sell(double amount, double price) {
-  if (GTC_callback) {
-    exchange->set_trade_callback(function<void(string)>(
-      [&](string order_id) {
-        if(GTC_callback)
-          GTC_callback(order_id);
-      }
-    ));
-  }
-
-  ostringstream os;
-  os << "GTC_sell: LIMIT SELLING " << amount << " BTC @ " << price;
-  trading_log->output(os.str());
-
-  exchange->limit_sell(amount, price);
+  if (direction == Direction::Long)
+    exchange->limit_buy(amount, price);
+  else
+    exchange->limit_sell(amount, price);
 }

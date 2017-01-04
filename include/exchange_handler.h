@@ -142,9 +142,7 @@ protected:
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  void limit_buy(double, double, std::chrono::seconds);
-  void limit_sell(double, double, std::chrono::seconds);
-  void limit_algorithm(std::chrono::seconds);
+  void limit(Direction, double, double, std::chrono::seconds);
   void set_limit_callback(std::function<void(double)> cb) {
     limit_callback = cb;
   }
@@ -152,8 +150,7 @@ protected:
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
-  void GTC_buy(double, double);
-  void GTC_sell(double, double);
+  void GTC(Direction, double, double);
   void set_GTC_callback(std::function<void(std::string)> cb) {
     GTC_callback = cb;
   }
