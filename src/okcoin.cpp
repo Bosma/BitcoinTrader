@@ -150,15 +150,15 @@ void OKCoin::on_message(string const & message) {
               auto funds = j[0]["data"]["info"]["funds"];
               UserInfo info;
               info.asset_net = optionally_to_double(funds["asset"]["net"]);
-              info.free_btc = optionally_to_double(funds["free"]["btc"]);
-              info.free_cny = optionally_to_double(funds["free"]["cny"]);
+              info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);
+              info.free[Currency::CNY] = optionally_to_double(funds["free"]["cny"]);
               if (funds.count("borrow") == 1) {
-                info.borrow_btc = optionally_to_double(funds["borrow"]["btc"]);
-                info.borrow_cny = optionally_to_double(funds["borrow"]["cny"]);
+                info.borrow[Currency::BTC] = optionally_to_double(funds["borrow"]["btc"]);
+                info.borrow[Currency::CNY] = optionally_to_double(funds["borrow"]["cny"]);
               }
               else {
-                info.borrow_btc = 0;
-                info.borrow_cny = 0;
+                info.borrow[Currency::BTC] = 0;
+                info.borrow[Currency::CNY] = 0;
               }
               userinfo_callback(info);
             }

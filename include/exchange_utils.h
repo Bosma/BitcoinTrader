@@ -7,12 +7,16 @@
 #include <mutex>
 
 #include <curl/curl.h>
-#include <json.hpp>
-
+#include "../json/json.hpp"
 
 enum Currency { BTC, CNY };
 
-struct UserInfo { double asset_net = 0; double free_btc = 0; double free_cny = 0; double borrow_btc = 0; double borrow_cny = 0; };
+struct UserInfo {
+  double asset_net = 0;
+
+  std::map<Currency, double> free;
+  std::map<Currency, double> borrow;
+};
 
 struct BorrowInfo { std::string id = ""; double amount = 0; double rate = 0; };
 

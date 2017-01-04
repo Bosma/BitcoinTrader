@@ -58,8 +58,11 @@ protected:
   Ticker tick;
 
   enum Direction { Long, Short };
+  static std::string to_position(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
   static std::string to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
+  static std::string to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
   static std::string to_currency(Direction direction) { return (direction == Direction::Long) ? "CNY" : "BTC"; }
+  static Currency to_Currency(Direction direction) { return (direction == Direction::Long) ? Currency::CNY : Currency::CNY; }
   double to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
 
   // map of OHLC bars together with indicator values
@@ -111,11 +114,9 @@ protected:
   // borrow amount and currency
   BorrowInfo borrow(Currency, double);
   
-  void close_short_then_long(double);
-  void close_long_then_short(double);
+  void close_position_then(Direction, double);
 
-  void margin_long(double);
-  void margin_short(double);
+  void margin(Direction, double);
   
   // generic market buy / sell amount of BTC
   void market(Direction, double);

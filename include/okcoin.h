@@ -9,7 +9,7 @@
 
 #include <openssl/md5.h>
 
-#include <json.hpp>
+#include "../json/json.hpp"
 
 #include "../include/websocket.h"
 #include "../include/log.h"

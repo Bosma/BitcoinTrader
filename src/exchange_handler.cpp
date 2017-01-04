@@ -31,12 +31,12 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // long callback
     [&]() {
       trading_log->output("LONGING");
-      close_short_then_long(1);
+      close_position_then(Direction::Long, 1);
     },
     // short callback
     [&]() {
       trading_log->output("SHORTING");
-      close_long_then_short(1);
+      close_position_then(Direction::Short, 1);
     }
   ));
 
