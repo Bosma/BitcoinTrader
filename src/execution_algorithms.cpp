@@ -298,10 +298,6 @@ void BitcoinTrader::limit_algorithm(seconds limit) {
 void BitcoinTrader::market(Direction direction, double amount) {
   amount = truncate_to(amount, 2);
 
-  string action = (direction == Direction::Long) ? "BUY" : "SELL";
-  string currency = (direction == Direction::Long) ? "CNY" : "BTC";
-  double estimated_price = (direction == Direction::Long) ? tick.ask : tick.bid;
-
   if ((direction == Direction::Long && amount > 0.01 * tick.ask) ||
       (direction == Direction::Short && amount > 0.01)) {
     // none of this is required if we don't have a callback
@@ -321,7 +317,8 @@ void BitcoinTrader::market(Direction direction, double amount) {
       exchange->set_trade_callback(new_trade_callback);
     }
 
-    trading_log->output("MARKET " + action + "ING " + to_string(amount) + " " + currency + " @ " + to_string(estimated_price));
+    trading_log->output("MARKET " + to_action(direction) + "ING " + to_string(amount) + " " +
+        to_currency(direction) + " @ " + to_string(to_price(direction)));
     if (direction == Direction::Long)
       exchange->market_buy(amount);
     else
@@ -338,7 +335,7 @@ void BitcoinTrader::market(Direction direction, double amount) {
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
       else {
-        trading_log->output("MARKET " + action + " NOT FILLED AFTER 5 SECONDS");
+        trading_log->output("MARKET " + to_action(direction) + " NOT FILLED AFTER 5 SECONDS");
         market_callback(0, 0, "");
       }
     }

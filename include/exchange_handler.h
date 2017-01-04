@@ -8,8 +8,6 @@
 
 using stops_t = std::vector<std::shared_ptr<Stop>>;
 
-enum Direction { Long, Short };
-
 class BitcoinTrader {
 public:
   BitcoinTrader(std::shared_ptr<Config>);
@@ -58,6 +56,11 @@ protected:
 
   // updated in real time to latest tick
   Ticker tick;
+
+  enum Direction { Long, Short };
+  static std::string to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
+  static std::string to_currency(Direction direction) { return (direction == Direction::Long) ? "CNY" : "BTC"; }
+  double to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
 
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent
