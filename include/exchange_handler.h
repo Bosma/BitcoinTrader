@@ -58,12 +58,13 @@ protected:
   Ticker tick;
 
   enum Direction { Long, Short };
-  static std::string to_position(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
-  static std::string to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
-  static std::string to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
-  static std::string to_currency(Direction direction) { return (direction == Direction::Long) ? "CNY" : "BTC"; }
-  static Currency to_Currency(Direction direction) { return (direction == Direction::Long) ? Currency::CNY : Currency::CNY; }
-  double to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
+  static std::string dir_to_string(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
+  static std::string dir_to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
+  static std::string dir_to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
+  static Currency dir_to_own(Direction direction) { return (direction == Direction::Long) ? Currency::BTC : Currency::CNY; }
+  static Currency dir_to_tx(Direction direction) { return (direction == Direction::Long) ? Currency::CNY : Currency::BTC; }
+  double dir_to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
+  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "CNY"; }
 
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent

@@ -48,9 +48,9 @@ BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
 }
 
 void BitcoinTrader::close_position_then(Direction direction, double leverage) {
-  Currency currency = to_Currency(direction);
+  Currency currency = dir_to_tx(direction);
 
-  trading_log->output("CLOSING MARGIN " + to_position(direction));
+  trading_log->output("CLOSING MARGIN " + dir_to_string(direction));
 
   UserInfo info = get_userinfo();
 
@@ -60,7 +60,7 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
   else {
     auto new_market_callback = [&, leverage, direction, currency](double amount, double price, string date) {
       if (date != "") {
-        trading_log->output(to_past_tense(direction) + " " + to_string(amount) + " " + to_currency(direction) + " @ " + to_string(price));
+        trading_log->output(dir_to_past_tense(direction) + " " + to_string(amount) + " " + cur_to_string(currency) + " @ " + to_string(price));
 
         auto successfully_closed_borrow = [&]() -> bool {
           double result = exchange->close_borrow(currency);
@@ -70,7 +70,7 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
           else if (result == -1)
             trading_log->output("REQUESTED CLOSE BORROW BUT FAILED TO REPAY");
           else
-            trading_log->output("CLOSED " + to_string(result) + " " + to_currency(direction) + " BORROW");
+            trading_log->output("CLOSED " + to_string(result) + " " + cur_to_string(currency) + " BORROW");
 
           // we do not consider having nothing borrowed failure
           return (result >= 0);
@@ -89,7 +89,7 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
           trading_log->output("TRIED TO CLOSE BORROW FOR 5 SECONDS, GIVING UP");
       }
       else
-        trading_log->output("FAILED TO " + to_action(direction) + " " + to_currency(direction) + ", CANNOT PAY BACK");
+        trading_log->output("FAILED TO " + dir_to_action(direction) + " " + cur_to_string(currency) + ", CANNOT PAY BACK");
     };
     set_market_callback(new_market_callback);
 
@@ -98,42 +98,57 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
 }
 
 void BitcoinTrader::margin(Direction direction, double leverage) {
-  Currency currency = to_Currency(direction);
-  Currency other = (currency == Currency::BTC) ? Currency::CNY : Currency::BTC;
+  Currency currency = dir_to_own(direction);
+  Currency other = dir_to_tx(direction);
 
-  trading_log->output("MARGIN " + to_position(direction) + "ING " + to_string(leverage * 100) + "% of equity");
+  trading_log->output("MARGIN " + dir_to_string(direction) + "ING " + to_string(leverage * 100) + "% of equity");
 
   UserInfo info = get_userinfo();
   if (info.borrow[currency] == 0 && info.borrow[currency] == 0) {
-    double price = to_price(direction);
-    double amount_used_to_transact;
+    double want_to_own = leverage * info.asset_net;
+
+    double already_own = info.free[dir_to_own(direction)];
+    // if direction units are in BTC, we need to convert to CNY to compare with net assets
     if (direction == Direction::Long)
-      amount_used_to_transact = (((leverage * info.asset_net) / price) - info.free[other]) * price;
-    else
-      amount_used_to_transact = ((info.asset_net * leverage) - info.free[other]) / price;
-    double amount_to_borrow = amount_used_to_transact - info.free[currency];
+      already_own *= dir_to_price(direction);
 
-    BorrowInfo result = borrow(currency, amount_to_borrow);
+    if (already_own < want_to_own) {
+      double amount_to_transact = want_to_own - already_own;
+      // if we're going short, convert the units from CNY to BTC
+      if (direction == Direction::Short)
+        amount_to_transact /= dir_to_price(direction);
 
-    market_callback = nullptr;
-    if (result.amount > 0) {
-      // we've borrowed, but wait until we can spend the money
-      auto borrow_spendable = [&]() -> bool {
-        UserInfo info = get_userinfo();
-        return (info.free[currency] >= result.amount);
-      };
-      if (check_until(borrow_spendable, seconds(10)))
-        market(direction, info.free[currency] + result.amount);
+      market_callback = nullptr;
+      // check if we have to borrow any
+      if (amount_to_transact > info.free[other]) {
+        // we have to borrow, calculate how much to borrow
+        double amount_to_borrow = amount_to_transact - info.free[other];
+        BorrowInfo result = borrow(currency, amount_to_borrow);
+        if (result.amount > 0) {
+          // we've borrowed, but wait until we can spend the money
+          auto borrow_spendable = [&]() -> bool {
+            UserInfo info = get_userinfo();
+            return (info.free[currency] >= result.amount);
+          };
+          if (check_until(borrow_spendable, seconds(10)))
+            market(direction, info.free[currency] + result.amount);
+          else {
+            trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE");
+            market(direction, info.free[currency]);
+          }
+        }
+        else {
+          market(direction, info.free[currency]);
+        }
+      }
       else {
-        trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE, " + to_action(direction) + "ING ALL " + to_currency(direction) + " ANYWAY");
+        trading_log->output("DO NOT HAVE TO BORROW ANYTHING");
         market(direction, info.free[currency]);
       }
     }
-    else
-      market(direction, info.free[currency]);
   }
   else
-    trading_log->output("ATTEMPTING TO MARGIN " + to_action(direction) + " WITH OPEN POSITION");
+    trading_log->output("ATTEMPTING TO MARGIN " + dir_to_action(direction) + " WITH OPEN POSITION");
 
 }
 
@@ -174,7 +189,7 @@ void BitcoinTrader::limit(Direction direction, double amount, double price, seco
     }
   ));
 
-  trading_log->output("LIMIT " + to_action(direction) + "ING " + to_string(amount) + " " + to_currency(direction) + " @ " + to_string(price));
+  trading_log->output("LIMIT " + dir_to_action(direction) + "ING " + to_string(amount) + " BTC @ " + to_string(price));
 
   if (direction == Direction::Long)
     exchange->limit_buy(amount, price);
@@ -183,7 +198,10 @@ void BitcoinTrader::limit(Direction direction, double amount, double price, seco
 }
 
 void BitcoinTrader::market(Direction direction, double amount) {
-  amount = truncate_to(amount, 2);
+  if (direction == Direction::Long)
+    amount = floor(amount);
+  else
+    amount = truncate_to(amount, 2);
 
   if ((direction == Direction::Long && amount > 0.01 * tick.ask) ||
       (direction == Direction::Short && amount > 0.01)) {
@@ -204,12 +222,16 @@ void BitcoinTrader::market(Direction direction, double amount) {
       exchange->set_trade_callback(new_trade_callback);
     }
 
-    trading_log->output("MARKET " + to_action(direction) + "ING " + to_string(amount) + " " +
-        to_currency(direction) + " @ " + to_string(to_price(direction)));
-    if (direction == Direction::Long)
+    if (direction == Direction::Long) {
+      double estimated_btc = amount / dir_to_price(direction);
+      trading_log->output("MARKET BUYING USING " + to_string(amount) + " CNY (" + to_string(estimated_btc) + " BTC) @ " + to_string(dir_to_price(direction)));
       exchange->market_buy(amount);
-    else
+    }
+    else {
+      double estimated_cny = amount * dir_to_price(direction);
+      trading_log->output("MARKET SELLING " + to_string(amount) + " BTC (" + to_string(estimated_cny) + " CNY) @ " + to_string(dir_to_price(direction)));
       exchange->market_sell(amount);
+    }
 
     if (market_callback) {
       auto order_filled = [&]() -> bool {
@@ -223,7 +245,7 @@ void BitcoinTrader::market(Direction direction, double amount) {
         market_callback(info.filled_amount, info.avg_price, info.create_date);
       }
       else {
-        trading_log->output("MARKET " + to_action(direction) + " NOT FILLED AFTER 5 SECONDS");
+        trading_log->output("MARKET " + dir_to_action(direction) + " NOT FILLED AFTER 5 SECONDS");
         market_callback(0, 0, "");
       }
     }
@@ -244,9 +266,7 @@ void BitcoinTrader::GTC(Direction direction, double amount, double price) {
     ));
   }
 
-  ostringstream os;
-  os << "LIMIT " + to_action(direction) + "ING " << amount << " " + to_currency(direction) + " @ " << price;
-  trading_log->output(os.str());
+  trading_log->output("LIMIT " + dir_to_action(direction) + "ING " + to_string(amount) + " BTC @ " + to_string(price));
 
   if (direction == Direction::Long)
     exchange->limit_buy(amount, price);
