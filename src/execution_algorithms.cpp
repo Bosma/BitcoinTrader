@@ -98,58 +98,50 @@ void BitcoinTrader::close_position_then(Direction direction, double leverage) {
 }
 
 void BitcoinTrader::margin(Direction direction, double leverage) {
-  Currency currency = dir_to_own(direction);
-  Currency other = dir_to_tx(direction);
-
   trading_log->output("MARGIN " + dir_to_string(direction) + "ING " + to_string(leverage * 100) + "% of equity");
 
   UserInfo info = get_userinfo();
-  if (info.borrow[currency] == 0 && info.borrow[currency] == 0) {
-    double want_to_own = leverage * info.asset_net;
 
-    double already_own = info.free[dir_to_own(direction)];
-    // if direction units are in BTC, we need to convert to CNY to compare with net assets
-    if (direction == Direction::Long)
-      already_own *= dir_to_price(direction);
+  double want_to_own = leverage * info.asset_net;
+  double already_own = info.free[dir_to_own(direction)];
+  // if direction units are in BTC, we need to convert to CNY to compare with net assets
+  if (direction == Direction::Long)
+    already_own *= dir_to_price(direction);
 
-    if (already_own < want_to_own) {
-      double amount_to_transact = want_to_own - already_own;
-      // if we're going short, convert the units from CNY to BTC
-      if (direction == Direction::Short)
-        amount_to_transact /= dir_to_price(direction);
+  if (already_own < want_to_own) {
+    double amount_to_transact = want_to_own - already_own;
+    // if we're going short, convert the units from CNY to BTC
+    if (direction == Direction::Short)
+      amount_to_transact /= dir_to_price(direction);
 
-      market_callback = nullptr;
-      // check if we have to borrow any
-      if (amount_to_transact > info.free[other]) {
-        // we have to borrow, calculate how much to borrow
-        double amount_to_borrow = amount_to_transact - info.free[other];
-        BorrowInfo result = borrow(currency, amount_to_borrow);
-        if (result.amount > 0) {
-          // we've borrowed, but wait until we can spend the money
-          auto borrow_spendable = [&]() -> bool {
-            UserInfo info = get_userinfo();
-            return (info.free[currency] >= result.amount);
-          };
-          if (check_until(borrow_spendable, seconds(10)))
-            market(direction, info.free[currency] + result.amount);
-          else {
-            trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE");
-            market(direction, info.free[currency]);
-          }
-        }
+    market_callback = nullptr;
+    // check if we have to borrow any
+    if (amount_to_transact > info.free[dir_to_tx(direction)]) {
+      // we have to borrow, calculate how much to borrow
+      double amount_to_borrow = amount_to_transact - info.free[dir_to_tx(direction)];
+      BorrowInfo result = borrow(dir_to_tx(direction), amount_to_borrow);
+      if (result.amount > 0) {
+        // we've borrowed, but wait until we can spend the money
+        auto borrow_spendable = [&]() -> bool {
+          UserInfo info = get_userinfo();
+          return (info.free[dir_to_tx(direction)] >= result.amount);
+        };
+        if (check_until(borrow_spendable, seconds(10)))
+          market(direction, info.free[dir_to_tx(direction)] + result.amount);
         else {
-          market(direction, info.free[currency]);
+          trading_log->output("BORROW SUCCEEDED BUT NOT SEEING IT IN BALANCE");
+          market(direction, amount_to_transact);
         }
       }
       else {
-        trading_log->output("DO NOT HAVE TO BORROW ANYTHING");
-        market(direction, info.free[currency]);
+        market(direction, amount_to_transact);
       }
     }
+    else {
+      trading_log->output("DO NOT HAVE TO BORROW ANYTHING");
+      market(direction, amount_to_transact);
+    }
   }
-  else
-    trading_log->output("ATTEMPTING TO MARGIN " + dir_to_action(direction) + " WITH OPEN POSITION");
-
 }
 
 void BitcoinTrader::limit(Direction direction, double amount, double price, seconds cancel_time) {
