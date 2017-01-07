@@ -17,8 +17,8 @@ public:
 
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
-  void call_long_cb() { strategies[0]->long_cb(); }
-  void call_short_cb() { strategies[0]->short_cb(); }
+  void call_long_cb(double l) { strategies[0]->long_cb(l); }
+  void call_short_cb(double l) { strategies[0]->short_cb(l); }
   std::string status();
 
   // interfaces to Exchange

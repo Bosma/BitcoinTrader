@@ -29,14 +29,14 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   // create the strategies
   strategies.push_back(make_shared<SMACrossover>("SMACrossover",
     // long callback
-    [&]() {
+    [&](double confidence) {
       trading_log->output("LONGING");
-      close_position_then(Direction::Long, 1);
+      close_position_then(Direction::Long, confidence * 5);
     },
     // short callback
-    [&]() {
+    [&](double confidence) {
       trading_log->output("SHORTING");
-      close_position_then(Direction::Short, 1);
+      close_position_then(Direction::Short, confidence * 5);
     }
   ));
 

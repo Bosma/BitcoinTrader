@@ -14,8 +14,8 @@ class Strategy {
     Strategy(std::string name,
         std::chrono::minutes period,
         std::vector<std::shared_ptr<Indicator>> indicators,
-        std::function<void()> lc,
-        std::function<void()> sc) :
+        std::function<void(double)> lc,
+        std::function<void(double)> sc) :
       name(name),
       period(period),
       indicators(indicators),
@@ -35,15 +35,15 @@ class Strategy {
       return max;
     }
 
-    std::function<void()> long_cb;
-    std::function<void()> short_cb;
+    std::function<void(double)> long_cb;
+    std::function<void(double)> short_cb;
 };
 
 class SMACrossover : public Strategy {
   public:
     SMACrossover(std::string,
-        std::function<void()>,
-        std::function<void()>);
+        std::function<void(double)>,
+        std::function<void(double)>);
 
     void apply(OHLC bar);
 
