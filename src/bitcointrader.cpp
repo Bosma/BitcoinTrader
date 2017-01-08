@@ -40,17 +40,11 @@ int main(int argc, char *argv[]) {
         trader.reconnect();
       else if (args[0] == "status")
         cout << trader.status();
-      else if (args[0] == "long") {
+      else if (args[0] == "signal") {
         if (args.size() == 1)
-          trader.call_long_cb(0.2);
+          trader.set_blend(0);
         else
-          trader.call_long_cb(stod(args[1]));
-      }
-      else if (args[0] == "short") {
-        if (args.size() == 1)
-          trader.call_short_cb(0.2);
-        else
-          trader.call_short_cb(stod(args[1]));
+          trader.set_blend(stod(args[1]));
       }
     }
   }
