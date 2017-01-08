@@ -27,18 +27,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   fetching_userinfo_already(false) {
    
   // create the strategies
-  strategies.push_back(make_shared<SMACrossover>("SMACrossover",
-    // long callback
-    [&](double confidence) {
-      trading_log->output("LONGING");
-      close_position_then(Direction::Long, confidence * 5);
-    },
-    // short callback
-    [&](double confidence) {
-      trading_log->output("SHORTING");
-      close_position_then(Direction::Short, confidence * 5);
-    }
-  ));
+  strategies.push_back(make_shared<SMACrossover>("SMACrossover"));
 
   for (auto strategy : strategies) {
     // if we do not have a mktdata object for this period
@@ -101,8 +90,6 @@ void BitcoinTrader::check_connection() {
             // if the time since the last message received is > 1min
             (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
              // if the websocket has closed
-             // this may cause too many false reconnects due to random
-             // okcoin fuckery
              exchange->reconnect)) {
           exchange_log->output("RECONNECTING TO " + exchange->name);
           exchange = make_shared<OKCoin>(exchange_log, config);

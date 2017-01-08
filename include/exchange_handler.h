@@ -17,8 +17,7 @@ public:
 
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
-  void call_long_cb(double l) { strategies[0]->long_cb(l); }
-  void call_short_cb(double l) { strategies[0]->short_cb(l); }
+  void set_blend(double b) { blended_signal = b; }
   std::string status();
 
   // interfaces to Exchange
@@ -71,6 +70,14 @@ protected:
   std::map<std::chrono::minutes, std::shared_ptr<MktData>> mktdata;
 
   std::vector<std::shared_ptr<Strategy>> strategies;
+
+  // position management
+  double blended_signal;
+  // blend the signals from each strategy
+  // according to some signal blending method
+  void blend_signals();
+  // match the signal with the exposure on the exchange
+  void manage_position();
 
   // live stops
   stops_t stops;
