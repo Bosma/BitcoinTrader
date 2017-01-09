@@ -77,7 +77,7 @@ protected:
   // according to some signal blending method
   void blend_signals();
   // match the signal with the exposure on the exchange
-  void manage_position();
+  void position_management();
 
   // live stops
   stops_t stops;
