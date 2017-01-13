@@ -22,9 +22,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   running_threads(),
   tick(),
   mktdata(),
-  strategies(),
-  received_a_tick(false),
-  fetching_userinfo_already(false) {
+  strategies() {
    
   // create the strategies
   strategies.push_back(make_shared<SMACrossover>("SMACrossover"));
@@ -70,36 +68,61 @@ void BitcoinTrader::start() {
   exchange = make_shared<OKCoin>(exchange_log, config);
   setup_exchange_callbacks();
   exchange->start();
+
+  // check connection and reconnect if down on another thread
+  // this has its own sleep so can happen before the below sleep
   check_connection();
+
+  // give it some time to warm up
+  sleep_for(seconds(5));
+
+  // start fetching userinfo on another thread
+  fetch_userinfo();
+
+  // give it time to fetch userinfo
+  sleep_for(seconds(5));
+
+  // manage positions on another thread
+  position_management();
+}
+
+void BitcoinTrader::position_management() {
+  auto position_thread = [&]() {
+    while (!done) {
+      double blended_signal = blend_signals();
+      manage_positions(blended_signal);
+      sleep_for(milliseconds(100));
+    }
+  };
+  running_threads.push_back(make_shared<thread>(position_thread));
 }
 
 void BitcoinTrader::check_connection() {
-  running_threads.push_back(make_shared<thread>(
-    [&]() {
-      bool warm_up = true;
-      while (!done) {
-        // give some time for everything to start up
-        // the first time and times after we reconnect
-        if (warm_up) {
-          sleep_for(seconds(10));
-          warm_up = false;
-        }
-        // check to reconnect every second
-        sleep_for(seconds(1));
-        if (exchange &&
-            // if the time since the last message received is > 1min
-            (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
-             // if the websocket has closed
-             exchange->reconnect)) {
-          exchange_log->output("RECONNECTING TO " + exchange->name);
-          exchange = make_shared<OKCoin>(exchange_log, config);
-          setup_exchange_callbacks();
-          exchange->start();
-          warm_up = true;
-        }
+  auto connection_thread = [&]() {
+    bool warm_up = true;
+    while (!done) {
+      // give some time for everything to start up
+      // the first time and times after we reconnect
+      if (warm_up) {
+        sleep_for(seconds(10));
+        warm_up = false;
+      }
+      // check to reconnect every second
+      sleep_for(seconds(1));
+      if (exchange &&
+          // if the time since the last message received is > 1min
+          (((timestamp_now() - exchange->ts_since_last) > minutes(1)) ||
+           // if the websocket has closed
+           exchange->reconnect)) {
+        exchange_log->output("RECONNECTING TO " + exchange->name);
+        exchange = make_shared<OKCoin>(exchange_log, config);
+        setup_exchange_callbacks();
+        exchange->start();
+        warm_up = true;
       }
     }
-  ));
+  };
+  running_threads.push_back(make_shared<thread>(connection_thread));
 }
 
 void BitcoinTrader::handle_stops() {
@@ -115,51 +138,39 @@ void BitcoinTrader::handle_stops() {
 }
 
 void BitcoinTrader::fetch_userinfo() {
-  fetching_userinfo_already = true;
-  running_threads.push_back(make_shared<thread>([&]() {
+  auto userinfo_thread = [&]() {
     while (!done) {
       exchange->set_userinfo_callback([&](UserInfo uinfo) {
         set_userinfo(uinfo);
-        if (subscribe)
-          exchange->subscribe_to_ticker();
-        subscribe = false;
       });
       exchange->userinfo();
       sleep_for(seconds(1));
     }
-  }));
+  };
+  running_threads.push_back(make_shared<thread>(userinfo_thread));
 }
 
 void BitcoinTrader::setup_exchange_callbacks() {
-  exchange->set_open_callback(function<void()>(
-    [&]() {
-      subscribe = true;
-      if (!fetching_userinfo_already)
-        fetch_userinfo();
+  auto open_callback = [&]() {
+    exchange->subscribe_to_ticker();
+    // backfill and subscribe to each market data
+    for (auto m : mktdata) {
+      exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
+      exchange->subscribe_to_OHLC(m.second->period);
     }
-  ));
-  exchange->set_OHLC_callback(function<void(minutes, OHLC, bool)>(
-    [&](minutes period, OHLC bar, bool backfilling) {
-      lock_guard<mutex> lock(OHLC_lock);
-      mktdata[period]->add(bar, backfilling);
-    }
-  ));
-  exchange->set_ticker_callback(function<void(Ticker)>(
-    [&](Ticker new_tick) {
-      lock_guard<mutex> lock(ticker_lock);
+  };
+  exchange->set_open_callback(open_callback);
 
-      tick = new_tick;
+  auto OHLC_callback = [&](minutes period, OHLC bar) {
+    lock_guard<mutex> lock(OHLC_lock);
+    mktdata[period]->add(bar);
+  };
+  exchange->set_OHLC_callback(OHLC_callback);
 
-      if (!received_a_tick) {
-        received_a_tick = true;
-        for (auto m : mktdata) {
-          // before we subscribe, backfill the data
-          exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
-          exchange->subscribe_to_OHLC(m.second->period);
-        }
-      }
-
-      handle_stops();
-    }
-  ));
+  auto ticker_callback = [&](Ticker new_tick) {
+    lock_guard<mutex> lock(ticker_lock);
+    tick = new_tick;
+    handle_stops();
+  };
+  exchange->set_ticker_callback(ticker_callback);
 }

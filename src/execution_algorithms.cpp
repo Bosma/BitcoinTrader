@@ -7,24 +7,6 @@ using std::cout;                   using std::endl;
 using std::to_string;              using std::ostringstream;
 using std::chrono::milliseconds;
 
-bool check_until(function<bool()> test, seconds test_time, milliseconds time_between_checks = milliseconds(50)) {
-  auto t1 = timestamp_now();
-  bool complete = false;
-  bool completed_on_time = true;
-  do {
-    if (timestamp_now() - t1 > test_time)
-      completed_on_time = false;
-    else {
-      if (test())
-        complete = true;
-      else
-        sleep_for(time_between_checks);
-    }
-  } while (!complete);
-
-  return completed_on_time;
-}
-
 BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
   BorrowInfo result;
 

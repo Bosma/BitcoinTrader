@@ -20,6 +20,8 @@ struct UserInfo {
 
 struct BorrowInfo { std::string id = ""; double amount = 0; double rate = 0; };
 
+std::chrono::nanoseconds timestamp_now();
+
 class Channel {
   public:
     Channel(std::string name, std::string status) :
@@ -144,8 +146,6 @@ template <typename T> std::string opt_to_string(nlohmann::json object) {
 double truncate_to(double, int);
 
 std::string dtos(double, int);
-
-std::chrono::nanoseconds timestamp_now();
 
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
 

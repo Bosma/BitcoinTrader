@@ -500,7 +500,7 @@ string OKCoin::status() {
   return ss.str();
 }
 
-void OKCoin::OHLC_handler(string period, json trade, bool backfilling) {
+void OKCoin::OHLC_handler(string period, json trade) {
   if (OHLC_callback) {
     long timestamp = optionally_to_long(trade[0]);
     double open = optionally_to_double(trade[1]);
@@ -509,7 +509,7 @@ void OKCoin::OHLC_handler(string period, json trade, bool backfilling) {
     double close = optionally_to_double(trade[4]);
     double volume = optionally_to_double(trade[5]);
     OHLC new_bar(timestamp, open, high, low, close, volume);
-    OHLC_callback(period_conversions(period), new_bar, backfilling);
+    OHLC_callback(period_conversions(period), new_bar);
   }
 }
 
@@ -575,9 +575,6 @@ void OKCoin::backfill_OHLC(minutes period, int n) {
 
   auto j = json::parse(curl_post(url.str()));
 
-  for (auto i = j.begin(); i != j.end(); ++i) {
-    // on the last bar, pretend this isn't backfilling
-    bool backfill = next(i) == j.end() ? false : true;
-    OHLC_handler(period_conversions(period), *i, backfill);
-  }
+  for (auto each : j)
+    OHLC_handler(period_conversions(period), each);
 }

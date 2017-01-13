@@ -40,12 +40,6 @@ int main(int argc, char *argv[]) {
         trader.reconnect();
       else if (args[0] == "status")
         cout << trader.status();
-      else if (args[0] == "signal") {
-        if (args.size() == 1)
-          trader.set_blend(0);
-        else
-          trader.set_blend(stod(args[1]));
-      }
     }
   }
 

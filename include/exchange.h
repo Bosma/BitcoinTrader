@@ -40,7 +40,7 @@ class Exchange {
     void set_ticker_callback(std::function<void(Ticker)> callback) {
       ticker_callback = callback;
     }
-    void set_OHLC_callback(std::function<void(std::chrono::minutes, OHLC, bool)> callback) {
+    void set_OHLC_callback(std::function<void(std::chrono::minutes, OHLC)> callback) {
       OHLC_callback = callback;
     }
     void set_open_callback(std::function<void()> callback) {
@@ -74,7 +74,7 @@ class Exchange {
     std::shared_ptr<Log> log;
 
     std::function<void(Ticker)> ticker_callback;
-    std::function<void(std::chrono::minutes, OHLC, bool)> OHLC_callback;
+    std::function<void(std::chrono::minutes, OHLC)> OHLC_callback;
     std::function<void()> open_callback;
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(std::string)> trade_callback;

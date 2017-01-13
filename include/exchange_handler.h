@@ -17,7 +17,6 @@ public:
 
   // interactive commands
   void reconnect() { exchange->reconnect = true; }
-  void set_blend(double b) { blended_signal = b; }
   std::string status();
 
   // interfaces to Exchange
@@ -71,13 +70,13 @@ protected:
 
   std::vector<std::shared_ptr<Strategy>> strategies;
 
-  // position management
-  double blended_signal;
+  // thread loop calling below two functions
+  void position_management();
   // blend the signals from each strategy
   // according to some signal blending method
-  void blend_signals();
+  double blend_signals();
   // match the signal with the exposure on the exchange
-  void position_management();
+  void manage_positions(double);
 
   // live stops
   stops_t stops;
@@ -90,9 +89,6 @@ protected:
   // called every tick
   void handle_stops();
 
-  // bools used to order subscribing to websocket channels
-  bool received_a_tick;
-
   // set up the exchange callbacks
   void setup_exchange_callbacks();
   std::mutex OHLC_lock;
@@ -101,8 +97,6 @@ protected:
   // USERINFO FETCHING
   // so execution algos can check if their actions have resulted in changed
   // balance values
-  bool fetching_userinfo_already;
-  bool subscribe;
   void fetch_userinfo();
   UserInfo userinfo;
   std::mutex userinfo_lock;
@@ -164,4 +158,26 @@ protected:
     GTC_callback = cb;
   }
   std::function<void(std::string)> GTC_callback;
+
+  bool check_until(std::function<bool()> test, std::chrono::seconds test_time = std::chrono::seconds(0), std::chrono::milliseconds time_between_checks = std::chrono::milliseconds(50)) {
+    auto t1 = timestamp_now();
+    bool complete = false;
+    bool completed_on_time = true;
+    do {
+      if (timestamp_now() - t1 > test_time) {
+        completed_on_time = false;
+        // run forever if test_time is 0
+        if (test_time != std::chrono::seconds(0))
+          complete = true;
+      }
+      else {
+        if (test())
+          complete = true;
+        else
+          std::this_thread::sleep_for(time_between_checks);
+      }
+    } while (!complete);
+
+    return completed_on_time;
+  }
 };

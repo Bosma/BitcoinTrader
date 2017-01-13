@@ -113,7 +113,7 @@ class OKCoin : public Exchange {
     void populate_error_reasons();
 
     // HANDLERS FOR CHANNEL MESSAGES
-    void OHLC_handler(std::string, nlohmann::json, bool = false);
+    void OHLC_handler(std::string, nlohmann::json);
     void ticker_handler(nlohmann::json);
     void orderinfo_handler(nlohmann::json);
 };
