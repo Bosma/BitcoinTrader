@@ -1,5 +1,5 @@
 # BitcoinTrader
-C++ OKCoin spot CNY (multiple exchange support in the future) algo trader.
+C++ OKCoin spot USD (multiple exchange support in the future) algo trader.
 
 ## Dependencies
 1. C++14 compiler (only tested on clang++)

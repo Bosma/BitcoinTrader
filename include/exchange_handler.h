@@ -59,10 +59,10 @@ protected:
   static std::string dir_to_string(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
   static std::string dir_to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
   static std::string dir_to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
-  static Currency dir_to_own(Direction direction) { return (direction == Direction::Long) ? Currency::BTC : Currency::CNY; }
-  static Currency dir_to_tx(Direction direction) { return (direction == Direction::Long) ? Currency::CNY : Currency::BTC; }
+  static Currency dir_to_own(Direction direction) { return (direction == Direction::Long) ? Currency::BTC : Currency::USD; }
+  static Currency dir_to_tx(Direction direction) { return (direction == Direction::Long) ? Currency::USD : Currency::BTC; }
   double dir_to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
-  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "CNY"; }
+  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "USD"; }
 
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent

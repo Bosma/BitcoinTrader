@@ -11,14 +11,14 @@ BorrowInfo BitcoinTrader::borrow(Currency currency, double amount) {
   BorrowInfo result;
 
   if ((currency == BTC && amount >= 0.01) ||
-      (currency == CNY && amount > 0.01 * tick.ask)) {
+      (currency == USD && amount > 0.01 * tick.ask)) {
 
     auto successful_borrow = [&]() -> bool {
       result = exchange->borrow(currency, amount);
       return result.id != "failed";
     };
     if (check_until(successful_borrow, seconds(10), seconds(1))) {
-      string cur = (currency == BTC) ? "BTC" : "CNY";
+      string cur = (currency == BTC) ? "BTC" : "USD";
       trading_log->output("BORROWED " + to_string(result.amount) + " " + cur + " @ %" + to_string(result.rate) + " (" + result.id + ")");
     }
     else
@@ -86,13 +86,13 @@ void BitcoinTrader::margin(Direction direction, double leverage) {
 
   double want_to_own = leverage * info.asset_net;
   double already_own = info.free[dir_to_own(direction)];
-  // if direction units are in BTC, we need to convert to CNY to compare with net assets
+  // if direction units are in BTC, we need to convert to USD to compare with net assets
   if (direction == Direction::Long)
     already_own *= dir_to_price(direction);
 
   if (already_own < want_to_own) {
     double amount_to_transact = want_to_own - already_own;
-    // if we're going short, convert the units from CNY to BTC
+    // if we're going short, convert the units from USD to BTC
     if (direction == Direction::Short)
       amount_to_transact /= dir_to_price(direction);
 
@@ -198,12 +198,12 @@ void BitcoinTrader::market(Direction direction, double amount) {
 
     if (direction == Direction::Long) {
       double estimated_btc = amount / dir_to_price(direction);
-      trading_log->output("MARKET BUYING USING " + to_string(amount) + " CNY (" + to_string(estimated_btc) + " BTC) @ " + to_string(dir_to_price(direction)));
+      trading_log->output("MARKET BUYING USING " + to_string(amount) + " USD (" + to_string(estimated_btc) + " BTC) @ " + to_string(dir_to_price(direction)));
       exchange->market_buy(amount);
     }
     else {
-      double estimated_cny = amount * dir_to_price(direction);
-      trading_log->output("MARKET SELLING " + to_string(amount) + " BTC (" + to_string(estimated_cny) + " CNY) @ " + to_string(dir_to_price(direction)));
+      double estimated_usd = amount * dir_to_price(direction);
+      trading_log->output("MARKET SELLING " + to_string(amount) + " BTC (" + to_string(estimated_usd) + " USD) @ " + to_string(dir_to_price(direction)));
       exchange->market_sell(amount);
     }
 

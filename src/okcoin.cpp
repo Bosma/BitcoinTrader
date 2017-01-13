@@ -87,12 +87,12 @@ void OKCoin::on_message(string const & message) {
           }
           else if (channels[channel]->status == "subscribed") {
             // we're subscribed so delegate to a channel handler
-            if (channel == "ok_sub_spotcny_btc_ticker") {
+            if (channel == "ok_sub_spotusd_btc_ticker") {
               // "buy":670.04,"high":684.91,"last":"670.14","low":659.38
               // "sell":670.44,"timestamp":"1467738929986","vol":"6,238.16"
               ticker_handler(j[0]["data"]);
             }
-            else if (channel.find("ok_sub_spotcny_btc_kline_") != string::npos) {
+            else if (channel.find("ok_sub_spotusd_btc_kline_") != string::npos) {
               // remove first 25 letters (corresponding to length of above string)
               string period = channel.substr(25);
               auto data = j[0]["data"];
@@ -108,7 +108,7 @@ void OKCoin::on_message(string const & message) {
         }
         // we don't have a channel stored in the map
         // check for one off channel messages
-        else if (channel == "ok_spotcny_trade") {
+        else if (channel == "ok_spotusd_trade") {
           // results of a trade
           if (j[0].count("errorcode") == 1) {
             string ec = j[0]["errorcode"];
@@ -132,7 +132,7 @@ void OKCoin::on_message(string const & message) {
             }
           }
         }
-        else if (channel == "ok_spotcny_orderinfo") {
+        else if (channel == "ok_spotusd_orderinfo") {
           auto orders = j[0]["data"]["orders"];
           if (orders.empty())
             log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
@@ -140,7 +140,7 @@ void OKCoin::on_message(string const & message) {
             orderinfo_handler(orders[0]);
 
         }
-        else if (channel == "ok_spotcny_userinfo") {
+        else if (channel == "ok_spotusd_userinfo") {
           if (j[0].count("errorcode") == 1) {
             string ec = j[0]["errorcode"];
             log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[ec]);
@@ -151,14 +151,14 @@ void OKCoin::on_message(string const & message) {
               UserInfo info;
               info.asset_net = optionally_to_double(funds["asset"]["net"]);
               info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);
-              info.free[Currency::CNY] = optionally_to_double(funds["free"]["cny"]);
+              info.free[Currency::USD] = optionally_to_double(funds["free"]["usd"]);
               if (funds.count("borrow") == 1) {
                 info.borrow[Currency::BTC] = optionally_to_double(funds["borrow"]["btc"]);
-                info.borrow[Currency::CNY] = optionally_to_double(funds["borrow"]["cny"]);
+                info.borrow[Currency::USD] = optionally_to_double(funds["borrow"]["usd"]);
               }
               else {
                 info.borrow[Currency::BTC] = 0;
-                info.borrow[Currency::CNY] = 0;
+                info.borrow[Currency::USD] = 0;
               }
               userinfo_callback(info);
             }
@@ -209,11 +209,11 @@ void OKCoin::on_error(string const & error_message) {
 }
 
 void OKCoin::subscribe_to_ticker() {
-  subscribe_to_channel("ok_sub_spotcny_btc_ticker");
+  subscribe_to_channel("ok_sub_spotusd_btc_ticker");
 }
 
 void OKCoin::subscribe_to_OHLC(minutes period) {
-  subscribe_to_channel("ok_sub_spotcny_btc_kline_" + period_conversions(period));
+  subscribe_to_channel("ok_sub_spotusd_btc_kline_" + period_conversions(period));
 }
 
 void OKCoin::subscribe_to_channel(string const & channel) {
@@ -225,8 +225,8 @@ void OKCoin::subscribe_to_channel(string const & channel) {
   channels[channel] = chan;
 }
 
-void OKCoin::market_buy(double cny_amount) {
-  order("buy_market", dtos(cny_amount, 2));
+void OKCoin::market_buy(double usd_amount) {
+  order("buy_market", dtos(usd_amount, 2));
 }
 
 void OKCoin::market_sell(double btc_amount) {
@@ -245,13 +245,13 @@ void OKCoin::cancel_order(std::string order_id) {
   json j;
 
   j["event"] = "addChannel";
-  j["channel"] = "ok_spotcny_cancel_order";
+  j["channel"] = "ok_spotusd_cancel_order";
 
   json p;
   p["api_key"] = api_key;
-  p["symbol"] = "btc_cny";
+  p["symbol"] = "btc_usd";
   p["order_id"] = order_id;
-  p["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_cny&secret_key=" + secret_key);
+  p["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_usd&secret_key=" + secret_key);
 
   j["parameters"] = p;
 
@@ -262,17 +262,17 @@ void OKCoin::order(string type, string amount, string price) {
   json j;
 
   j["event"] = "addChannel";
-  j["channel"] = "ok_spotcny_trade";
+  j["channel"] = "ok_spotusd_trade";
 
   json parameters;
-  // okcoin, for buy market orders, specifies amount to buy in CNY using price field
-  // and, for sell market orders, specifies amount to sell in CNY using amount
+  // okcoin, for buy market orders, specifies amount to buy in USD using price field
+  // and, for sell market orders, specifies amount to sell in USD using amount
   if (type == "buy_market")
     parameters["price"] = amount;
   else
     parameters["amount"] = amount;
   parameters["api_key"] = api_key;
-  parameters["symbol"] = "btc_cny";
+  parameters["symbol"] = "btc_usd";
   parameters["type"] = type;
   if (price != "")
     parameters["price"] = price;
@@ -287,7 +287,7 @@ void OKCoin::order(string type, string amount, string price) {
     str += "&price=" + price;
   if (type == "buy_market")
     str += "&price=" + amount;
-  str += "&symbol=btc_cny&type=" + type + "&secret_key=" + secret_key;
+  str += "&symbol=btc_usd&type=" + type + "&secret_key=" + secret_key;
 
   parameters["sign"] = sign(str);
 
@@ -304,13 +304,13 @@ void OKCoin::orderinfo(string order_id) {
   else {
     json j;
     j["event"] = "addChannel";
-    j["channel"] = "ok_spotcny_orderinfo";
+    j["channel"] = "ok_spotusd_orderinfo";
 
     json parameters;
     parameters["api_key"] = api_key;
-    parameters["symbol"] = "btc_cny";
+    parameters["symbol"] = "btc_usd";
     parameters["order_id"] = order_id;
-    parameters["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_cny&secret_key=" + secret_key);
+    parameters["sign"] = sign("api_key=" + api_key + "&order_id=" + order_id + "&symbol=btc_usd&secret_key=" + secret_key);
 
     j["parameters"] = parameters;
 
@@ -321,7 +321,7 @@ void OKCoin::orderinfo(string order_id) {
 void OKCoin::userinfo() {
   json j;
   j["event"] = "addChannel";
-  j["channel"] = "ok_spotcny_userinfo";
+  j["channel"] = "ok_spotusd_userinfo";
 
   json p;
   p["api_key"] = api_key;
@@ -342,7 +342,7 @@ BorrowInfo OKCoin::borrow(Currency currency, double amount) {
   result.rate = rate;
   switch (currency) {
     case BTC : result.amount = truncate_to(amount, 2); break;
-    case CNY : result.amount = floor(amount); break;
+    case USD : result.amount = floor(amount); break;
   }
 
   auto response = borrow_money(currency, amount, rate, 15);
@@ -377,13 +377,13 @@ double OKCoin::close_borrow(Currency currency) {
 }
 
 json OKCoin::lend_depth(Currency currency) {
-  string url = "https://www.okcoin.cn/api/v1/lend_depth.do";
+  string url = "https://www.okcoin.com/api/v1/lend_depth.do";
 
   ostringstream post_fields;
   post_fields << "api_key=" << api_key;
   switch(currency) {
-    case BTC : post_fields << "&symbol=btc_cny"; break;
-    case CNY : post_fields << "&symbol=cny"; break;
+    case BTC : post_fields << "&symbol=btc_usd"; break;
+    case USD : post_fields << "&symbol=usd"; break;
   }
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
@@ -394,13 +394,13 @@ json OKCoin::lend_depth(Currency currency) {
 }
 
 json OKCoin::borrows_info(Currency currency) {
-  string url = "https://www.okcoin.cn/api/v1/borrows_info.do";
+  string url = "https://www.okcoin.com/api/v1/borrows_info.do";
 
   ostringstream post_fields;
   post_fields << "api_key=" << api_key;
   switch(currency) {
-    case BTC : post_fields << "&symbol=btc_cny"; break;
-    case CNY : post_fields << "&symbol=cny"; break;
+    case BTC : post_fields << "&symbol=btc_usd"; break;
+    case USD : post_fields << "&symbol=usd"; break;
   }
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
@@ -411,15 +411,15 @@ json OKCoin::borrows_info(Currency currency) {
 }
 
 json OKCoin::unrepayments_info(Currency currency) {
-  string url = "https://www.okcoin.cn/api/v1/unrepayments_info.do";
+  string url = "https://www.okcoin.com/api/v1/unrepayments_info.do";
 
   ostringstream post_fields;
   post_fields << "api_key=" << api_key;
   post_fields << "&current_page=1";
   post_fields << "&page_length=10";
   switch(currency) {
-    case BTC : post_fields << "&symbol=btc_cny"; break;
-    case CNY : post_fields << "&symbol=cny"; break;
+    case BTC : post_fields << "&symbol=btc_usd"; break;
+    case USD : post_fields << "&symbol=usd"; break;
   }
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
@@ -430,7 +430,7 @@ json OKCoin::unrepayments_info(Currency currency) {
 }
 
 json OKCoin::borrow_money(Currency currency, double amount, double rate, int days) {
-  string url = "https://www.okcoin.cn/api/v1/borrow_money.do";
+  string url = "https://www.okcoin.com/api/v1/borrow_money.do";
 
   ostringstream post_fields;
   post_fields << "amount=" << amount;
@@ -439,8 +439,8 @@ json OKCoin::borrow_money(Currency currency, double amount, double rate, int day
     post_fields << "&days=fifteen";
   post_fields << "&rate=" << rate;
   switch(currency) {
-    case BTC : post_fields << "&symbol=btc_cny"; break;
-    case CNY : post_fields << "&symbol=cny"; break;
+    case BTC : post_fields << "&symbol=btc_usd"; break;
+    case USD : post_fields << "&symbol=usd"; break;
   }
   string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
   post_fields << "&sign=" << signature;
@@ -451,7 +451,7 @@ json OKCoin::borrow_money(Currency currency, double amount, double rate, int day
 }
 
 json OKCoin::repayment(string borrow_id) {
-  string url = "https://www.okcoin.cn/api/v1/repayment.do";
+  string url = "https://www.okcoin.com/api/v1/repayment.do";
 
   ostringstream post_fields;
   post_fields << "api_key=" << api_key;
@@ -568,8 +568,8 @@ void OKCoin::populate_error_reasons() {
 
 void OKCoin::backfill_OHLC(minutes period, int n) {
   ostringstream url;
-  url << "https://www.okcoin.cn/api/v1/kline.do?";
-  url << "symbol=btc_cny";
+  url << "https://www.okcoin.com/api/v1/kline.do?";
+  url << "symbol=btc_usd";
   url << "&type=" << period_conversions(period);
   url << "&size=" << n;
 

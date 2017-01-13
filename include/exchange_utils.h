@@ -9,7 +9,7 @@
 #include <curl/curl.h>
 #include "../json/json.hpp"
 
-enum Currency { BTC, CNY };
+enum Currency { BTC, USD };
 
 struct UserInfo {
   double asset_net = 0;

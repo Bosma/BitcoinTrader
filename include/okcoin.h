@@ -31,7 +31,7 @@ class OKCoin : public Exchange {
     // subscribe to OHLC bars
     // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
     void subscribe_to_OHLC(std::chrono::minutes);
-    // market buy amount of CNY
+    // market buy amount of USD
     void market_buy(double);
     // market sell amount of BTC
     void market_sell(double);
@@ -58,7 +58,7 @@ class OKCoin : public Exchange {
     std::string status();
 
   private:
-    const std::string OKCOIN_URL = "wss://real.okcoin.cn:10440/websocket/okcoinapi";
+    const std::string OKCOIN_URL = "wss://real.okcoin.com:10440/websocket/okcoinapi";
     std::string api_key;
     std::string secret_key;
     websocket ws;

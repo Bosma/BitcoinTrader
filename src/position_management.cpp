@@ -14,5 +14,5 @@ double BitcoinTrader::blend_signals() {
 
 void BitcoinTrader::manage_positions(double signal) {
   UserInfo info = get_userinfo();
-  std::cout << "manage_positions: " << info.asset_net << " CNY with signal: " << signal << std::endl;
+  std::cout << "manage_positions: " << info.asset_net << " USD with signal: " << signal << std::endl;
 }
