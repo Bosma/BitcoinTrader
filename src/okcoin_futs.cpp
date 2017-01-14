@@ -1,4 +1,4 @@
-#include "../include/okcoin.h"
+#include "../include/okcoin_futs.h"
 
 using namespace std::chrono;
 using std::bind;         using std::thread;
@@ -12,30 +12,30 @@ using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
 using std::next;
 
-OKCoin::OKCoin(shared_ptr<Log> log, shared_ptr<Config> config) :
-  Exchange("OKCoin", log, config),
+OKCoinFuts::OKCoinFuts(shared_ptr<Log> log, shared_ptr<Config> config) :
+  Exchange("OKCoinFuts", log, config),
   api_key((*config)["okcoin_apikey"]),
   secret_key((*config)["okcoin_secretkey"]),
   ws(OKCOIN_URL),
   error_reasons()
 {
-  ws.set_open_callback( bind(&OKCoin::on_open, this) );
-  ws.set_message_callback( bind(&OKCoin::on_message, this, std::placeholders::_1) );
-  ws.set_close_callback( bind(&OKCoin::on_close, this) );
-  ws.set_fail_callback( bind(&OKCoin::on_fail, this) );
-  ws.set_error_callback( bind(&OKCoin::on_error, this, std::placeholders::_1) );
+  ws.set_open_callback( bind(&OKCoinFuts::on_open, this) );
+  ws.set_message_callback( bind(&OKCoinFuts::on_message, this, std::placeholders::_1) );
+  ws.set_close_callback( bind(&OKCoinFuts::on_close, this) );
+  ws.set_fail_callback( bind(&OKCoinFuts::on_fail, this) );
+  ws.set_error_callback( bind(&OKCoinFuts::on_error, this, std::placeholders::_1) );
 
   populate_error_reasons();
 }
 
-OKCoin::~OKCoin() {
+OKCoinFuts::~OKCoinFuts() {
 }
 
-void OKCoin::start() {
+void OKCoinFuts::start() {
   ws.connect();
 }
 
-void OKCoin::on_open() {
+void OKCoinFuts::on_open() {
   log->output("OPENED SOCKET to " + ws.get_uri());
   
   // if we're open, no need to reconnect
@@ -45,7 +45,7 @@ void OKCoin::on_open() {
     open_callback();
 }
 
-void OKCoin::on_close() {
+void OKCoinFuts::on_close() {
   log->output("CLOSE with reason: " + ws.get_error_reason());
 
   // 1001 is normal close
@@ -55,7 +55,7 @@ void OKCoin::on_close() {
   }
 }
 
-void OKCoin::on_message(string const & message) {
+void OKCoinFuts::on_message(string const & message) {
   ts_since_last = timestamp_now();
 
   try {
@@ -198,25 +198,25 @@ void OKCoin::on_message(string const & message) {
   }
 }
 
-void OKCoin::on_fail() {
+void OKCoinFuts::on_fail() {
   log->output("FAIL with error: " + ws.get_error_reason());
   reconnect = true;
 }
 
-void OKCoin::on_error(string const & error_message) {
+void OKCoinFuts::on_error(string const & error_message) {
   log->output("ERROR with message: " + error_message);
   reconnect = true;
 }
 
-void OKCoin::subscribe_to_ticker() {
+void OKCoinFuts::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");
 }
 
-void OKCoin::subscribe_to_OHLC(minutes period) {
+void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_spotusd_btc_kline_" + period_conversions(period));
 }
 
-void OKCoin::subscribe_to_channel(string const & channel) {
+void OKCoinFuts::subscribe_to_channel(string const & channel) {
   log->output("SUBSCRIBING TO " + channel);
 
   ws.send("{'event':'addChannel','channel':'" + channel + "'}");
@@ -225,23 +225,23 @@ void OKCoin::subscribe_to_channel(string const & channel) {
   channels[channel] = chan;
 }
 
-void OKCoin::market_buy(double usd_amount) {
+void OKCoinFuts::market_buy(double usd_amount) {
   order("buy_market", dtos(usd_amount, 2));
 }
 
-void OKCoin::market_sell(double btc_amount) {
+void OKCoinFuts::market_sell(double btc_amount) {
   order("sell_market", dtos(btc_amount, 4));
 }
 
-void OKCoin::limit_buy(double amount, double price) {
+void OKCoinFuts::limit_buy(double amount, double price) {
   order("buy", dtos(amount, 4), dtos(price, 2));
 }
 
-void OKCoin::limit_sell(double amount, double price) {
+void OKCoinFuts::limit_sell(double amount, double price) {
   order("sell", dtos(amount, 4), dtos(price, 2));
 }
 
-void OKCoin::cancel_order(std::string order_id) {
+void OKCoinFuts::cancel_order(std::string order_id) {
   json j;
 
   j["event"] = "addChannel";
@@ -258,7 +258,7 @@ void OKCoin::cancel_order(std::string order_id) {
   ws.send(j.dump());
 }
 
-void OKCoin::order(string type, string amount, string price) {
+void OKCoinFuts::order(string type, string amount, string price) {
   json j;
 
   j["event"] = "addChannel";
@@ -296,7 +296,7 @@ void OKCoin::order(string type, string amount, string price) {
   ws.send(j.dump());
 }
 
-void OKCoin::orderinfo(string order_id) {
+void OKCoinFuts::orderinfo(string order_id) {
   if (order_id == "failed") {
     OrderInfo failed_order;
     orderinfo_callback(failed_order);
@@ -318,7 +318,7 @@ void OKCoin::orderinfo(string order_id) {
   }
 }
 
-void OKCoin::userinfo() {
+void OKCoinFuts::userinfo() {
   json j;
   j["event"] = "addChannel";
   j["channel"] = "ok_spotusd_userinfo";
@@ -331,7 +331,7 @@ void OKCoin::userinfo() {
   ws.send(j.dump());
 }
 
-BorrowInfo OKCoin::borrow(Currency currency, double amount) {
+BorrowInfo OKCoinFuts::borrow(Currency currency, double amount) {
   double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
   double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
 
@@ -355,7 +355,7 @@ BorrowInfo OKCoin::borrow(Currency currency, double amount) {
   return result;
 }
 
-double OKCoin::close_borrow(Currency currency) {
+double OKCoinFuts::close_borrow(Currency currency) {
   // get the open borrows
   auto j = unrepayments_info(currency);
   if (j.size() != 0) {
@@ -376,7 +376,7 @@ double OKCoin::close_borrow(Currency currency) {
     return 0;
 }
 
-json OKCoin::lend_depth(Currency currency) {
+json OKCoinFuts::lend_depth(Currency currency) {
   string url = "https://www.okcoin.com/api/v1/lend_depth.do";
 
   ostringstream post_fields;
@@ -393,7 +393,7 @@ json OKCoin::lend_depth(Currency currency) {
   return j["lend_depth"];
 }
 
-json OKCoin::borrows_info(Currency currency) {
+json OKCoinFuts::borrows_info(Currency currency) {
   string url = "https://www.okcoin.com/api/v1/borrows_info.do";
 
   ostringstream post_fields;
@@ -410,7 +410,7 @@ json OKCoin::borrows_info(Currency currency) {
   return j;
 }
 
-json OKCoin::unrepayments_info(Currency currency) {
+json OKCoinFuts::unrepayments_info(Currency currency) {
   string url = "https://www.okcoin.com/api/v1/unrepayments_info.do";
 
   ostringstream post_fields;
@@ -429,7 +429,7 @@ json OKCoin::unrepayments_info(Currency currency) {
   return j["unrepayments"];
 }
 
-json OKCoin::borrow_money(Currency currency, double amount, double rate, int days) {
+json OKCoinFuts::borrow_money(Currency currency, double amount, double rate, int days) {
   string url = "https://www.okcoin.com/api/v1/borrow_money.do";
 
   ostringstream post_fields;
@@ -450,7 +450,7 @@ json OKCoin::borrow_money(Currency currency, double amount, double rate, int day
   return j;
 }
 
-json OKCoin::repayment(string borrow_id) {
+json OKCoinFuts::repayment(string borrow_id) {
   string url = "https://www.okcoin.com/api/v1/repayment.do";
 
   ostringstream post_fields;
@@ -464,7 +464,7 @@ json OKCoin::repayment(string borrow_id) {
   return j;
 }
 
-string OKCoin::sign(string parameters) {
+string OKCoinFuts::sign(string parameters) {
   // generate MD5
   unsigned char result[MD5_DIGEST_LENGTH];
   MD5((unsigned char*) parameters.c_str(), parameters.size(), result);
@@ -481,17 +481,17 @@ string OKCoin::sign(string parameters) {
   return signature;
 }
 
-void OKCoin::unsubscribe_to_channel(string const & channel) {
+void OKCoinFuts::unsubscribe_to_channel(string const & channel) {
   log->output("UNSUBSCRIBING TO " + channel);
   ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
   channels[channel]->status = "unsubscribed";
 }
 
-void OKCoin::ping() {
+void OKCoinFuts::ping() {
   ws.send("{'event':'ping'}");
 }
 
-string OKCoin::status() {
+string OKCoinFuts::status() {
   ostringstream ss;
   for (auto chan : channels) {
     auto c = chan.second;
@@ -500,7 +500,7 @@ string OKCoin::status() {
   return ss.str();
 }
 
-void OKCoin::OHLC_handler(string period, json trade) {
+void OKCoinFuts::OHLC_handler(string period, json trade) {
   if (OHLC_callback) {
     long timestamp = optionally_to_long(trade[0]);
     double open = optionally_to_double(trade[1]);
@@ -513,7 +513,7 @@ void OKCoin::OHLC_handler(string period, json trade) {
   }
 }
 
-void OKCoin::ticker_handler(json tick) {
+void OKCoinFuts::ticker_handler(json tick) {
   if (ticker_callback) {
     long timestamp = optionally_to_long(tick["timestamp"]);
     double last = optionally_to_double(tick["last"]);
@@ -525,7 +525,7 @@ void OKCoin::ticker_handler(json tick) {
   }
 }
 
-void OKCoin::orderinfo_handler(json order) {
+void OKCoinFuts::orderinfo_handler(json order) {
   static map<int, string> statuses = {{-1, "cancelled"},
     {0, "unfilled"}, {1, "partially filled"},
     {2, "fully filled"}, {4, "cancel request in process"}};
@@ -548,7 +548,7 @@ void OKCoin::orderinfo_handler(json order) {
   }
 }
 
-void OKCoin::populate_error_reasons() {
+void OKCoinFuts::populate_error_reasons() {
   ifstream f("okcoin_error_reasons.txt");
   if (f) {
     // for each line
@@ -566,7 +566,7 @@ void OKCoin::populate_error_reasons() {
   }
 }
 
-void OKCoin::backfill_OHLC(minutes period, int n) {
+void OKCoinFuts::backfill_OHLC(minutes period, int n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/kline.do?";
   url << "symbol=btc_usd";

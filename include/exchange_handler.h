@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../include/log.h"
-#include "../include/okcoin.h"
+#include "../include/okcoin_futs.h"
 #include "../include/strategies.h"
 #include "../include/mktdata.h"
 #include "../include/config.h"
