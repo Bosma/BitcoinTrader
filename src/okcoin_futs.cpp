@@ -13,47 +13,7 @@ using std::ostringstream;using std::make_shared;
 using std::next;
 
 OKCoinFuts::OKCoinFuts(shared_ptr<Log> log, shared_ptr<Config> config) :
-  Exchange("OKCoinFuts", log, config),
-  api_key((*config)["okcoin_apikey"]),
-  secret_key((*config)["okcoin_secretkey"]),
-  ws(OKCOIN_URL),
-  error_reasons()
-{
-  ws.set_open_callback( bind(&OKCoinFuts::on_open, this) );
-  ws.set_message_callback( bind(&OKCoinFuts::on_message, this, std::placeholders::_1) );
-  ws.set_close_callback( bind(&OKCoinFuts::on_close, this) );
-  ws.set_fail_callback( bind(&OKCoinFuts::on_fail, this) );
-  ws.set_error_callback( bind(&OKCoinFuts::on_error, this, std::placeholders::_1) );
-
-  populate_error_reasons();
-}
-
-OKCoinFuts::~OKCoinFuts() {
-}
-
-void OKCoinFuts::start() {
-  ws.connect();
-}
-
-void OKCoinFuts::on_open() {
-  log->output("OPENED SOCKET to " + ws.get_uri());
-  
-  // if we're open, no need to reconnect
-  reconnect = false;
-
-  if (open_callback)
-    open_callback();
-}
-
-void OKCoinFuts::on_close() {
-  log->output("CLOSE with reason: " + ws.get_error_reason());
-
-  // 1001 is normal close
-  if (ws.get_close_code() != 1001) {
-    log->output("WS ABNORMAL CLOSE CODE");
-    reconnect = true;
-  }
-}
+  OKCoin("OKCoinFuts", log, config) { }
 
 void OKCoinFuts::on_message(string const & message) {
   ts_since_last = timestamp_now();
@@ -198,31 +158,12 @@ void OKCoinFuts::on_message(string const & message) {
   }
 }
 
-void OKCoinFuts::on_fail() {
-  log->output("FAIL with error: " + ws.get_error_reason());
-  reconnect = true;
-}
-
-void OKCoinFuts::on_error(string const & error_message) {
-  log->output("ERROR with message: " + error_message);
-  reconnect = true;
-}
-
 void OKCoinFuts::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");
 }
 
 void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_spotusd_btc_kline_" + period_conversions(period));
-}
-
-void OKCoinFuts::subscribe_to_channel(string const & channel) {
-  log->output("SUBSCRIBING TO " + channel);
-
-  ws.send("{'event':'addChannel','channel':'" + channel + "'}");
-
-  shared_ptr<Channel> chan(new Channel(channel, "subscribing"));
-  channels[channel] = chan;
 }
 
 void OKCoinFuts::market_buy(double usd_amount) {
@@ -331,175 +272,6 @@ void OKCoinFuts::userinfo() {
   ws.send(j.dump());
 }
 
-BorrowInfo OKCoinFuts::borrow(Currency currency, double amount) {
-  double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
-  double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
-
-  if (amount > can_borrow)
-    amount = can_borrow;
-
-  BorrowInfo result;
-  result.rate = rate;
-  switch (currency) {
-    case BTC : result.amount = truncate_to(amount, 2); break;
-    case USD : result.amount = floor(amount); break;
-  }
-
-  auto response = borrow_money(currency, amount, rate, 15);
-
-  if (response["result"].get<bool>() == true)
-    result.id = to_string(response["borrow_id"].get<long>());
-  else
-    result.id = "failed";
-
-  return result;
-}
-
-double OKCoinFuts::close_borrow(Currency currency) {
-  // get the open borrows
-  auto j = unrepayments_info(currency);
-  if (j.size() != 0) {
-    string borrow_id = opt_to_string<int>(j[0]["borrow_id"]);
-
-    // repay loan
-    auto r = repayment(borrow_id);
-    bool repaid = r["result"];
-
-    if (repaid) {
-      double amount = j[0]["amount"];
-      return amount;
-    }
-    else
-      return -1;
-  }
-  else
-    return 0;
-}
-
-json OKCoinFuts::lend_depth(Currency currency) {
-  string url = "https://www.okcoin.com/api/v1/lend_depth.do";
-
-  ostringstream post_fields;
-  post_fields << "api_key=" << api_key;
-  switch(currency) {
-    case BTC : post_fields << "&symbol=btc_usd"; break;
-    case USD : post_fields << "&symbol=usd"; break;
-  }
-  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
-  post_fields << "&sign=" << signature;
-
-  string response = curl_post(url, post_fields.str());
-  auto j = json::parse(response);
-  return j["lend_depth"];
-}
-
-json OKCoinFuts::borrows_info(Currency currency) {
-  string url = "https://www.okcoin.com/api/v1/borrows_info.do";
-
-  ostringstream post_fields;
-  post_fields << "api_key=" << api_key;
-  switch(currency) {
-    case BTC : post_fields << "&symbol=btc_usd"; break;
-    case USD : post_fields << "&symbol=usd"; break;
-  }
-  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
-  post_fields << "&sign=" << signature;
-
-  string response = curl_post(url, post_fields.str());
-  auto j = json::parse(response);
-  return j;
-}
-
-json OKCoinFuts::unrepayments_info(Currency currency) {
-  string url = "https://www.okcoin.com/api/v1/unrepayments_info.do";
-
-  ostringstream post_fields;
-  post_fields << "api_key=" << api_key;
-  post_fields << "&current_page=1";
-  post_fields << "&page_length=10";
-  switch(currency) {
-    case BTC : post_fields << "&symbol=btc_usd"; break;
-    case USD : post_fields << "&symbol=usd"; break;
-  }
-  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
-  post_fields << "&sign=" << signature;
-
-  string response = curl_post(url, post_fields.str());
-  auto j = json::parse(response);
-  return j["unrepayments"];
-}
-
-json OKCoinFuts::borrow_money(Currency currency, double amount, double rate, int days) {
-  string url = "https://www.okcoin.com/api/v1/borrow_money.do";
-
-  ostringstream post_fields;
-  post_fields << "amount=" << amount;
-  post_fields << "&api_key=" << api_key;
-  if (days == 15)
-    post_fields << "&days=fifteen";
-  post_fields << "&rate=" << rate;
-  switch(currency) {
-    case BTC : post_fields << "&symbol=btc_usd"; break;
-    case USD : post_fields << "&symbol=usd"; break;
-  }
-  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
-  post_fields << "&sign=" << signature;
-
-  string response = curl_post(url, post_fields.str());
-  auto j = json::parse(response);
-  return j;
-}
-
-json OKCoinFuts::repayment(string borrow_id) {
-  string url = "https://www.okcoin.com/api/v1/repayment.do";
-
-  ostringstream post_fields;
-  post_fields << "api_key=" << api_key;
-  post_fields << "&borrow_id=" << borrow_id;
-  string signature = sign(post_fields.str() + "&secret_key=" + secret_key);
-  post_fields << "&sign=" << signature;
-
-  string response = curl_post(url, post_fields.str());
-  auto j = json::parse(response);
-  return j;
-}
-
-string OKCoinFuts::sign(string parameters) {
-  // generate MD5
-  unsigned char result[MD5_DIGEST_LENGTH];
-  MD5((unsigned char*) parameters.c_str(), parameters.size(), result);
-  ostringstream sout;
-  sout << std::hex << std::setfill('0');
-  for(long long c: result)
-  {
-    sout << std::setw(2) << (long long) c;
-  }
-  string signature = sout.str();
-  // convert signature to upper case
-  for (auto & c: signature) c = toupper(c);
-
-  return signature;
-}
-
-void OKCoinFuts::unsubscribe_to_channel(string const & channel) {
-  log->output("UNSUBSCRIBING TO " + channel);
-  ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
-  channels[channel]->status = "unsubscribed";
-}
-
-void OKCoinFuts::ping() {
-  ws.send("{'event':'ping'}");
-}
-
-string OKCoinFuts::status() {
-  ostringstream ss;
-  for (auto chan : channels) {
-    auto c = chan.second;
-    ss << c->name << " (" << c->status << "): " << c->last_message << endl;
-  }
-  return ss.str();
-}
-
 void OKCoinFuts::OHLC_handler(string period, json trade) {
   if (OHLC_callback) {
     long timestamp = optionally_to_long(trade[0]);
@@ -545,24 +317,6 @@ void OKCoinFuts::orderinfo_handler(json order) {
         filled_amount, order_id, price, status, symbol, type);
 
     orderinfo_callback(order);
-  }
-}
-
-void OKCoinFuts::populate_error_reasons() {
-  ifstream f("okcoin_error_reasons.txt");
-  if (f) {
-    // for each line
-    string s;
-    while (getline(f, s)) {
-      // extract key and value, separated by a space
-      auto space_location = s.find(' ', 0);
-      string key = s.substr(0, space_location);
-      string value = s.substr(space_location + 1);
-      error_reasons[key] = value;
-    }
-  }
-  else {
-    log->output("no error reasons file given");
   }
 }
 

@@ -65,7 +65,7 @@ void BitcoinTrader::cancel_order(std::string order_id) {
 }
 
 void BitcoinTrader::start() {
-  exchange = make_shared<OKCoinFuts>(exchange_log, config);
+  exchange = make_shared<OKCoinSpot>(exchange_log, config);
   setup_exchange_callbacks();
   exchange->start();
 
@@ -115,7 +115,7 @@ void BitcoinTrader::check_connection() {
            // if the websocket has closed
            exchange->reconnect)) {
         exchange_log->output("RECONNECTING TO " + exchange->name);
-        exchange = make_shared<OKCoinFuts>(exchange_log, config);
+        exchange = make_shared<OKCoinSpot>(exchange_log, config);
         setup_exchange_callbacks();
         exchange->start();
         warm_up = true;

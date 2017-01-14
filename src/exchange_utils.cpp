@@ -5,6 +5,28 @@ using std::chrono::seconds;
 using std::function;
 using std::this_thread::sleep_for;
 
+bool check_until(std::function<bool()> test, std::chrono::seconds test_time, std::chrono::milliseconds time_between_checks) {
+  auto t1 = timestamp_now();
+  bool complete = false;
+  bool completed_on_time = true;
+  do {
+    if (timestamp_now() - t1 > test_time) {
+      completed_on_time = false;
+      // run forever if test_time is 0
+      if (test_time != std::chrono::seconds(0))
+        complete = true;
+    }
+    else {
+      if (test())
+        complete = true;
+      else
+        std::this_thread::sleep_for(time_between_checks);
+    }
+  } while (!complete);
+
+  return completed_on_time;
+}
+
 long optionally_to_long(nlohmann::json object) {
   if (object.is_string()) {
     return stol(object.get<std::string>());

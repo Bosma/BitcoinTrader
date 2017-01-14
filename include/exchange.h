@@ -30,9 +30,6 @@ class Exchange {
     virtual void cancel_order(std::string) = 0;
     virtual void orderinfo(std::string) = 0;
     virtual void userinfo() = 0;
-    virtual BorrowInfo borrow(Currency, double = 1) = 0;
-    virtual double close_borrow(Currency) = 0;
-
     virtual void ping() = 0;
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
     virtual std::string status() = 0;

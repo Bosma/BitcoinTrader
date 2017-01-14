@@ -2,6 +2,7 @@
 
 #include "../include/log.h"
 #include "../include/okcoin_futs.h"
+#include "../include/okcoin_spot.h"
 #include "../include/strategies.h"
 #include "../include/mktdata.h"
 #include "../include/config.h"
@@ -113,13 +114,6 @@ protected:
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
   
-  // borrow amount and currency
-  BorrowInfo borrow(Currency, double);
-  
-  void close_position_then(Direction, double);
-
-  void margin(Direction, double);
-  
   // generic market buy / sell amount of BTC
   void market(Direction, double);
   void set_market_callback(std::function<void(double, double, std::string)> cb) {
@@ -158,26 +152,4 @@ protected:
     GTC_callback = cb;
   }
   std::function<void(std::string)> GTC_callback;
-
-  bool check_until(std::function<bool()> test, std::chrono::seconds test_time = std::chrono::seconds(0), std::chrono::milliseconds time_between_checks = std::chrono::milliseconds(50)) {
-    auto t1 = timestamp_now();
-    bool complete = false;
-    bool completed_on_time = true;
-    do {
-      if (timestamp_now() - t1 > test_time) {
-        completed_on_time = false;
-        // run forever if test_time is 0
-        if (test_time != std::chrono::seconds(0))
-          complete = true;
-      }
-      else {
-        if (test())
-          complete = true;
-        else
-          std::this_thread::sleep_for(time_between_checks);
-      }
-    } while (!complete);
-
-    return completed_on_time;
-  }
 };
