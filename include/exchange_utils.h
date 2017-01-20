@@ -12,30 +12,9 @@
 bool check_until(std::function<bool()>, std::chrono::seconds = std::chrono::seconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
 enum Currency { BTC, USD };
-
-struct UserInfo {
-  double asset_net = 0;
-
-  std::map<Currency, double> free;
-  std::map<Currency, double> borrow;
-};
-
-struct BorrowInfo { std::string id = ""; double amount = 0; double rate = 0; };
+enum Position { Long, Short };
 
 std::chrono::nanoseconds timestamp_now();
-
-class Channel {
-  public:
-    Channel(std::string name, std::string status) :
-      name(name),
-      status(status) { }
-
-    void subscribe();
-
-    std::string name;
-    std::string status;
-    std::string last_message;
-};
 
 class Ticker {
   public:
@@ -90,46 +69,6 @@ class OHLC {
         }
         os << " }";
       }
-      return os.str();
-    }
-};
-
-class OrderInfo {
-  public:
-    OrderInfo(double amount,
-              double avg_price,
-              std::string create_date,
-              double filled_amount,
-              std::string order_id,
-              double price,
-              std::string status,
-              std::string symbol,
-              std::string type) :
-      amount(amount), avg_price(avg_price), create_date(create_date),
-      filled_amount(filled_amount), order_id(order_id), price(price),
-      status(status), symbol(symbol), type(type) { }
-    OrderInfo() :
-      amount(0), avg_price(0), create_date(""),
-      filled_amount(0), order_id(""), price(0),
-      status(""), symbol(""), type("") { }
-
-    double amount;
-    double avg_price;
-    std::string create_date;
-    double filled_amount;
-    std::string order_id;
-    double price;
-    std::string status;
-    std::string symbol;
-    std::string type;
-
-    std::string to_string() {
-      std::ostringstream os;
-      os << "amount: " << amount << ", avg_price: " << avg_price
-        << ", create_date: " << create_date << ", filled_amount: "
-        << filled_amount << ", order_id: " << order_id
-        << ", price: " << ", status: " << status << ", symbol: "
-        << symbol << ", type: " << type;
       return os.str();
     }
 };

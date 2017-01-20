@@ -18,36 +18,50 @@
 
 class OKCoinSpot : public OKCoin {
   public:
+    struct UserInfo {
+      double asset_net = 0;
+      std::map<Currency, double> free;
+      std::map<Currency, double> borrow;
+    };
+    struct BorrowInfo {
+      std::string id = "";
+      double amount = 0;
+      double rate = 0;
+    };
+    struct OrderInfo {
+      double amount;
+      double avg_price;
+      std::string create_date;
+      double filled_amount;
+      std::string order_id;
+      double price;
+      std::string status;
+      std::string symbol;
+      std::string type;
+    };
+
     OKCoinSpot(std::shared_ptr<Log> log, std::shared_ptr<Config> config);
     
-    // SEMANTIC COMMANDS FOR THE USER
-    // most of these will have an associated callback
-    // subscribe to trades feed
     void subscribe_to_ticker();
-    // subscribe to OHLC bars
-    // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
     void subscribe_to_OHLC(std::chrono::minutes);
-    // market buy amount of USD
     void market_buy(double);
-    // market sell amount of BTC
     void market_sell(double);
-    // limit buy amount of BTC at price
     void limit_buy(double, double);
-    // limit sell amount of BTC at price
     void limit_sell(double, double);
-    // check a limit for some seconds, call filled callback
-    // cancel limit order
-    void cancel_order(std::string);
-    // get order information by order_id
-    void orderinfo(std::string);
-    // get user info
-    void userinfo();
-    // backfill OHLC period
-    void backfill_OHLC(std::chrono::minutes, int);
+
+    void set_userinfo_callback(std::function<void(UserInfo)> callback) {
+      userinfo_callback = callback;
+    }
+    void set_orderinfo_callback(std::function<void(OrderInfo)> callback) {
+      orderinfo_callback = callback;
+    }
 
   private:
     // WEBSOCKET CALLBACKS
     void on_message(std::string const &);
+
+    std::function<void(UserInfo)> userinfo_callback;
+    std::function<void(OrderInfo)> orderinfo_callback;
 
     void order(std::string, std::string, std::string price = "");
 
@@ -57,7 +71,7 @@ class OKCoinSpot : public OKCoin {
     json lend_depth(Currency);
     json borrows_info(Currency);
     json unrepayments_info(Currency);
-    json borrow_money(Currency, double, double, int);
+    json borrow_money(Currency, double, double);
     json repayment(std::string);
 
     // HANDLERS FOR CHANNEL MESSAGES

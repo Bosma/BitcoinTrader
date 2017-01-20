@@ -18,41 +18,64 @@
 
 class OKCoinFuts : public OKCoin {
   public:
-    OKCoinFuts(std::shared_ptr<Log> log, std::shared_ptr<Config> config);
+    enum ContractType { Weekly, NextWeekly, Quarterly };
+    enum OrderType { OpenLong = 1, OpenShort = 2,
+      CloseLong = 3, CloseShort = 4 };
+    struct UserInfo {
+      double equity = 0;
+      double margin = 0;
+      double realized = 0;
+      double unrealized = 0;
+    };
+    struct OrderInfo {
+      double amount;
+      std::string contract_name;
+      std::string create_date;
+      double filled_amount;
+      double fee;
+      int lever_rate;
+      std::string order_id;
+      double price;
+      double avg_price;
+      std::string status;
+      std::string symbol;
+      OrderType type;
+      int unit_amount;
+    };
+
+    OKCoinFuts(ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
     
-    // SEMANTIC COMMANDS FOR THE USER
-    // most of these will have an associated callback
-    // subscribe to trades feed
     void subscribe_to_ticker();
-    // subscribe to OHLC bars
-    // value of period is: 1min, 3min, 5min, 15min, 30min, 1hour, 2hour, 4hour, 6hour, 12hour, day, 3day, week
     void subscribe_to_OHLC(std::chrono::minutes);
-    // market buy amount of USD
-    void market_buy(double);
-    // market sell amount of BTC
-    void market_sell(double);
-    // limit buy amount of BTC at price
-    void limit_buy(double, double);
-    // limit sell amount of BTC at price
-    void limit_sell(double, double);
-    // check a limit for some seconds, call filled callback
-    // cancel limit order
+    void open(Position, double, double, double);
+    void close(Position, double, double, double);
     void cancel_order(std::string);
-    // get order information by order_id
     void orderinfo(std::string);
-    // get user info
-    void userinfo();
-    // backfill OHLC period
-    void backfill_OHLC(std::chrono::minutes, int);
+
+    void set_userinfo_callback(std::function<void(UserInfo)> callback) {
+      userinfo_callback = callback;
+    }
+    void set_orderinfo_callback(std::function<void(OrderInfo)> callback) {
+      orderinfo_callback = callback;
+    }
 
   private:
-    // WEBSOCKET CALLBACKS
-    void on_message(std::string const &);
+    ContractType contract_type;
 
-    void order(std::string, std::string, std::string price = "");
+    std::function<void(UserInfo)> userinfo_callback;
+    std::function<void(OrderInfo)> orderinfo_callback;
 
-    // HANDLERS FOR CHANNEL MESSAGES
-    void OHLC_handler(std::string, nlohmann::json);
-    void ticker_handler(nlohmann::json);
+    void order(OrderType, double, double, double, bool);
+
     void orderinfo_handler(nlohmann::json);
+    void userinfo_handler(nlohmann::json);
+
+    // convert contract type into string for ws messages
+    static const std::string contract_s(ContractType type) {
+      switch (type) {
+        case Weekly : return "this_week"; break;
+        case NextWeekly : return "next_week"; break;
+        case Quarterly : return "quarter"; break;
+      }
+    }
 };

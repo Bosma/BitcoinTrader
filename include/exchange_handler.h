@@ -56,7 +56,6 @@ protected:
   // updated in real time to latest tick
   Ticker tick;
 
-  enum Direction { Long, Short };
   static std::string dir_to_string(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
   static std::string dir_to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
   static std::string dir_to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
