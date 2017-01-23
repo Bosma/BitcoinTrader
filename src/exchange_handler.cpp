@@ -15,11 +15,8 @@ using namespace std::placeholders; using std::to_string;
 using std::floor;                  using std::chrono::milliseconds;
 
 // REQUIRED TO EXPLICITLY ADD EACH EXCHANGE HERE
-vector<shared_ptr<BitcoinTrader::ExchangeMeta>> BitcoinTrader::exchange_metas() {
-  return {
-    okcoin_futs.meta,
-    okcoin_spot.meta
-  };
+vector<shared_ptr<ExchangeMeta>> BitcoinTrader::exchange_metas() {
+  return { okcoin_futs.meta, okcoin_spot.meta };
 }
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
