@@ -22,6 +22,14 @@ class OKCoinSpot : public OKCoin {
       double asset_net = 0;
       std::map<Currency, double> free;
       std::map<Currency, double> borrow;
+
+      std::string to_string() {
+        std::ostringstream os;
+        os << "Equity: " << asset_net << std::endl;
+        os << "BTC: " << free[BTC] << ", BTC (borrowed): " << borrow[BTC] << std::endl;
+        os << "USD: " << free[USD] << ", USD (borrowed): " << borrow[USD] << std::endl;
+        return os.str();
+      }
     };
     struct BorrowInfo {
       std::string id = "";
@@ -40,7 +48,7 @@ class OKCoinSpot : public OKCoin {
       std::string type;
     };
 
-    OKCoinSpot(std::shared_ptr<Log> log, std::shared_ptr<Config> config);
+    OKCoinSpot(std::string, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
@@ -57,9 +65,6 @@ class OKCoinSpot : public OKCoin {
     }
 
   private:
-    // WEBSOCKET CALLBACKS
-    void on_message(std::string const &);
-
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;
 
@@ -75,7 +80,6 @@ class OKCoinSpot : public OKCoin {
     json repayment(std::string);
 
     // HANDLERS FOR CHANNEL MESSAGES
-    void OHLC_handler(std::string, nlohmann::json);
-    void ticker_handler(nlohmann::json);
     void orderinfo_handler(nlohmann::json);
+    void userinfo_handler(nlohmann::json);
 };

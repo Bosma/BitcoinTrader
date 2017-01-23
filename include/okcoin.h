@@ -41,6 +41,9 @@ class OKCoin : public Exchange {
     std::string status();
     
     void userinfo();
+    
+    // backfill OHLC period
+    void backfill_OHLC(std::chrono::minutes, int);
 
   protected:
     std::string api_key;
@@ -66,9 +69,6 @@ class OKCoin : public Exchange {
     void ticker_handler(nlohmann::json);
     virtual void userinfo_handler(nlohmann::json) = 0;
     virtual void orderinfo_handler(nlohmann::json) = 0;
-    
-    // backfill OHLC period
-    void backfill_OHLC(std::chrono::minutes, int);
 
     // GET MD5 HASH OF PARAMETERS
     std::string sign(json);

@@ -203,6 +203,7 @@ void OKCoin::ping() {
 
 string OKCoin::status() {
   ostringstream ss;
+  ss << Exchange::status();
   for (auto chan : channels) {
     auto c = chan.second;
     ss << c->name << " (" << c->status << "): " << c->last_message << endl;

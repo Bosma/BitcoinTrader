@@ -6,18 +6,25 @@
 #include "../include/strategies.h"
 #include "../include/mktdata.h"
 #include "../include/config.h"
+#include "../include/exchange_data.h"
 
 using stops_t = std::vector<std::shared_ptr<Stop>>;
 
 class BitcoinTrader {
 public:
+  // Exchanges and their data
+  // ExchangeMeta includes data common to all exchanges
+  // and use exchanges() to get a collection of them
   BitcoinTrader(std::shared_ptr<Config>);
   ~BitcoinTrader();
 
   std::function<void(std::string)> execution_callback;
 
   // interactive commands
-  void reconnect() { exchange->reconnect = true; }
+  void reconnect() {
+    for (auto exchange : exchanges())
+      exchange->reconnect = true;
+  }
   std::string status();
 
   // interfaces to Exchange
@@ -29,10 +36,8 @@ public:
   void start();
 
 protected:
-  // source of data and market actions
-  // is dynamic because on reconnects old one is thrown out
-  // and new one allocated
-  std::shared_ptr<Exchange> exchange;
+  ExchangeData<OKCoinFuts> okcoin_futs;
+  ExchangeData<OKCoinSpot> okcoin_spot;
 
   // private config options
   // sourced from config file
@@ -40,8 +45,6 @@ protected:
 
   // used for logging trading actions
   std::shared_ptr<Log> trading_log;
-  // used for logging exchange actions
-  std::shared_ptr<Log> exchange_log;
 
   // if this is being destructed
   bool done;
@@ -53,20 +56,8 @@ protected:
   // used to check if the exchange is working
   void check_connection();
 
-  // updated in real time to latest tick
-  Ticker tick;
-
-  static std::string dir_to_string(Direction direction) { return (direction == Direction::Long) ? "LONG" : "SHORT"; }
-  static std::string dir_to_action(Direction direction) { return (direction == Direction::Long) ? "BUY" : "SELL"; }
-  static std::string dir_to_past_tense(Direction direction) { return (direction == Direction::Long) ? "BOUGHT" : "SOLD"; }
-  static Currency dir_to_own(Direction direction) { return (direction == Direction::Long) ? Currency::BTC : Currency::USD; }
-  static Currency dir_to_tx(Direction direction) { return (direction == Direction::Long) ? Currency::USD : Currency::BTC; }
-  double dir_to_price(Direction direction) { return (direction == Direction::Long) ? tick.ask : tick.bid; }
-  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "USD"; }
-
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent
-  std::map<std::chrono::minutes, std::shared_ptr<MktData>> mktdata;
 
   std::vector<std::shared_ptr<Strategy>> strategies;
 
@@ -80,75 +71,45 @@ protected:
 
   // live stops
   stops_t stops;
-  // used so that the price for take profit limits is calculated
-  // at the same time (and near the same code) as stops
-  double tp_limit;
   // stops waiting to be added (ie, limit order waiting to be filled)
-  stops_t pending_stops;
-
-  // called every tick
-  void handle_stops();
-
-  // set up the exchange callbacks
-  void setup_exchange_callbacks();
-  std::mutex OHLC_lock;
-  std::mutex ticker_lock;
-
-  // USERINFO FETCHING
-  // so execution algos can check if their actions have resulted in changed
-  // balance values
-  void fetch_userinfo();
-  UserInfo userinfo;
-  std::mutex userinfo_lock;
-  void set_userinfo(UserInfo new_info) {
-    std::lock_guard<std::mutex> l(userinfo_lock);
-    userinfo = new_info;
-  }
-  UserInfo get_userinfo() {
-    std::lock_guard<std::mutex> l(userinfo_lock);
-    return userinfo;
-  }
-
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
   // that lock and unlock execution_lock
   
   // generic market buy / sell amount of BTC
-  void market(Direction, double);
-  void set_market_callback(std::function<void(double, double, std::string)> cb) {
-    market_callback = cb;
-  }
+  template <class T>
+  void market(ExchangeData<T>, Position, double);
   std::function<void(double, double, std::string)> market_callback;
-  OrderInfo current_order;
-  std::mutex current_order_lock;
-  void set_current_order(OrderInfo new_info) {
-    std::lock_guard<std::mutex> l(current_order_lock);
-    current_order = new_info;
-  }
-  OrderInfo get_current_order() {
-    std::lock_guard<std::mutex> l(current_order_lock);
-    return current_order;
-  }
-  void clear_current_order() {
-    std::lock_guard<std::mutex> l(current_order_lock);
-    OrderInfo cleared;
-    current_order = cleared;
-  }
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  void limit(Direction, double, double, std::chrono::seconds);
-  void set_limit_callback(std::function<void(double)> cb) {
-    limit_callback = cb;
-  }
+  template <class T>
+  void limit(ExchangeData<T>, Position, double, double, std::chrono::seconds);
   std::function<void(double)> limit_callback;
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
-  void GTC(Direction, double, double);
-  void set_GTC_callback(std::function<void(std::string)> cb) {
-    GTC_callback = cb;
-  }
+  void GTC(ExchangeMeta, Position, double, double);
   std::function<void(std::string)> GTC_callback;
+
+  stops_t pending_stops;
+
+  // USERINFO FETCHING
+  void fetch_userinfo();
+
+  static std::string dir_to_string(Position direction) { return (direction == Position::Long) ? "LONG" : "SHORT"; }
+  static std::string dir_to_action(Position direction) { return (direction == Position::Long) ? "BUY" : "SELL"; }
+  static std::string dir_to_past_tense(Position direction) { return (direction == Position::Long) ? "BOUGHT" : "SOLD"; }
+  static Currency dir_to_own(Position direction) { return (direction == Position::Long) ? Currency::BTC : Currency::USD; }
+  static Currency dir_to_tx(Position direction) { return (direction == Position::Long) ? Currency::USD : Currency::BTC; }
+  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "USD"; }
+
+  std::vector<std::shared_ptr<ExchangeMeta>> exchange_metas();
+  std::vector<std::shared_ptr<Exchange>> exchanges() {
+    std::vector<std::shared_ptr<Exchange>> to_return;
+    for (auto x : exchange_metas())
+      to_return.push_back(x->exchange);
+    return to_return;
+  }
 };

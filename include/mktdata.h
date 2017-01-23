@@ -13,6 +13,8 @@ class MktData {
       period(period) { }
 
     void add(OHLC bar, bool backfilling = false) {
+      std::lock_guard<std::mutex> l(lock);
+
       // don't add bars of the same timestamp
       bool found = false;
       for (auto x : *bars)
@@ -57,4 +59,5 @@ class MktData {
   private:
     std::vector<std::shared_ptr<Strategy>> strategies;
     std::function<void(OHLC)> new_bar_callback;
+    std::mutex lock;
 };

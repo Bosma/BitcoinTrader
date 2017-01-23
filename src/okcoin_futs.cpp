@@ -12,8 +12,8 @@ using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
 using std::next;
 
-OKCoinFuts::OKCoinFuts(ContractType contract_type, shared_ptr<Log> log, shared_ptr<Config> config) :
-  OKCoin("OKCoinFuts", Future, log, config),
+OKCoinFuts::OKCoinFuts(std::string name, ContractType contract_type, shared_ptr<Log> log, shared_ptr<Config> config) :
+  OKCoin(name, Future, log, config),
   contract_type(contract_type) { }
 
 void OKCoinFuts::subscribe_to_ticker() {

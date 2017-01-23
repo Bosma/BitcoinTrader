@@ -84,6 +84,26 @@ template <typename T> std::string opt_to_string(nlohmann::json object) {
     return std::to_string(object.get<T>());
 }
 
+template <class T> class Atomic {
+  public:
+    void set(T new_x) {
+      std::lock_guard<std::mutex> l(lock);
+      x = new_x;
+    }
+    T get() {
+      std::lock_guard<std::mutex> l(lock);
+      return x;
+    }
+    void clear() {
+      std::lock_guard<std::mutex> l(lock);
+      T cleared;
+      x = cleared;
+    }
+  private:
+    T x;
+    std::mutex lock;
+};
+
 double truncate_to(double, int);
 
 std::string dtos(double, int);

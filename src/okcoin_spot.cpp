@@ -12,8 +12,8 @@ using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
 using std::next;
 
-OKCoinSpot::OKCoinSpot(shared_ptr<Log> log, shared_ptr<Config> config) :
-  OKCoin("OKCoinSpot", Spot, log, config) { }
+OKCoinSpot::OKCoinSpot(std::string name, shared_ptr<Log> log, shared_ptr<Config> config) :
+  OKCoin(name, Spot, log, config) { }
 
 void OKCoinSpot::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");
@@ -189,31 +189,6 @@ json OKCoinSpot::repayment(string borrow_id) {
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
   return j;
-}
-
-void OKCoinSpot::OHLC_handler(string period, json trade) {
-  if (OHLC_callback) {
-    long timestamp = optionally_to_long(trade[0]);
-    double open = optionally_to_double(trade[1]);
-    double high = optionally_to_double(trade[2]);
-    double low = optionally_to_double(trade[3]);
-    double close = optionally_to_double(trade[4]);
-    double volume = optionally_to_double(trade[5]);
-    OHLC new_bar(timestamp, open, high, low, close, volume);
-    OHLC_callback(period_m(period), new_bar);
-  }
-}
-
-void OKCoinSpot::ticker_handler(json tick) {
-  if (ticker_callback) {
-    long timestamp = optionally_to_long(tick["timestamp"]);
-    double last = optionally_to_double(tick["last"]);
-    double bid = optionally_to_double(tick["buy"]);
-    double ask = optionally_to_double(tick["sell"]);
-    Ticker tick(timestamp, last, bid, ask);
-
-    ticker_callback(tick);
-  }
 }
 
 void OKCoinSpot::orderinfo_handler(json order) {

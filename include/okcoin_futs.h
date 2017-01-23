@@ -26,6 +26,13 @@ class OKCoinFuts : public OKCoin {
       double margin = 0;
       double realized = 0;
       double unrealized = 0;
+
+      std::string to_string() {
+        std::ostringstream os;
+        os << "Equity: " << equity << ", Margin: " << margin << std::endl;
+        os << "Realized: " << realized << ", Unrealized: " << unrealized << std::endl;
+        return os.str();
+      }
     };
     struct OrderInfo {
       double amount;
@@ -43,7 +50,7 @@ class OKCoinFuts : public OKCoin {
       int unit_amount;
     };
 
-    OKCoinFuts(ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
+    OKCoinFuts(std::string, ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
