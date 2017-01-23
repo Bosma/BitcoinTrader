@@ -192,9 +192,6 @@ json OKCoinSpot::repayment(string borrow_id) {
 }
 
 void OKCoinSpot::orderinfo_handler(json order) {
-  static map<int, string> statuses = {{-1, "cancelled"},
-    {0, "unfilled"}, {1, "partially filled"},
-    {2, "fully filled"}, {4, "cancel request in process"}};
 
   if (orderinfo_callback) {
     OrderInfo new_order;
@@ -204,10 +201,29 @@ void OKCoinSpot::orderinfo_handler(json order) {
     new_order.filled_amount = optionally_to_double(order["deal_amount"]);
     new_order.order_id = opt_to_string<long>(order["order_id"]);
     new_order.price = optionally_to_double(order["price"]);
-    new_order.status = statuses[optionally_to_int(order["status"])];
+    new_order.status = status_s.at(optionally_to_int(order["status"]));
     new_order.symbol = order["symbol"];
     new_order.type = order["type"];
 
-    orderinfo_callback(order);
+    orderinfo_callback(new_order);
+  }
+}
+
+void OKCoinSpot::userinfo_handler(json j) {
+  if (userinfo_callback) {
+    auto funds = j[0]["data"]["info"]["funds"];
+    UserInfo info;
+    info.asset_net = optionally_to_double(funds["asset"]["net"]);
+    info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);
+    info.free[Currency::USD] = optionally_to_double(funds["free"]["usd"]);
+    if (funds.count("borrow") == 1) {
+      info.borrow[Currency::BTC] = optionally_to_double(funds["borrow"]["btc"]);
+      info.borrow[Currency::USD] = optionally_to_double(funds["borrow"]["usd"]);
+    }
+    else {
+      info.borrow[Currency::BTC] = 0;
+      info.borrow[Currency::USD] = 0;
+    }
+    userinfo_callback(info);
   }
 }

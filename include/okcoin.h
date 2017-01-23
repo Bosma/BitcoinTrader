@@ -90,6 +90,9 @@ class OKCoin : public Exchange {
     else
       return std::chrono::minutes(0);
     }
+    const std::map<int, std::string> status_s = {{-1, "cancelled"},
+      {0, "unfilled"}, {1, "partially filled"},
+      {2, "fully filled"}, {4, "cancel request in process"}};
 
   private:
     std::string get_sig(std::string);

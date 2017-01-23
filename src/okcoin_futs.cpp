@@ -100,10 +100,6 @@ void OKCoinFuts::orderinfo(string order_id) {
 }
 
 void OKCoinFuts::orderinfo_handler(json order) {
-  static map<int, string> statuses = {{-1, "cancelled"},
-    {0, "unfilled"}, {1, "partially filled"},
-    {2, "fully filled"}, {4, "cancel request in process"}};
-
   if (orderinfo_callback) {
     OrderInfo new_order;
     new_order.amount = optionally_to_double(order["amount"]);
@@ -115,7 +111,7 @@ void OKCoinFuts::orderinfo_handler(json order) {
     new_order.order_id = opt_to_string<long>(order["order_id"]);
     new_order.price = optionally_to_double(order["price"]);
     new_order.avg_price = optionally_to_double(order["price_avg"]);
-    new_order.status = statuses[optionally_to_int(order["status"])];
+    new_order.status = status_s.at(optionally_to_int(order["status"]));
     new_order.symbol = order["symbol"];
     new_order.type = static_cast<OrderType>(optionally_to_int(order["type"]));
     new_order.unit_amount = optionally_to_int(order["unit_amount"]);

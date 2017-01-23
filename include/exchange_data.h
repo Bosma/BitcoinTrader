@@ -25,7 +25,6 @@ template <class T> class ExchangeData {
     meta->log = log;
   };
     Atomic<typename T::UserInfo> user_info;
-    Atomic<typename T::OrderInfo> order_info;
     std::shared_ptr<T> exchange;
     std::shared_ptr<ExchangeMeta> meta;
 };

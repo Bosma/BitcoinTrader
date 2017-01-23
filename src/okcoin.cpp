@@ -117,7 +117,7 @@ void OKCoin::on_message(string const & message) {
           }
         }
         else if (channel == "ok_" + market_s(market) + "usd_orderinfo") {
-          auto orders = j[0]["data"]["orders"];
+          json orders = j[0]["data"]["orders"];
           if (orders.empty())
             log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
           else
