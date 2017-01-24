@@ -57,7 +57,8 @@ void OKCoinSpot::order(string type, string amount, string price) {
   p["type"] = type;
   if (price != "")
     p["price"] = price;
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   j["parameters"] = p;
 
@@ -118,7 +119,8 @@ json OKCoinSpot::lend_depth(Currency currency) {
     case BTC : p["symbol"] = "btc_usd"; break;
     case USD : p["symbol"] = "usd"; break;
   }
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
@@ -134,7 +136,8 @@ json OKCoinSpot::borrows_info(Currency currency) {
     case BTC : p["symbol"] = "btc_usd"; break;
     case USD : p["symbol"] = "usd"; break;
   }
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
@@ -152,7 +155,8 @@ json OKCoinSpot::unrepayments_info(Currency currency) {
   }
   p["current_page"] = 1;
   p["page_length"] = 10;
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
@@ -171,7 +175,8 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
   p["amount"] = amount;
   p["rate"] = rate;
   p["days"] = "fifteen";
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
@@ -184,11 +189,24 @@ json OKCoinSpot::repayment(string borrow_id) {
   json p;
   p["api_key"] = api_key;
   p["borrow_id"] = borrow_id;
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
   auto j = json::parse(response);
   return j;
+}
+
+void OKCoinSpot::backfill_OHLC(minutes period, int n) {
+  ostringstream url;
+  url << "https://www.okcoin.com/api/v1/kline.do?symbol=btc_usd";
+  url << "&type=" << period_s(period);
+  url << "&size=" << n;
+
+  auto j = json::parse(curl_post(url.str()));
+
+  for (auto each : j)
+    OHLC_handler(period_s(period), each);
 }
 
 void OKCoinSpot::orderinfo_handler(json order) {
@@ -211,7 +229,7 @@ void OKCoinSpot::orderinfo_handler(json order) {
 
 void OKCoinSpot::userinfo_handler(json j) {
   if (userinfo_callback) {
-    auto funds = j[0]["data"]["info"]["funds"];
+    auto funds = j["info"]["funds"];
     UserInfo info;
     info.asset_net = optionally_to_double(funds["asset"]["net"]);
     info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);

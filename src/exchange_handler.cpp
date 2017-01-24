@@ -33,59 +33,69 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   // and starts the exchange
   // this will also be used to restart the exchange
   okcoin_futs.meta->set_up_and_start = [&]() {
-    auto exchange = okcoin_futs.exchange;
-    auto mktdata = okcoin_futs.meta->mktdata;
-
+    lock_guard<mutex> l(okcoin_futs.meta->reconnect);
+    // clear the abstract pointer
+    okcoin_futs.meta->exchange = nullptr;
     // create the OKCoinFuts exchange
-    exchange = make_shared<OKCoinFuts>("OKCoinFuts", OKCoinFuts::Weekly, okcoin_futs.meta->log, config);
+    okcoin_futs.exchange = make_shared<OKCoinFuts>("OKCoinFuts", OKCoinFuts::Weekly, okcoin_futs.meta->log, config);
     // store the generic pointer
-    okcoin_futs.meta->exchange = exchange;
+    okcoin_futs.meta->exchange = okcoin_futs.exchange;
 
     // set the callbacks the exchange will use
     auto open_callback = [&]() {
-      exchange->subscribe_to_ticker();
+      okcoin_futs.exchange->subscribe_to_ticker();
       // backfill and subscribe to each market data
-      for (auto m : mktdata) {
-        exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
-        exchange->subscribe_to_OHLC(m.second->period);
+      for (auto m : okcoin_futs.meta->mktdata) {
+        okcoin_futs.exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
+        okcoin_futs.exchange->subscribe_to_OHLC(m.second->period);
       }
     };
-    exchange->set_open_callback(open_callback);
+    okcoin_futs.exchange->set_open_callback(open_callback);
 
     auto OHLC_callback = [&](minutes period, OHLC bar) {
-      mktdata[period]->add(bar);
+      okcoin_futs.meta->mktdata[period]->add(bar);
     };
-    exchange->set_OHLC_callback(OHLC_callback);
+    okcoin_futs.exchange->set_OHLC_callback(OHLC_callback);
 
     auto ticker_callback = [&](Ticker new_tick) {
       okcoin_futs.meta->tick.set(new_tick);
     };
-    exchange->set_ticker_callback(ticker_callback);
+    okcoin_futs.exchange->set_ticker_callback(ticker_callback);
 
     auto userinfo_callback = [&](OKCoinFuts::UserInfo info) {
       okcoin_futs.user_info.set(info);
     };
-    exchange->set_userinfo_callback(userinfo_callback);
+    okcoin_futs.exchange->set_userinfo_callback(userinfo_callback);
 
     // start the exchange
-    exchange->start();
+    okcoin_futs.exchange->start();
   };
   okcoin_futs.meta->print_userinfo = [&]() -> std::string {
     return okcoin_futs.user_info.get().to_string();
   };
 
   okcoin_spot.meta->set_up_and_start = [&]() {
-    auto exchange = okcoin_spot.exchange;
+    lock_guard<mutex> l(okcoin_spot.meta->reconnect);
+    okcoin_spot.meta->exchange = nullptr;
+    okcoin_spot.exchange = make_shared<OKCoinSpot>("OKCoinSpot", okcoin_spot.meta->log, config);
+    okcoin_spot.meta->exchange = okcoin_spot.exchange;
 
-    exchange = make_shared<OKCoinSpot>("OKCoinSpot", okcoin_spot.meta->log, config);
-    okcoin_spot.meta->exchange = exchange;
+    auto open_callback = [&]() {
+      okcoin_spot.exchange->subscribe_to_ticker();
+    };
+    okcoin_spot.exchange->set_open_callback(open_callback);
 
     auto userinfo_callback = [&](OKCoinSpot::UserInfo info) {
       okcoin_spot.user_info.set(info);
     };
-    exchange->set_userinfo_callback(userinfo_callback);
+    okcoin_spot.exchange->set_userinfo_callback(userinfo_callback);
 
-    exchange->start();
+    auto ticker_callback = [&](Ticker new_tick) {
+      okcoin_spot.meta->tick.set(new_tick);
+    };
+    okcoin_spot.exchange->set_ticker_callback(ticker_callback);
+
+    okcoin_spot.exchange->start();
   };
   okcoin_spot.meta->print_userinfo = [&]() -> std::string {
     return okcoin_spot.user_info.get().to_string();
@@ -118,7 +128,7 @@ string BitcoinTrader::status() {
   for (auto exchange_meta : exchange_metas()) {
     os << exchange_meta->exchange->status();
     Ticker tick = exchange_meta->tick.get();
-    os << "bid: " << tick.bid << ", ask: " << tick.ask;
+    os << "bid: " << tick.bid << ", ask: " << tick.ask << std::endl;
     os << exchange_meta->print_userinfo();
     for (auto m : exchange_meta->mktdata) {
       os << "MktData with period: " <<  m.second->period.count();
@@ -192,8 +202,10 @@ void BitcoinTrader::check_connection() {
 void BitcoinTrader::fetch_userinfo() {
   auto userinfo_thread = [&]() {
     while (!done) {
-      for (auto exchange : exchanges())
-        exchange->userinfo();
+      for (auto exchange : exchange_metas()) {
+        lock_guard<mutex> l(exchange->reconnect);
+        exchange->exchange->userinfo();
+      }
       sleep_for(seconds(1));
     }
   };

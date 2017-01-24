@@ -18,10 +18,9 @@ std::chrono::nanoseconds timestamp_now();
 
 class Ticker {
   public:
-    Ticker(long ts, double b, double a, double l) :
-      timestamp(ts), bid(b), ask(a), last(l) { }
+    Ticker(double b, double a, double l) :
+      bid(b), ask(a), last(l) { }
     Ticker() { }
-    long timestamp;
     double bid;
     double ask;
     double last;

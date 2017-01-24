@@ -66,6 +66,8 @@ class OKCoinFuts : public OKCoin {
       orderinfo_callback = callback;
     }
 
+    void backfill_OHLC(std::chrono::minutes, int);
+
   private:
     ContractType contract_type;
 

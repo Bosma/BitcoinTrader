@@ -49,7 +49,8 @@ void OKCoinFuts::order(OrderType type, double amount, double price, double lever
   p["type"] = dtos(type, 0);
   p["lever_rate"] = dtos(lever_rate, 0);
   p["match_price"] = match_price ? "1" : "0";
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   j["parameters"] = p;
 
@@ -67,7 +68,8 @@ void OKCoinFuts::cancel_order(std::string order_id) {
   p["contract_type"] = contract_s(contract_type);
   p["order_id"] = order_id;
   p["symbol"] = "btc_usd";
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   j["parameters"] = p;
 
@@ -91,12 +93,26 @@ void OKCoinFuts::orderinfo(string order_id) {
     p["contract_type"] = contract_s(contract_type);
     p["current_page"] = "1";
     p["page_length"] = "1";
-    p["sign"] = sign(p);
+    string sig = sign(p);
+    p["sign"] = sig;
 
     j["parameters"] = p;
 
     ws.send(j.dump());
   }
+}
+
+void OKCoinFuts::backfill_OHLC(minutes period, int n) {
+  ostringstream url;
+  url << "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd";
+  url << "&contract_type=" << contract_s(contract_type);
+  url << "&type=" << period_s(period);
+  url << "&size=" << n;
+
+  auto j = json::parse(curl_post(url.str()));
+
+  for (auto each : j)
+    OHLC_handler(period_s(period), each);
 }
 
 void OKCoinFuts::orderinfo_handler(json order) {

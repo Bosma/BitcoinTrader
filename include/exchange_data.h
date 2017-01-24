@@ -15,15 +15,16 @@ struct ExchangeMeta {
   Atomic<Ticker> tick;
   std::function<void()> set_up_and_start;
   std::function<std::string()> print_userinfo;
+  std::mutex reconnect;
 };
 template <class T> class ExchangeData {
   public:
     ExchangeData(std::string name, std::shared_ptr<Log> log) :
       meta(std::make_shared<ExchangeMeta>())
-  {
-    meta->name = name;
-    meta->log = log;
-  };
+    {
+      meta->name = name;
+      meta->log = log;
+    };
     Atomic<typename T::UserInfo> user_info;
     std::shared_ptr<T> exchange;
     std::shared_ptr<ExchangeMeta> meta;

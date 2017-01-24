@@ -64,6 +64,7 @@ class OKCoinSpot : public OKCoin {
       orderinfo_callback = callback;
     }
 
+    void backfill_OHLC(std::chrono::minutes, int);
   private:
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;

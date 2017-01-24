@@ -66,8 +66,8 @@ void OKCoin::on_message(string const & message) {
           else if (channels[channel]->status == "subscribed") {
             // we're subscribed so delegate to a channel handler
             // construct the beginning of the channel names
-            string kline = "ok_sub_" + market_s(market) + "_btc_kline_";
-            string ticker = "ok_sub_" + market_s(market) + "_btc_ticker_";
+            string kline = "ok_sub_" + market_s(market) + "usd_btc_kline_";
+            string ticker = "ok_sub_" + market_s(market) + "usd_btc_ticker";
 
             if (channel.find(ticker) != string::npos) {
               ticker_handler(j[0]["data"]);
@@ -236,7 +236,8 @@ void OKCoin::userinfo() {
 
   json p;
   p["api_key"] = api_key;
-  p["sign"] = sign(p);
+  string sig = sign(p);
+  p["sign"] = sig;
 
   j["parameters"] = p;
   ws.send(j.dump());
@@ -272,44 +273,32 @@ void OKCoin::OHLC_handler(string period, json trade) {
 
 void OKCoin::ticker_handler(json tick) {
   if (ticker_callback) {
-    long timestamp = optionally_to_long(tick["timestamp"]);
     double last = optionally_to_double(tick["last"]);
     double bid = optionally_to_double(tick["buy"]);
     double ask = optionally_to_double(tick["sell"]);
-    Ticker tick(timestamp, last, bid, ask);
+    Ticker tick(last, bid, ask);
 
     ticker_callback(tick);
   }
 }
 
-void OKCoin::backfill_OHLC(minutes period, int n) {
-  ostringstream url;
-  url << "https://www.okcoin.com/api/v1/";
-  if (market == Future)
-    url << "future_";
-  url << "kline.do?symbol=btc_usd";
-  url << "&type=" << period_s(period);
-  url << "&size=" << n;
-
-  auto j = json::parse(curl_post(url.str()));
-
-  for (auto each : j)
-    OHLC_handler(period_s(period), each);
-}
-
-string OKCoin::ampersand_list(json parameters) {
-  // sort the parameters
-  auto parameter_sort = [](json a, json b) -> bool {
-    return a.get<string>() < b.get<string>();
-  };
-  sort(parameters.begin(), parameters.end(), parameter_sort);
+string OKCoin::ampersand_list(json j) {
+  // convert to map (which is sorted by default)
+  std::map<string, string> parameters;
+  for (json::iterator it = j.begin(); it != j.end(); ++it)
+    parameters[it.key()] = it.value().get<string>();
 
   // join them by &=
-  auto how_to_join = [](string a, json b) -> string {
-    return a + "&" + b.get<string>() + "=";
+  auto how_to_join = [](std::string a, std::pair<std::string, std::string> b) -> std::string {
+    return a + "&" + b.first + "=" + b.second;
   };
-  return accumulate(next(parameters.begin()), parameters.end(),
-      parameters[0].get<string>(), how_to_join);
+
+  std::string splatted = std::accumulate(
+      next(parameters.begin()), 
+      parameters.end(), 
+      parameters.begin()->first + "=" + parameters.begin()->second, 
+      how_to_join);
+  return splatted;
 };
 
 string OKCoin::sign(json parameters) {

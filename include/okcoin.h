@@ -7,6 +7,7 @@
 #include <memory>
 #include <fstream>
 #include <regex>
+#include <numeric>
 
 #include <openssl/md5.h>
 
@@ -43,7 +44,7 @@ class OKCoin : public Exchange {
     void userinfo();
     
     // backfill OHLC period
-    void backfill_OHLC(std::chrono::minutes, int);
+    virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
 
   protected:
     std::string api_key;
