@@ -85,6 +85,10 @@ template <typename T> std::string opt_to_string(nlohmann::json object) {
 
 template <class T> class Atomic {
   public:
+    Atomic() = default;
+    Atomic(const Atomic&) = delete;
+    Atomic& operator=(const Atomic&) = delete;
+
     void set(T new_x) {
       std::lock_guard<std::mutex> l(lock);
       x = new_x;
