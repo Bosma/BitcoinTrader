@@ -49,6 +49,21 @@ class OKCoinFuts : public OKCoin {
       OrderType type;
       int unit_amount;
     };
+    struct FuturePosition {
+      struct Position {
+        double contracts = 0;
+        double contracts_can_close = 0;
+        double avg_open_price = 0;
+        double cost_price = 0;
+        double realized_profit = 0;
+      };
+      Position buy;
+      Position sell;
+      std::string contract_id = "";
+      std::string create_date = "";
+      int lever_rate = 0;
+      double margin_call_price = 0;
+    };
 
     OKCoinFuts(std::string, ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
     
@@ -58,6 +73,7 @@ class OKCoinFuts : public OKCoin {
     void close(Position, double, double, double);
     void cancel_order(std::string);
     void orderinfo(std::string);
+    FuturePosition positions();
 
     void set_userinfo_callback(std::function<void(UserInfo)> callback) {
       userinfo_callback = callback;

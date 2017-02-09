@@ -102,6 +102,43 @@ void OKCoinFuts::orderinfo(string order_id) {
   }
 }
 
+OKCoinFuts::FuturePosition OKCoinFuts::positions() {
+  string url = "https://www.okcoin.com/api/v1/future_position.do";
+
+  json p;
+  p["api_key"] = api_key;
+  p["contract_type"] = contract_s(contract_type);
+  p["symbol"] = "btc_usd";
+  string sig = sign(p);
+  p["sign"] = sig;
+
+  string response = curl_post(url, ampersand_list(p));
+  auto j = json::parse(response);
+
+  FuturePosition pos;
+  if (j.count("errorcode") == 1) {
+    string ec = j["errorcode"];
+    log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
+  }
+  else {
+    auto h = j["holding"][0];
+    pos.buy.contracts = h["buy_amount"];
+    pos.buy.contracts_can_close = h["buy_available"];
+    pos.buy.avg_open_price = h["buy_price_avg"];
+    pos.buy.cost_price = h["buy_price_cost"];
+    pos.buy.realized_profit = h["buy_profit_real"];
+    pos.sell.contracts = h["sell_amount"];
+    pos.sell.contracts_can_close = h["sell_available"];
+    pos.sell.avg_open_price = h["sell_price_avg"];
+    pos.sell.cost_price = h["sell_price_cost"];
+    pos.sell.realized_profit = h["sell_profit_real"];
+    pos.contract_id = opt_to_string<long>(h["contract_id"]);
+    pos.create_date = opt_to_string<long>(h["create_date"]);
+    pos.lever_rate = optionally_to_int(h["lever_rate"]);
+  }
+  return pos;
+}
+
 void OKCoinFuts::backfill_OHLC(minutes period, int n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd";
