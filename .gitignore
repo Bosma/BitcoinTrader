@@ -10,3 +10,8 @@ build/
 
 # using cmake
 Makefile
+
+# jetbrains project files
+.idea/
+# jetbrains build folder
+cmake-build-debug/
