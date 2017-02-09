@@ -302,8 +302,8 @@ string OKCoin::ampersand_list(json j) {
 };
 
 string OKCoin::sign(json parameters) {
-  parameters["secret_key"] = secret_key;
   string to_sign = ampersand_list(parameters);
+  to_sign += "&secret_key=" + secret_key;
   return get_sig(to_sign);
 }
 

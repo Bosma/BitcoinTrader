@@ -150,6 +150,8 @@ void BitcoinTrader::start() {
   // give it some time to warm up
   sleep_for(seconds(5));
 
+  okcoin_futs.exchange->positions();
+
   // start fetching userinfo on another thread
   fetch_userinfo();
 

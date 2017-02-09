@@ -11,6 +11,11 @@ double BitcoinTrader::blend_signals() {
 }
 
 void BitcoinTrader::manage_positions(double signal) {
-  //auto info = okcoin_futs.user_info.get();
-  //std::cout << "manage_positions: " << info.equity << " equity with signal: " << signal << std::endl;
+  auto position = okcoin_futs.exchange->positions();
+  auto userinfo = okcoin_futs.user_info.get();
+  std::ostringstream os;
+  os << "Buy amount: " << position.buy.contracts << std::endl;
+  os << "Sell amount: " << position.sell.contracts << std::endl;
+  os << "Equity: " << userinfo.equity << std::endl;
+  std::cout << os.str();
 }
