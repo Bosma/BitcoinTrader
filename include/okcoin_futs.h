@@ -63,6 +63,7 @@ class OKCoinFuts : public OKCoin {
       std::string create_date = "";
       int lever_rate = 0;
       double margin_call_price = 0;
+      bool valid = false;
     };
 
     OKCoinFuts(std::string, ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);

@@ -99,6 +99,10 @@ double BitcoinTrader::blend_signals() {
 
 void BitcoinTrader::manage_positions(double signal) {
   auto position = okcoin_futs.exchange->positions();
+  if (!position.valid) {
+    return;
+  }
+
   auto userinfo = okcoin_futs.user_info.get();
   auto tick = okcoin_futs.meta->tick.get();
 

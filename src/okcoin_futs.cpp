@@ -114,32 +114,37 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  json j = json::parse(response);
-
   FuturePosition pos;
-  if (j.count("errorcode") == 1) {
-    string ec = j["errorcode"];
-    log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
-  }
-  else {
-    // I don't know why, but sometimes j["holding"] is just null, instead of 0 contracts
-    if (j["holding"] != nullptr && !j["holding"].empty()) {
-      json h = j["holding"][0];
-      pos.buy.contracts = optionally_to_int(h["buy_amount"]);
-      pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
-      pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
-      pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
-      pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
-      pos.sell.contracts = optionally_to_int(h["sell_amount"]);
-      pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
-      pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
-      pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
-      pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
-      pos.contract_id = opt_to_string<long>(h["contract_id"]);
-      pos.create_date = opt_to_string<long>(h["create_date"]);
-      pos.lever_rate = optionally_to_int(h["lever_rate"]);
+  if (!response.empty()) {
+    json j = json::parse(response);
+
+    if (j.count("errorcode") == 1) {
+      string ec = j["errorcode"];
+      log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
+    }
+    else {
+      // I don't know why, but sometimes j["holding"] is just null, instead of 0 contracts
+      if (j["holding"] != nullptr && !j["holding"].empty()) {
+        json h = j["holding"][0];
+        pos.buy.contracts = optionally_to_int(h["buy_amount"]);
+        pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
+        pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
+        pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
+        pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
+        pos.sell.contracts = optionally_to_int(h["sell_amount"]);
+        pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
+        pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
+        pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
+        pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
+        pos.contract_id = opt_to_string<long>(h["contract_id"]);
+        pos.create_date = opt_to_string<long>(h["create_date"]);
+        pos.lever_rate = optionally_to_int(h["lever_rate"]);
+        pos.valid = true;
+      }
     }
   }
+  else
+    log->output("COULDN'T FETCH FUTUREPOSITION, CURL ERROR");
   return pos;
 }
 

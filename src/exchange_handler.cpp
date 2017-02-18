@@ -167,7 +167,7 @@ void BitcoinTrader::position_management() {
     while (!done) {
       double blended_signal = blend_signals();
       manage_positions(blended_signal);
-      sleep_for(milliseconds(2000));
+      sleep_for(seconds(10));
     }
   };
   running_threads.push_back(make_shared<thread>(position_thread));
