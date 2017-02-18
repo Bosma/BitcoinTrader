@@ -22,7 +22,7 @@ class OKCoin : public Exchange {
   public:
     const std::string OKCOIN_URL = "wss://real.okcoin.com:10440/websocket/okcoinapi";
     enum Market { Future, Spot };
-    static const std::string market_s(Market mkt) { 
+    static std::string market_s(Market mkt) {
       return mkt == Future ? "future" : "spot";
     }
     struct Channel {
@@ -33,6 +33,24 @@ class OKCoin : public Exchange {
       std::string status;
       std::string last_message;
     };
+    enum class OrderStatus {
+      Cancelled = -1,
+      Unfilled = 0,
+      PartiallyFilled = 1,
+      FullyFilled = 2,
+      CancelRequest = 4,
+      Failed = 5
+    };
+    static std::string status_s(OrderStatus o) {
+      switch (o) {
+        case OrderStatus::Cancelled : return "cancelled";
+        case OrderStatus::Unfilled : return "unfilled";
+        case OrderStatus::PartiallyFilled : return "partially filled";
+        case OrderStatus::FullyFilled : return "fully filled";
+        case OrderStatus::CancelRequest : return "cancel requested";
+        case OrderStatus::Failed : return "failed";
+      }
+    }
 
     OKCoin(std::string, Market, std::shared_ptr<Log>, std::shared_ptr<Config>);
     
@@ -91,10 +109,6 @@ class OKCoin : public Exchange {
     else
       return std::chrono::minutes(0);
     }
-    const std::map<int, std::string> status_s = {{-1, "cancelled"},
-      {0, "unfilled"}, {1, "partially filled"},
-      {2, "fully filled"}, {4, "cancel request in process"}};
-
   private:
     std::string get_sig(std::string);
 };

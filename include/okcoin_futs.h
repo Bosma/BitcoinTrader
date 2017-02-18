@@ -44,15 +44,15 @@ class OKCoinFuts : public OKCoin {
       std::string order_id;
       double price;
       double avg_price;
-      std::string status;
+      OrderStatus status;
       std::string symbol;
       OrderType type;
       int unit_amount;
     };
     struct FuturePosition {
       struct Position {
-        double contracts = 0;
-        double contracts_can_close = 0;
+        int contracts = 0;
+        int contracts_can_close = 0;
         double avg_open_price = 0;
         double cost_price = 0;
         double realized_profit = 0;
@@ -69,8 +69,9 @@ class OKCoinFuts : public OKCoin {
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
-    void open(Position, double, double, double);
-    void close(Position, double, double, double);
+    void open(Position, double, double, int);
+    void close(Position, double, double, int);
+    void order(OrderType, double, double, int, bool);
     void cancel_order(std::string);
     void orderinfo(std::string);
     FuturePosition positions();
@@ -89,8 +90,6 @@ class OKCoinFuts : public OKCoin {
 
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;
-
-    void order(OrderType, double, double, double, bool);
 
     void orderinfo_handler(nlohmann::json);
     void userinfo_handler(nlohmann::json);

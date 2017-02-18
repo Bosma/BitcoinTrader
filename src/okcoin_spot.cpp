@@ -219,7 +219,7 @@ void OKCoinSpot::orderinfo_handler(json order) {
     new_order.filled_amount = optionally_to_double(order["deal_amount"]);
     new_order.order_id = opt_to_string<long>(order["order_id"]);
     new_order.price = optionally_to_double(order["price"]);
-    new_order.status = status_s.at(optionally_to_int(order["status"]));
+    new_order.status = static_cast<OrderStatus>(optionally_to_int(order["status"]));
     new_order.symbol = order["symbol"];
     new_order.type = order["type"];
 

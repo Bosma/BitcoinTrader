@@ -24,17 +24,17 @@ void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period));
 }
 
-void OKCoinFuts::open(Position position, double amount, double price, double leverage) {
+void OKCoinFuts::open(Position position, double amount, double price, int leverage) {
   OrderType order_type = (position == Long) ? OpenLong : OpenShort;
   order(order_type, amount, price, leverage, false);
 }
 
-void OKCoinFuts::close(Position position, double amount, double price, double leverage) {
+void OKCoinFuts::close(Position position, double amount, double price, int leverage) {
   OrderType order_type = (position == Long) ? CloseLong : CloseShort;
   order(order_type, amount, price, leverage, false);
 }
 
-void OKCoinFuts::order(OrderType type, double amount, double price, double lever_rate, bool match_price) {
+void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price) {
   json j;
 
   j["event"] = "addChannel";
@@ -79,6 +79,7 @@ void OKCoinFuts::cancel_order(std::string order_id) {
 void OKCoinFuts::orderinfo(string order_id) {
   if (order_id == "failed") {
     OrderInfo failed_order;
+    failed_order.status = OrderStatus::Failed;
     orderinfo_callback(failed_order);
   }
   else {
@@ -113,7 +114,7 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
+  json j = json::parse(response);
 
   FuturePosition pos;
   if (j.count("errorcode") == 1) {
@@ -121,20 +122,23 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
     log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
   }
   else {
-    auto h = j["holding"][0];
-    pos.buy.contracts = h["buy_amount"];
-    pos.buy.contracts_can_close = h["buy_available"];
-    pos.buy.avg_open_price = h["buy_price_avg"];
-    pos.buy.cost_price = h["buy_price_cost"];
-    pos.buy.realized_profit = h["buy_profit_real"];
-    pos.sell.contracts = h["sell_amount"];
-    pos.sell.contracts_can_close = h["sell_available"];
-    pos.sell.avg_open_price = h["sell_price_avg"];
-    pos.sell.cost_price = h["sell_price_cost"];
-    pos.sell.realized_profit = h["sell_profit_real"];
-    pos.contract_id = opt_to_string<long>(h["contract_id"]);
-    pos.create_date = opt_to_string<long>(h["create_date"]);
-    pos.lever_rate = optionally_to_int(h["lever_rate"]);
+    // I don't know why, but sometimes j["holding"] is just null, instead of 0 contracts
+    if (j["holding"] != nullptr && !j["holding"].empty()) {
+      json h = j["holding"][0];
+      pos.buy.contracts = optionally_to_int(h["buy_amount"]);
+      pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
+      pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
+      pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
+      pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
+      pos.sell.contracts = optionally_to_int(h["sell_amount"]);
+      pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
+      pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
+      pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
+      pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
+      pos.contract_id = opt_to_string<long>(h["contract_id"]);
+      pos.create_date = opt_to_string<long>(h["create_date"]);
+      pos.lever_rate = optionally_to_int(h["lever_rate"]);
+    }
   }
   return pos;
 }
@@ -164,7 +168,7 @@ void OKCoinFuts::orderinfo_handler(json order) {
     new_order.order_id = opt_to_string<long>(order["order_id"]);
     new_order.price = optionally_to_double(order["price"]);
     new_order.avg_price = optionally_to_double(order["price_avg"]);
-    new_order.status = status_s.at(optionally_to_int(order["status"]));
+    new_order.status = static_cast<OrderStatus>(optionally_to_int(order["status"]));
     new_order.symbol = order["symbol"];
     new_order.type = static_cast<OrderType>(optionally_to_int(order["type"]));
     new_order.unit_amount = optionally_to_int(order["unit_amount"]);

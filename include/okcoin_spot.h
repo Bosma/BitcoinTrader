@@ -43,7 +43,7 @@ class OKCoinSpot : public OKCoin {
       double filled_amount;
       std::string order_id;
       double price;
-      std::string status;
+      OrderStatus status;
       std::string symbol;
       std::string type;
     };

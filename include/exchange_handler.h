@@ -72,25 +72,24 @@ protected:
   // live stops
   stops_t stops;
   // stops waiting to be added (ie, limit order waiting to be filled)
+
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
-  // that lock and unlock execution_lock
-  
+
   // generic market buy / sell amount of BTC
-  template <class T>
-  void market(ExchangeData<T>, Position, double);
-  std::function<void(double, double, std::string)> market_callback;
+  bool market(Position, double);
+
+  // market buy / sell (used for okcoin_futs)
+  bool futs_market(OKCoinFuts::OrderType, double, int, std::chrono::seconds);
 
   // limit order that will cancel after some seconds
   // and after those seconds will run callback given
   // (to set take-profits / stop-losses)
-  template <class T>
-  void limit(ExchangeData<T>, Position, double, double, std::chrono::seconds);
-  std::function<void(double)> limit_callback;
+  bool limit(Position, double, double, std::chrono::seconds);
 
   // good-til-cancelled limit orders
   // will run callback after receiving order_id
-  void GTC(ExchangeMeta, Position, double, double);
+  bool GTC(Position, double, double);
   std::function<void(std::string)> GTC_callback;
 
   stops_t pending_stops;

@@ -133,6 +133,12 @@ void OKCoin::on_message(string const & message) {
             userinfo_handler(j[0]["data"]);
           }
         }
+        else if (channel == "ok_" + market_s(market) + "usd_cancel_order") {
+          if (j[0].count("errorcode") == 1) {
+            string ec = j[0]["errorcode"];
+            log->output("COULDN'T CANCEL ORDER " + j[0]["order_id"].get<string>() + " WITH ERROR: " + error_reasons[ec]);
+          }
+        }
         else {
           log->output("MESSAGE WITH UNKNOWN CHANNEL");
           log->output("RAW JSON: " + message);
@@ -271,11 +277,11 @@ void OKCoin::OHLC_handler(string period, json trade) {
   }
 }
 
-void OKCoin::ticker_handler(json tick) {
+void OKCoin::ticker_handler(json j) {
   if (ticker_callback) {
-    double last = optionally_to_double(tick["last"]);
-    double bid = optionally_to_double(tick["buy"]);
-    double ask = optionally_to_double(tick["sell"]);
+    double last = optionally_to_double(j["last"]);
+    double bid = optionally_to_double(j["buy"]);
+    double ask = optionally_to_double(j["sell"]);
     Ticker tick(last, bid, ask);
 
     ticker_callback(tick);
