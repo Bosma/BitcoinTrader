@@ -52,10 +52,10 @@ class OKCoinSpot : public OKCoin {
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
-    void market_buy(double);
-    void market_sell(double);
-    void limit_buy(double, double);
-    void limit_sell(double, double);
+    void market_buy(double, std::chrono::nanoseconds);
+    void market_sell(double, std::chrono::nanoseconds);
+    void limit_buy(double, double, std::chrono::nanoseconds);
+    void limit_sell(double, double, std::chrono::nanoseconds);
 
     void set_userinfo_callback(std::function<void(UserInfo)> callback) {
       userinfo_callback = callback;
@@ -69,7 +69,7 @@ class OKCoinSpot : public OKCoin {
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;
 
-    void order(std::string, std::string, std::string price = "");
+    void order(std::string, std::string, std::chrono::seconds, std::string price = "");
 
     // INTERNAL REST BORROWING FUNCTIONS
     BorrowInfo borrow(Currency, double);

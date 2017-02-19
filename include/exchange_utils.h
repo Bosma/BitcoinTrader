@@ -9,7 +9,7 @@
 #include <curl/curl.h>
 #include "../json/json.hpp"
 
-bool check_until(std::function<bool()>, std::chrono::seconds = std::chrono::seconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
+bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
 enum Currency { BTC, USD };
 enum Position { Long, Short };

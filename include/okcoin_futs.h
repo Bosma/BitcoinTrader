@@ -70,12 +70,11 @@ class OKCoinFuts : public OKCoin {
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
-    void open(Position, double, double, int);
-    void close(Position, double, double, int);
-    void order(OrderType, double, double, int, bool);
-    void cancel_order(std::string);
-    void orderinfo(std::string);
-    FuturePosition positions();
+    void open(Position, double, double, int, std::chrono::nanoseconds);
+    void close(Position, double, double, int, std::chrono::nanoseconds);
+    void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);
+    void cancel_order(std::string, std::chrono::nanoseconds);
+    void orderinfo(std::string, std::chrono::nanoseconds);
 
     void set_userinfo_callback(std::function<void(UserInfo)> callback) {
       userinfo_callback = callback;
@@ -84,6 +83,8 @@ class OKCoinFuts : public OKCoin {
       orderinfo_callback = callback;
     }
 
+    // REST commands
+    FuturePosition positions();
     void backfill_OHLC(std::chrono::minutes, int);
 
   private:

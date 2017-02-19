@@ -23,27 +23,31 @@ void OKCoinSpot::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_spotusd_btc_kline_" + period_s(period));
 }
 
-void OKCoinSpot::market_buy(double usd_amount) {
-  order("buy_market", dtos(usd_amount, 2));
+void OKCoinSpot::market_buy(double usd_amount, nanoseconds timeout_time) {
+  order("buy_market", dtos(usd_amount, 2), timeout_time);
 }
 
-void OKCoinSpot::market_sell(double btc_amount) {
-  order("sell_market", dtos(btc_amount, 4));
+void OKCoinSpot::market_sell(double btc_amount, nanoseconds timeout_time) {
+  order("sell_market", dtos(btc_amount, 4), timeout_time);
 }
 
-void OKCoinSpot::limit_buy(double amount, double price) {
-  order("buy", dtos(amount, 4), dtos(price, 2));
+void OKCoinSpot::limit_buy(double amount, double price, nanoseconds timeout_time) {
+  order("buy", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::limit_sell(double amount, double price) {
-  order("sell", dtos(amount, 4), dtos(price, 2));
+void OKCoinSpot::limit_sell(double amount, double price, nanoseconds timeout_time) {
+  order("sell", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::order(string type, string amount, string price) {
+void OKCoinSpot::order(string type, string amount, nanoseconds timeout_time, string price) {
+  string channel = "ok_spotusd_trade";
+
+  channel_timeouts[channel] = timeout_time;
+
   json j;
 
   j["event"] = "addChannel";
-  j["channel"] = "ok_spotusd_trade";
+  j["channel"] = channel;
 
   json p;
   // okcoin, for buy market orders, specifies amount to buy in USD using price field

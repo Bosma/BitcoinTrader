@@ -7,11 +7,13 @@ using std::string;
 using std::ostringstream;
 using std::endl;
 using std::chrono::minutes;
+using std::chrono::seconds;
 using std::sort;
 using std::accumulate;
 using std::next;
 using std::exception;
 using std::stringstream;
+using std::to_string;
 
 OKCoin::OKCoin(string name, Market market, shared_ptr<Log> log, shared_ptr<Config> config) :
   Exchange(name, log, config),
@@ -92,56 +94,66 @@ void OKCoin::on_message(string const & message) {
           channels[channel]->last_message = message;
         }
         // we don't have a channel stored in the map
-        // check for one off channel messages
-        else if (channel == "ok_" + market_s(market) + "usd_trade") {
-          // results of a trade
-          if (j[0].count("errorcode") == 1) {
-            string ec = j[0]["errorcode"];
-            log->output("FAILED TRADE ON " + channel + " WITH ERROR: " + error_reasons[ec]);
-            if (trade_callback)
-              trade_callback("failed");
-          }
-          else {
-            auto data = j[0]["data"];
-            string order_id = data["order_id"];
-            string result = data["result"];
-            if (result == "true") {
-              if (trade_callback)
-                trade_callback(order_id);
+        // check for one off channel messages that have callbacks
+        else {
+          // only process messages that have no timeout or their timeout hasn't been reached
+          auto ts = timestamp_now();
+          if (channel_timeouts.count(channel) == 0 ||
+              ts <= channel_timeouts[channel]) {
+            if (channel == "ok_" + market_s(market) + "usd_trade") {
+              // results of a trade
+              if (j[0].count("errorcode") == 1) {
+                string ec = j[0]["errorcode"];
+                log->output("FAILED TRADE ON " + channel + " WITH ERROR: " + error_reasons[ec]);
+                if (trade_callback)
+                  trade_callback("failed");
+              }
+              else {
+                auto data = j[0]["data"];
+                string order_id = data["order_id"];
+                string result = data["result"];
+                if (result == "true") {
+                  if (trade_callback)
+                    trade_callback(order_id);
+                }
+                else {
+                  log->output("FAILED TRADE (" + order_id + ") ON " + channel + "WITH ERROR " + result);
+                  if (trade_callback)
+                    trade_callback("failed");
+                }
+              }
+            }
+            else if (channel == "ok_" + market_s(market) + "usd_orderinfo") {
+              json orders = j[0]["data"]["orders"];
+              if (orders.empty())
+                log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
+              else
+                orderinfo_handler(orders[0]);
+            }
+            else if (channel == "ok_" + market_s(market) + "usd_userinfo") {
+              if (j[0].count("errorcode") == 1) {
+                string ec = j[0]["errorcode"];
+                log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[ec]);
+              }
+              else {
+                userinfo_handler(j[0]["data"]);
+              }
+            }
+            else if (channel == "ok_" + market_s(market) + "usd_cancel_order") {
+              if (j[0].count("errorcode") == 1) {
+                string ec = j[0]["errorcode"];
+                log->output("COULDN'T CANCEL ORDER " + j[0]["order_id"].get<string>() + " WITH ERROR: " + error_reasons[ec]);
+              }
             }
             else {
-              log->output("FAILED TRADE (" + order_id + ") ON " + channel + "WITH ERROR " + result);
-              if (trade_callback)
-                trade_callback("failed");
+              log->output("MESSAGE WITH UNKNOWN CHANNEL");
+              log->output("RAW JSON: " + message);
             }
           }
-        }
-        else if (channel == "ok_" + market_s(market) + "usd_orderinfo") {
-          json orders = j[0]["data"]["orders"];
-          if (orders.empty())
-            log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
-          else
-            orderinfo_handler(orders[0]);
-
-        }
-        else if (channel == "ok_" + market_s(market) + "usd_userinfo") {
-          if (j[0].count("errorcode") == 1) {
-            string ec = j[0]["errorcode"];
-            log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[ec]);
-          }
+          // channel timeout has been reached
           else {
-            userinfo_handler(j[0]["data"]);
+            log->output("CHANNEL " + channel + " MESSAGE RECEIVED BUT TIMEOUT REACHED, NOT CALLING CALLBACK");
           }
-        }
-        else if (channel == "ok_" + market_s(market) + "usd_cancel_order") {
-          if (j[0].count("errorcode") == 1) {
-            string ec = j[0]["errorcode"];
-            log->output("COULDN'T CANCEL ORDER " + j[0]["order_id"].get<string>() + " WITH ERROR: " + error_reasons[ec]);
-          }
-        }
-        else {
-          log->output("MESSAGE WITH UNKNOWN CHANNEL");
-          log->output("RAW JSON: " + message);
         }
       }
       else {

@@ -24,21 +24,25 @@ void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period));
 }
 
-void OKCoinFuts::open(Position position, double amount, double price, int leverage) {
+void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
   OrderType order_type = (position == Long) ? OpenLong : OpenShort;
-  order(order_type, amount, price, leverage, false);
+  order(order_type, amount, price, leverage, false, invalid_time);
 }
 
-void OKCoinFuts::close(Position position, double amount, double price, int leverage) {
+void OKCoinFuts::close(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
   OrderType order_type = (position == Long) ? CloseLong : CloseShort;
-  order(order_type, amount, price, leverage, false);
+  order(order_type, amount, price, leverage, false, invalid_time);
 }
 
-void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price) {
+void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price, nanoseconds invalid_time) {
+  string channel = "ok_futureusd_trade";
+
+  channel_timeouts[channel] = invalid_time;
+
   json j;
 
   j["event"] = "addChannel";
-  j["channel"] = "ok_futureusd_trade";
+  j["channel"] = channel;
 
   json p;
   p["amount"] = dtos(amount, 2);
@@ -57,11 +61,15 @@ void OKCoinFuts::order(OrderType type, double amount, double price, int lever_ra
   ws.send(j.dump());
 }
 
-void OKCoinFuts::cancel_order(std::string order_id) {
+void OKCoinFuts::cancel_order(std::string order_id, nanoseconds invalid_time) {
+  string channel = "ok_futureusd_cancel_order";
+
+  channel_timeouts[channel] = invalid_time;
+
   json j;
 
   j["event"] = "addChannel";
-  j["channel"] = "ok_futureusd_cancel_order";
+  j["channel"] = channel;
 
   json p;
   p["api_key"] = api_key;
@@ -76,7 +84,11 @@ void OKCoinFuts::cancel_order(std::string order_id) {
   ws.send(j.dump());
 }
 
-void OKCoinFuts::orderinfo(string order_id) {
+void OKCoinFuts::orderinfo(string order_id, nanoseconds invalid_time) {
+  string channel = "ok_futureusd_orderinfo";
+
+  channel_timeouts[channel] = invalid_time;
+
   if (order_id == "failed") {
     OrderInfo failed_order;
     failed_order.status = OrderStatus::Failed;
@@ -85,7 +97,7 @@ void OKCoinFuts::orderinfo(string order_id) {
   else {
     json j;
     j["event"] = "addChannel";
-    j["channel"] = "ok_futureusd_orderinfo";
+    j["channel"] = channel;
 
     json p;
     p["api_key"] = api_key;

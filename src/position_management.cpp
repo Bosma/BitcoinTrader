@@ -11,7 +11,7 @@ using std::this_thread::sleep_for;
 using std::function;
 using std::ostringstream;
 
-bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int lever_rate, seconds cancel_time = 30s) {
+bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int lever_rate, seconds timeout = 30s) {
   auto tick = okcoin_futs.meta->tick.get();
 
   string action;
@@ -35,59 +35,60 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
       action = "CLOSING"; direction = "SHORT";
       price = tick.bid * (1 + 0.01);
       break;
+    default :
+      okcoin_futs.meta->log->output("type NOT RECOGNIZED IN CALL TO futs_market");
+      return false;
   }
 
   trading_log->output("MARKET " + action + " " + to_string(amount) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(price));
 
   bool trading_done = false;
-  okcoin_futs.exchange->set_trade_callback(function<void(string)>(
-      [&](string order_id) {
-        if (order_id != "failed") {
-          auto start_time = timestamp_now();
-          bool done_limit_check = false;
-          // until we are done,
-          // we fully filled for the entire amount
-          // or some seconds have passed
-          OKCoinFuts::OrderInfo final_info;
-          while (!done && !done_limit_check &&
-                 timestamp_now() - start_time < cancel_time) {
-            // fetch the orderinfo every second
-            okcoin_futs.exchange->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
-                [&](OKCoinFuts::OrderInfo orderinfo) {
-                  if (orderinfo.status != OKCoin::OrderStatus::Failed) {
-                    final_info = orderinfo;
-                    // early stopping if we fill for the entire amount
-                    if (orderinfo.status == OKCoin::OrderStatus::FullyFilled)
-                      done_limit_check = true;
-                  }
-                  else // early stop if order status is failed (this shouldn't be called)
-                    done_limit_check = true;
-                }
-            ));
-            okcoin_futs.exchange->orderinfo(order_id);
-            sleep_for(seconds(1));
-          }
-
-          // given the limit enough time, cancel it
-          if (final_info.status != OKCoin::OrderStatus::FullyFilled)
-            okcoin_futs.exchange->cancel_order(order_id);
-
-          if (final_info.filled_amount != 0) {
-            trading_log->output(
-                "FILLED FOR " + to_string(final_info.filled_amount) + " BTC @ $" + to_string(final_info.avg_price));
-          }
-          else
-            trading_log->output("NOT FILLED IN TIME");
-        }
-        trading_done = true;
+  auto cancel_time = timestamp_now() + timeout;
+  auto trade_callback = [&](string order_id) {
+    if (order_id != "failed") {
+      bool done_limit_check = false;
+      // until we are done,
+      // we fully filled for the entire amount
+      // or some seconds have passed
+      OKCoinFuts::OrderInfo final_info;
+      while (!done && !done_limit_check &&
+             timestamp_now() < cancel_time) {
+        // fetch the orderinfo every second
+        okcoin_futs.exchange->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
+            [&](OKCoinFuts::OrderInfo orderinfo) {
+              if (orderinfo.status != OKCoin::OrderStatus::Failed) {
+                final_info = orderinfo;
+                // early stopping if we fill for the entire amount
+                if (orderinfo.status == OKCoin::OrderStatus::FullyFilled)
+                  done_limit_check = true;
+              }
+              else // early stop if order status is failed (this shouldn't be called)
+                done_limit_check = true;
+            }
+        ));
+        okcoin_futs.exchange->orderinfo(order_id, cancel_time);
+        sleep_for(seconds(1));
       }
-  ));
 
-  okcoin_futs.exchange->order(type, amount, price, lever_rate, false);
+      // given the limit enough time, cancel it
+      if (final_info.status != OKCoin::OrderStatus::FullyFilled)
+        okcoin_futs.exchange->cancel_order(order_id, cancel_time);
 
-  // check until the trade callback is finished, or cancel_time (plus some wiggle room)
-  // TODO: if the trade callback takes longer than the check_until, trading_done will be OOS and will segfault
-  return check_until([&]() { return trading_done; }, cancel_time + 20s);
+      if (final_info.filled_amount != 0) {
+        trading_log->output(
+            "FILLED FOR " + to_string(final_info.filled_amount) + " BTC @ $" + to_string(final_info.avg_price));
+      }
+      else
+        trading_log->output("NOT FILLED IN TIME");
+    }
+    trading_done = true;
+  };
+  okcoin_futs.exchange->set_trade_callback(trade_callback);
+
+  okcoin_futs.exchange->order(type, amount, price, lever_rate, false, cancel_time);
+
+  // check until the trade callback is finished, or cancel_time
+  return check_until([&]() { return trading_done; }, cancel_time);
 }
 
 double BitcoinTrader::blend_signals() {

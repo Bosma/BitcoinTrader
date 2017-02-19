@@ -68,4 +68,7 @@ class Exchange {
     std::function<void(std::string)> trade_callback;
     std::function<void(double)> filled_callback;
     std::function<void()> pong_callback;
+
+    // stores the time that the channel message callback will be invalid and no longer called
+    std::map<std::string, std::chrono::nanoseconds> channel_timeouts;
 };

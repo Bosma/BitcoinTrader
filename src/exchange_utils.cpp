@@ -4,18 +4,20 @@ using std::chrono::milliseconds;
 using std::chrono::seconds;
 using std::function;
 using std::this_thread::sleep_for;
+using namespace std::chrono_literals;
 
-bool check_until(std::function<bool()> test, std::chrono::seconds test_time, std::chrono::milliseconds time_between_checks) {
+bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time, std::chrono::milliseconds time_between_checks) {
   auto t1 = timestamp_now();
   bool complete = false;
   bool completed_on_time = true;
   do {
-    if (timestamp_now() - t1 > test_time) {
+    // if we're over time (and our stop_time isn't 0)
+    if (timestamp_now() > stop_time &&
+        stop_time != 0ns) {
       completed_on_time = false;
-      // run forever if test_time is 0
-      if (test_time != std::chrono::seconds(0))
-        complete = true;
+      complete = true;
     }
+    // if we're under time (or our stop_time is 0)
     else {
       if (test())
         complete = true;
