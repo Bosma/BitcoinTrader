@@ -69,7 +69,7 @@ class OKCoinSpot : public OKCoin {
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;
 
-    void order(std::string, std::string, std::chrono::seconds, std::string price = "");
+    void order(std::string, std::string, std::chrono::nanoseconds, std::string price = "");
 
     // INTERNAL REST BORROWING FUNCTIONS
     BorrowInfo borrow(Currency, double);

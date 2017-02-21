@@ -7,7 +7,6 @@ using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
 bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time, std::chrono::milliseconds time_between_checks) {
-  auto t1 = timestamp_now();
   bool complete = false;
   bool completed_on_time = true;
   do {

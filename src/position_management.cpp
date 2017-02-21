@@ -143,7 +143,7 @@ void BitcoinTrader::manage_positions(double signal) {
     }
   }
 
-  // if we have any contracts to open, convert the contracts to long or short contracts instead of negative/positive
+  // if we have any contracts to close, convert the contracts to long or short contracts instead of negative/positive
   if (contracts_to_close != 0) {
     auto to_close = (contracts_to_close >= 0) ? OKCoinFuts::OrderType::CloseLong : OKCoinFuts::OrderType::CloseShort;
     if (!futs_market(to_close, abs(contracts_to_close), position.lever_rate)) {
@@ -154,7 +154,7 @@ void BitcoinTrader::manage_positions(double signal) {
 
   // if we have any contracts to open, convert the contracts to long or short contracts instead of negative/positive
   if (contracts_to_open != 0) {
-    auto to_close = (contracts_to_close >= 0) ? OKCoinFuts::OrderType::OpenLong : OKCoinFuts::OrderType::OpenShort;
+    auto to_close = (contracts_to_open >= 0) ? OKCoinFuts::OrderType::OpenLong : OKCoinFuts::OrderType::OpenShort;
     // no need to check for success, since it's the last thing we do
     // if it fails, manage positions loops again
     futs_market(to_close, abs(contracts_to_open), position.lever_rate);
