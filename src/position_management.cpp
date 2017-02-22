@@ -94,7 +94,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
 double BitcoinTrader::blend_signals() {
   // average the signals
   double signal_sum = accumulate(strategies.begin(), strategies.end(), 0,
-      [](double a, shared_ptr<Strategy> b) { return a + b->signal; });
+      [](double a, shared_ptr<Strategy> b) { return a + b->signal.get(); });
   return signal_sum / strategies.size();
 }
 

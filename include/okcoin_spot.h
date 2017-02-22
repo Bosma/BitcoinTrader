@@ -52,6 +52,7 @@ class OKCoinSpot : public OKCoin {
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
+    bool subscribed_to_OHLC(std::chrono::minutes);
     void market_buy(double, std::chrono::nanoseconds);
     void market_sell(double, std::chrono::nanoseconds);
     void limit_buy(double, double, std::chrono::nanoseconds);

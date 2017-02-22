@@ -36,8 +36,6 @@ int main(int argc, char *argv[]) {
 
       if (args[0] == "quit")
         done = true;
-      else if (args[0] == "rc")
-        trader.reconnect();
       else if (args[0] == "status")
         cout << trader.status();
     }

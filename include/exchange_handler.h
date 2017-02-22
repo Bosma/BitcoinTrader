@@ -20,11 +20,6 @@ public:
 
   std::function<void(std::string)> execution_callback;
 
-  // interactive commands
-  void reconnect() {
-    for (auto exchange : exchanges())
-      exchange->reconnect = true;
-  }
   std::string status();
 
   // interfaces to Exchange

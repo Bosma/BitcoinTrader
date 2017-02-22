@@ -187,9 +187,6 @@ void OKCoin::on_message(string const & message) {
 
 void OKCoin::on_open() {
   log->output("OPENED SOCKET to " + ws.get_uri());
-  
-  // if we're open, no need to reconnect
-  reconnect = false;
 
   if (open_callback)
     open_callback();
@@ -199,20 +196,16 @@ void OKCoin::on_close() {
   log->output("CLOSE with reason: " + ws.get_error_reason());
 
   // 1001 is normal close
-  if (ws.get_close_code() != 1001) {
+  if (ws.get_close_code() != 1001)
     log->output("WS ABNORMAL CLOSE CODE");
-    reconnect = true;
-  }
 }
 
 void OKCoin::on_fail() {
   log->output("FAIL with error: " + ws.get_error_reason());
-  reconnect = true;
 }
 
 void OKCoin::on_error(string const & error_message) {
   log->output("ERROR with message: " + error_message);
-  reconnect = true;
 }
 
 void OKCoin::ping() {

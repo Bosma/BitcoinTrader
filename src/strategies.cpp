@@ -17,14 +17,14 @@ SMACrossover::SMACrossover(string name) :
 void SMACrossover::apply(OHLC bar) {
   if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_above) {
-    signal = 1;
+    signal.set(1);
 
     crossed_above = true;
     crossed_below = false;
   }
   else if (bar.indis[name]["sma_fast"]["mavg"] < bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_below) {
-    signal = -1;
+    signal.set(-1);
 
     crossed_below = true;
     crossed_above = false;

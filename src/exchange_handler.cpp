@@ -4,7 +4,7 @@ using std::cout;                   using std::endl;
 using std::cin;                    using std::remove;
 using std::function;               using std::shared_ptr;
 using std::string;                 using std::ofstream;
-using std::chrono::seconds;        using std::this_thread::sleep_for;
+using std::this_thread::sleep_for; using std::floor;
 using std::mutex;                  using std::vector;
 using std::lock_guard;             using std::thread;
 using std::vector;                 using std::map;
@@ -12,7 +12,8 @@ using std::chrono::minutes;        using std::bind;
 using std::to_string;              using std::ostringstream;
 using std::make_shared;            using std::make_unique;
 using namespace std::placeholders; using std::to_string;
-using std::floor;                  using std::chrono::milliseconds;
+using namespace std::chrono_literals;
+using std::accumulate;
 
 // REQUIRED TO EXPLICITLY ADD EACH EXCHANGE HERE
 vector<shared_ptr<ExchangeMeta>> BitcoinTrader::exchange_metas() {
@@ -144,19 +145,31 @@ void BitcoinTrader::start() {
     exchange->set_up_and_start();
 
   // check connection and reconnect if down on another thread
-  // this has its own sleep so can happen before the below sleep
   check_connection();
-
-  // give it some time to warm up
-  sleep_for(seconds(5));
-
-  okcoin_futs.exchange->positions();
 
   // start fetching userinfo on another thread
   fetch_userinfo();
 
-  // give it time to fetch userinfo
-  sleep_for(seconds(5));
+  // wait until OKCoinFuts userinfo and ticks are fetched,
+  // and subscribed to market data
+  auto can_open_positions = [&]() {
+    // we can open positions if
+    bool can = true;
+    // we're subscribed to every OHLC period
+    for (auto &m : okcoin_futs.meta->mktdata) {
+      can = can && okcoin_futs.exchange->subscribed_to_OHLC(m.first);
+    }
+    // and every strategy has a signal that's been set
+    can = can && accumulate(strategies.begin(), strategies.end(), true,
+                            [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
+    // and we have userinfo and a tick set
+    can = can &&
+        okcoin_futs.user_info.has_been_set() &&
+        okcoin_futs.meta->tick.has_been_set();
+    return can;
+  };
+  check_until(can_open_positions);
+  std::cout << "we can open positions" << std::endl;
 
   // manage positions on another thread
   position_management();
@@ -164,10 +177,10 @@ void BitcoinTrader::start() {
 
 void BitcoinTrader::position_management() {
   auto position_thread = [&]() {
-    while (!done) {
+    while (!done && okcoin_futs.exchange->connected()) {
       double blended_signal = blend_signals();
       manage_positions(blended_signal);
-      sleep_for(seconds(10));
+      sleep_for(10s);
     }
   };
   running_threads.push_back(make_shared<thread>(position_thread));
@@ -177,25 +190,24 @@ void BitcoinTrader::check_connection() {
   auto connection_thread = [&]() {
     bool warm_up = true;
     while (!done) {
-      // give some time for everything to start up
-      // the first time and times after we reconnect
+      // give some time for everything to start up after we reconnect
       if (warm_up) {
-        sleep_for(seconds(10));
+        sleep_for(10s);
         warm_up = false;
       }
-      // check to reconnect every second
-      sleep_for(seconds(1));
       for (auto exchange : exchange_metas()) {
         if (exchange->exchange &&
             // if the time since the last message received is > 1min
-            (((timestamp_now() - exchange->exchange->ts_since_last) > minutes(1)) ||
+            (((timestamp_now() - exchange->exchange->ts_since_last) > 1min) ||
              // if the websocket has closed
-             exchange->exchange->reconnect)) {
+             !exchange->exchange->connected())) {
           exchange->log->output("RECONNECTING TO " + exchange->name);
           exchange->set_up_and_start();
           warm_up = true;
         }
       }
+      // check to reconnect every second
+      sleep_for(1s);
     }
   };
   running_threads.push_back(make_shared<thread>(connection_thread));
@@ -205,10 +217,10 @@ void BitcoinTrader::fetch_userinfo() {
   auto userinfo_thread = [&]() {
     while (!done) {
       for (auto exchange : exchange_metas()) {
-        lock_guard<mutex> l(exchange->reconnect);
-        exchange->exchange->userinfo();
+        if (exchange->exchange->connected())
+          exchange->exchange->userinfo();
       }
-      sleep_for(seconds(1));
+      sleep_for(1s);
     }
   };
   running_threads.push_back(make_shared<thread>(userinfo_thread));

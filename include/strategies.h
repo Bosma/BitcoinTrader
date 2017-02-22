@@ -23,8 +23,7 @@ class Strategy {
     std::string name;
     std::chrono::minutes period;
     std::vector<std::shared_ptr<Indicator>> indicators;
-
-    double signal;
+    Atomic<double> signal;
 
     int max_lookback() {
       int max = 0;

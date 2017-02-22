@@ -14,6 +14,10 @@ typedef websocketpp::lib::shared_ptr<boost::asio::ssl::context> wspp_context_ptr
 
 class websocket {
   public:
+    enum class Status {
+      Open, Closed, Failed, Connecting
+    };
+
     websocket(std::string);
     ~websocket();
 
@@ -32,7 +36,7 @@ class websocket {
     void set_fail_callback(std::function<void()> callback) { fail_callback = callback; };
 
     // getters
-    std::string get_status() const { return status; };
+    Status get_status() const { return status; };
     std::string get_uri() const { return uri; };
     std::string get_error_reason() const { return error_reason; };
     int get_close_code() const { return close_code; };
@@ -54,7 +58,7 @@ class websocket {
     wspp_client endpoint;
     websocketpp::lib::shared_ptr<websocketpp::lib::thread> thread;
     websocketpp::connection_hdl hdl;
-    std::string status;
+    Status status;
     std::string server;
     std::string uri;
     std::string error_reason;

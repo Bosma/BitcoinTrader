@@ -1,6 +1,6 @@
 #include "../include/websocket.h"
 
-websocket::websocket(std::string uri) : status("Connecting"), server("N/A"), uri(uri) {
+websocket::websocket(std::string uri) : status(Status::Connecting), server("N/A"), uri(uri) {
   setup();
 }
 
@@ -21,7 +21,7 @@ void websocket::setup() {
 void websocket::teardown() {
   endpoint.stop_perpetual();
 
-  if (status == "Open") {
+  if (status == Status::Open) {
     websocketpp::lib::error_code ec;
     endpoint.close(hdl, websocketpp::close::status::going_away, "", ec);
     if (ec)
@@ -78,7 +78,7 @@ void websocket::connect() {
 }
 
 void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
-  status = "Open";
+  status = Status::Open;
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
   server = con->get_response_header("Server");
 
@@ -112,7 +112,7 @@ void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr
 }
 
 void websocket::on_close(wspp_client *c, websocketpp::connection_hdl hdl) {
-  status = "Closed";
+  status = Status::Closed;
 
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
   std::ostringstream s;
@@ -127,7 +127,7 @@ void websocket::on_close(wspp_client *c, websocketpp::connection_hdl hdl) {
 }
 
 void websocket::on_fail(wspp_client *c, websocketpp::connection_hdl hdl) {
-  status = "Failed";
+  status = Status::Failed;
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
   server = con->get_response_header("Server");
   error_reason = con->get_ec().message();

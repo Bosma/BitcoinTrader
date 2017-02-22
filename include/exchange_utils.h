@@ -85,12 +85,13 @@ template <typename T> std::string opt_to_string(nlohmann::json object) {
 
 template <class T> class Atomic {
   public:
-    Atomic() = default;
+    Atomic() : is_set(false) { };
     Atomic(const Atomic&) = delete;
     Atomic& operator=(const Atomic&) = delete;
 
     void set(T new_x) {
       std::lock_guard<std::mutex> l(lock);
+      is_set = true;
       x = new_x;
     }
     T get() {
@@ -100,11 +101,16 @@ template <class T> class Atomic {
     void clear() {
       std::lock_guard<std::mutex> l(lock);
       T cleared;
+      is_set = false;
       x = cleared;
+    }
+    bool has_been_set() {
+      return is_set;
     }
   private:
     T x;
     std::mutex lock;
+    bool is_set;
 };
 
 double truncate_to(double, int);

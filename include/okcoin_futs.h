@@ -70,6 +70,7 @@ class OKCoinFuts : public OKCoin {
     
     void subscribe_to_ticker();
     void subscribe_to_OHLC(std::chrono::minutes);
+    bool subscribed_to_OHLC(std::chrono::minutes);
     void open(Position, double, double, int, std::chrono::nanoseconds);
     void close(Position, double, double, int, std::chrono::nanoseconds);
     void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);

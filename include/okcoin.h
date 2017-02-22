@@ -64,6 +64,10 @@ class OKCoin : public Exchange {
     // backfill OHLC period
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
 
+    bool connected() {
+      return ws.get_status() == websocket::Status::Open;
+    }
+
   protected:
     std::string api_key;
     std::string secret_key;

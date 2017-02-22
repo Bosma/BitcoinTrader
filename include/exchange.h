@@ -16,13 +16,13 @@ class Exchange {
   public:
     Exchange(std::string name, std::shared_ptr<Log> log, std::shared_ptr<Config> config) :
       name(name),
-      reconnect(false),
       config(config),
       log(log) { }
 
     virtual void start() = 0;
     virtual void subscribe_to_ticker() = 0;
     virtual void subscribe_to_OHLC(std::chrono::minutes) = 0;
+    virtual bool subscribed_to_OHLC(std::chrono::minutes) = 0;
     virtual void userinfo() = 0;
     virtual void ping() = 0;
     virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
@@ -31,6 +31,7 @@ class Exchange {
       os << name << ": " << std::endl;
       return os.str();
     }
+    virtual bool connected() = 0;
 
     void set_ticker_callback(std::function<void(Ticker)> callback) {
       ticker_callback = callback;
@@ -55,9 +56,6 @@ class Exchange {
 
     // timestamp representing time of last received message
     std::chrono::nanoseconds ts_since_last;
-
-    // when true, letting handler know to make a new Exchange object
-    bool reconnect;
   protected:
     std::shared_ptr<Config> config;
     std::shared_ptr<Log> log;

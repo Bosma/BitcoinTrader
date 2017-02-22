@@ -24,6 +24,13 @@ void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period));
 }
 
+bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
+  string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
+
+  return channels.count(channel) == 1 &&
+         channels[channel]->status == "subscribed";
+}
+
 void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
   OrderType order_type = (position == Long) ? OpenLong : OpenShort;
   order(order_type, amount, price, leverage, false, invalid_time);
