@@ -41,6 +41,8 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
   }
 
   trading_log->output("MARKET " + action + " " + to_string(amount) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(price));
+  // TODO: remove early return for testing
+  return true;
 
   bool trading_done = false;
   auto cancel_time = timestamp_now() + timeout;

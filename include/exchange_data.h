@@ -15,7 +15,6 @@ struct ExchangeMeta {
   Atomic<Ticker> tick;
   std::function<void()> set_up_and_start;
   std::function<std::string()> print_userinfo;
-  std::mutex reconnect;
 };
 template <class T> class ExchangeData {
   public:
@@ -28,5 +27,11 @@ template <class T> class ExchangeData {
     Atomic<typename T::UserInfo> user_info;
     std::shared_ptr<T> exchange;
     std::shared_ptr<ExchangeMeta> meta;
+
+    void reset() {
+      user_info.clear();
+      meta->tick.clear();
+      meta->exchange = nullptr;
+    }
 };
 

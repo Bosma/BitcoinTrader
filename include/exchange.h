@@ -33,7 +33,7 @@ class Exchange {
     }
     virtual bool connected() = 0;
 
-    void set_ticker_callback(std::function<void(Ticker)> callback) {
+    void set_ticker_callback(std::function<void(const Ticker)> callback) {
       ticker_callback = callback;
     }
     void set_OHLC_callback(std::function<void(std::chrono::minutes, OHLC)> callback) {
@@ -60,7 +60,7 @@ class Exchange {
     std::shared_ptr<Config> config;
     std::shared_ptr<Log> log;
 
-    std::function<void(Ticker)> ticker_callback;
+    std::function<void(const Ticker)> ticker_callback;
     std::function<void(std::chrono::minutes, OHLC)> OHLC_callback;
     std::function<void()> open_callback;
     std::function<void(std::string)> trade_callback;

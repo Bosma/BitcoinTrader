@@ -34,9 +34,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   // and starts the exchange
   // this will also be used to restart the exchange
   okcoin_futs.meta->set_up_and_start = [&]() {
-    lock_guard<mutex> l(okcoin_futs.meta->reconnect);
-    // clear the abstract pointer
-    okcoin_futs.meta->exchange = nullptr;
+    okcoin_futs.reset();
     // create the OKCoinFuts exchange
     okcoin_futs.exchange = make_shared<OKCoinFuts>("OKCoinFuts", OKCoinFuts::Weekly, okcoin_futs.meta->log, config);
     // store the generic pointer
@@ -44,9 +42,12 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 
     // set the callbacks the exchange will use
     auto open_callback = [&]() {
+      // start receiving ticks and block until one is received
       okcoin_futs.exchange->subscribe_to_ticker();
+      check_until([&]() { return okcoin_futs.meta->tick.has_been_set(); });
+
       // backfill and subscribe to each market data
-      for (auto m : okcoin_futs.meta->mktdata) {
+      for (auto &m : okcoin_futs.meta->mktdata) {
         okcoin_futs.exchange->backfill_OHLC(m.second->period, m.second->bars->capacity());
         okcoin_futs.exchange->subscribe_to_OHLC(m.second->period);
       }
@@ -58,7 +59,10 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     };
     okcoin_futs.exchange->set_OHLC_callback(OHLC_callback);
 
-    auto ticker_callback = [&](Ticker new_tick) {
+    auto ticker_callback = [&](const Ticker new_tick) {
+      for (auto &m : okcoin_futs.meta->mktdata) {
+        m.second->add(new_tick);
+      }
       okcoin_futs.meta->tick.set(new_tick);
     };
     okcoin_futs.exchange->set_ticker_callback(ticker_callback);
@@ -71,13 +75,12 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // start the exchange
     okcoin_futs.exchange->start();
   };
-  okcoin_futs.meta->print_userinfo = [&]() -> std::string {
+  okcoin_futs.meta->print_userinfo = [&]() {
     return okcoin_futs.user_info.get().to_string();
   };
 
   okcoin_spot.meta->set_up_and_start = [&]() {
-    lock_guard<mutex> l(okcoin_spot.meta->reconnect);
-    okcoin_spot.meta->exchange = nullptr;
+    okcoin_spot.reset();
     okcoin_spot.exchange = make_shared<OKCoinSpot>("OKCoinSpot", okcoin_spot.meta->log, config);
     okcoin_spot.meta->exchange = okcoin_spot.exchange;
 
@@ -91,14 +94,14 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     };
     okcoin_spot.exchange->set_userinfo_callback(userinfo_callback);
 
-    auto ticker_callback = [&](Ticker new_tick) {
+    auto ticker_callback = [&](const Ticker new_tick) {
       okcoin_spot.meta->tick.set(new_tick);
     };
     okcoin_spot.exchange->set_ticker_callback(ticker_callback);
 
     okcoin_spot.exchange->start();
   };
-  okcoin_spot.meta->print_userinfo = [&]() -> std::string {
+  okcoin_spot.meta->print_userinfo = [&]() {
     return okcoin_spot.user_info.get().to_string();
   };
 
@@ -169,7 +172,6 @@ void BitcoinTrader::start() {
     return can;
   };
   check_until(can_open_positions);
-  std::cout << "we can open positions" << std::endl;
 
   // manage positions on another thread
   position_management();
@@ -180,7 +182,7 @@ void BitcoinTrader::position_management() {
     while (!done && okcoin_futs.exchange->connected()) {
       double blended_signal = blend_signals();
       manage_positions(blended_signal);
-      sleep_for(10s);
+      sleep_for(5s);
     }
   };
   running_threads.push_back(make_shared<thread>(position_thread));

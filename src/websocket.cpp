@@ -83,7 +83,10 @@ void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
   server = con->get_response_header("Server");
 
   if (open_callback) {
-    open_callback();
+    std::thread t([&]() {
+      open_callback();
+    });
+    t.detach();
   }
 }
 

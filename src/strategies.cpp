@@ -15,8 +15,13 @@ SMACrossover::SMACrossover(string name) :
   crossed_below(false) { }
 
 void SMACrossover::apply(OHLC bar) {
+  auto current_tick = tick.get();
+  double stop_percentage = 0.01;
+
   if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_above) {
+    stop.set(current_tick.bid * (1 - stop_percentage));
+
     signal.set(1);
 
     crossed_above = true;
@@ -24,6 +29,8 @@ void SMACrossover::apply(OHLC bar) {
   }
   else if (bar.indis[name]["sma_fast"]["mavg"] < bar.indis[name]["sma_slow"]["mavg"] &&
       !crossed_below) {
+    stop.set(current_tick.bid * (1 + stop_percentage));
+
     signal.set(-1);
 
     crossed_below = true;

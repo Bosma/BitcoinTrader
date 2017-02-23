@@ -43,6 +43,13 @@ class MktData {
       }
     }
 
+
+    void add(Ticker tick) {
+      for (auto &s : strategies) {
+        s->apply(tick);
+      }
+    }
+
     void set_new_bar_callback(std::function<void(OHLC)> callback) {
       new_bar_callback = callback;
     }
