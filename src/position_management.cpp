@@ -10,6 +10,8 @@ using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 using std::function;
 using std::ostringstream;
+using std::mutex;
+using std::lock_guard;
 
 bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int lever_rate, seconds timeout = 30s) {
   auto tick = okcoin_futs.meta->tick.get();
@@ -45,6 +47,8 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
   bool trading_done = false;
   auto cancel_time = timestamp_now() + timeout;
   auto trade_callback = [&](string order_id) {
+    lock_guard<mutex> l(okcoin_futs.meta->reconnect);
+
     if (order_id != "failed") {
       bool done_limit_check = false;
       // until we are done,
@@ -56,6 +60,8 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
         // fetch the orderinfo every second
         okcoin_futs.exchange->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
             [&](OKCoinFuts::OrderInfo orderinfo) {
+              lock_guard<mutex> l(okcoin_futs.meta->reconnect);
+
               if (orderinfo.status != OKCoin::OrderStatus::Failed) {
                 final_info = orderinfo;
                 // early stopping if we fill for the entire amount

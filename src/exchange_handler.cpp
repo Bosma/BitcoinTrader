@@ -34,14 +34,13 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   // and starts the exchange
   // this will also be used to restart the exchange
   okcoin_futs.meta->set_up_and_start = [&]() {
-    okcoin_futs.reset();
-    // create the OKCoinFuts exchange
-    okcoin_futs.exchange = make_shared<OKCoinFuts>("OKCoinFuts", OKCoinFuts::Weekly, okcoin_futs.meta->log, config);
-    // store the generic pointer
-    okcoin_futs.meta->exchange = okcoin_futs.exchange;
+    std::lock_guard<std::mutex> l(okcoin_futs.meta->reconnect);
+
+    okcoin_futs.reset("OKCoinFuts", OKCoinFuts::Weekly, okcoin_futs.meta->log, config);
 
     // set the callbacks the exchange will use
     auto open_callback = [&]() {
+      std::lock_guard<std::mutex> g(okcoin_futs.meta->reconnect);
       // start receiving ticks and block until one is received
       okcoin_futs.exchange->subscribe_to_ticker();
       check_until([&]() { return okcoin_futs.meta->tick.has_been_set(); });
@@ -80,11 +79,12 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   };
 
   okcoin_spot.meta->set_up_and_start = [&]() {
-    okcoin_spot.reset();
-    okcoin_spot.exchange = make_shared<OKCoinSpot>("OKCoinSpot", okcoin_spot.meta->log, config);
-    okcoin_spot.meta->exchange = okcoin_spot.exchange;
+    std::lock_guard<std::mutex> l(okcoin_spot.meta->reconnect);
+
+    okcoin_spot.reset("OKCoinSpot", okcoin_spot.meta->log, config);
 
     auto open_callback = [&]() {
+      std::lock_guard<std::mutex> g(okcoin_spot.meta->reconnect);
       okcoin_spot.exchange->subscribe_to_ticker();
     };
     okcoin_spot.exchange->set_open_callback(open_callback);
@@ -130,14 +130,17 @@ BitcoinTrader::~BitcoinTrader() {
 string BitcoinTrader::status() {
   ostringstream os;
   for (auto exchange_meta : exchange_metas()) {
+    lock_guard<mutex> l(exchange_meta->reconnect);
+
     os << exchange_meta->exchange->status();
     Ticker tick = exchange_meta->tick.get();
     os << "bid: " << tick.bid << ", ask: " << tick.ask << std::endl;
     os << exchange_meta->print_userinfo();
-    for (auto m : exchange_meta->mktdata) {
+    for (auto &m : exchange_meta->mktdata) {
       os << "MktData with period: " <<  m.second->period.count();
       os << ", size: " << m.second->bars->size() << endl;
-      os << "last: " << m.second->bars->back().to_string() << endl;
+      os << "last: ";
+      os << m.second->bars->back().to_string() << endl;
     }
   }
   return os.str();
@@ -156,6 +159,7 @@ void BitcoinTrader::start() {
   // wait until OKCoinFuts userinfo and ticks are fetched,
   // and subscribed to market data
   auto can_open_positions = [&]() {
+    lock_guard<mutex> l(okcoin_futs.meta->reconnect);
     // we can open positions if
     bool can = true;
     // we're subscribed to every OHLC period
@@ -174,14 +178,17 @@ void BitcoinTrader::start() {
   check_until(can_open_positions);
 
   // manage positions on another thread
-  position_management();
+  //position_management();
 }
 
 void BitcoinTrader::position_management() {
   auto position_thread = [&]() {
     while (!done && okcoin_futs.exchange->connected()) {
-      double blended_signal = blend_signals();
-      manage_positions(blended_signal);
+      {
+        lock_guard<mutex> l(okcoin_futs.meta->reconnect);
+        double blended_signal = blend_signals();
+        manage_positions(blended_signal);
+      }
       sleep_for(5s);
     }
   };
@@ -219,6 +226,8 @@ void BitcoinTrader::fetch_userinfo() {
   auto userinfo_thread = [&]() {
     while (!done) {
       for (auto exchange : exchange_metas()) {
+        lock_guard<mutex> l(exchange->reconnect);
+
         if (exchange->exchange->connected())
           exchange->exchange->userinfo();
       }
