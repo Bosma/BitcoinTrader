@@ -6,9 +6,8 @@
 #include "../include/strategies.h"
 #include "../include/mktdata.h"
 #include "../include/config.h"
-#include "../include/exchange_data.h"
-
-using stops_t = std::vector<std::shared_ptr<Stop>>;
+#include "../include/okcoin_futs_handler.h"
+#include "../include/okcoin_spot_handler.h"
 
 class BitcoinTrader {
 public:
@@ -31,8 +30,8 @@ public:
   void start();
 
 protected:
-  ExchangeData<OKCoinFuts> okcoin_futs;
-  ExchangeData<OKCoinSpot> okcoin_spot;
+  std::shared_ptr<OKCoinFutsHandler> okcoin_futs_h;
+  std::shared_ptr<OKCoinSpotHandler> okcoin_spot_h;
 
   // private config options
   // sourced from config file
@@ -64,10 +63,6 @@ protected:
   // match the signal with the exposure on the exchange
   void manage_positions(double);
 
-  // live stops
-  stops_t stops;
-  // stops waiting to be added (ie, limit order waiting to be filled)
-
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
 
@@ -87,8 +82,6 @@ protected:
   bool GTC(Position, double, double);
   std::function<void(std::string)> GTC_callback;
 
-  stops_t pending_stops;
-
   // USERINFO FETCHING
   void fetch_userinfo();
 
@@ -99,7 +92,7 @@ protected:
   static Currency dir_to_tx(Position direction) { return (direction == Position::Long) ? Currency::USD : Currency::BTC; }
   static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "USD"; }
 
-  std::vector<std::shared_ptr<ExchangeMeta>> exchange_metas();
+  std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas();
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;
     for (auto x : exchange_metas())

@@ -11,7 +11,6 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include "../include/strategies.h"
 #include "../include/exchange_utils.h"
 
 class Indicator {
@@ -91,91 +90,4 @@ class BollingerBands : public Indicator {
     }
 
     double sd;
-};
-
-class Stop {
-  public:
-    Stop(double price,
-        std::string name, std::string direction) :
-      price(price), name(name), direction(direction), triggered(false) { }
-
-    std::string to_string() {
-      std::ostringstream os;
-      os << std::fixed << std::setprecision(4) << name << ": " << price;
-      return os.str();
-    }
-
-    virtual bool trigger(Ticker tick) = 0;
-    virtual std::string action() = 0;
-
-    double price;
-    std::string name;
-    std::string direction;
-    bool triggered;
-  protected:
-    bool stop_trigger(Ticker tick) {
-      if (direction == "long") {
-        if (tick.bid <= price) {
-          triggered = true;
-        }
-      }
-      else {
-        if (tick.bid >= price) {
-          triggered = true;
-        }
-      }
-      return triggered;
-    }
-};
-
-class StopLoss : public Stop {
-  public:
-    StopLoss(double price, std::string direction) :
-      Stop(price, "stop-loss", direction) { }
-
-    bool trigger(Ticker tick) {
-      return stop_trigger(tick);
-    }
-
-    std::string action() { return "STOPPED OUT"; }
-};
-
-class TrailingStop : public Stop {
-  public:
-    TrailingStop(double price, std::string direction, double stop_distance) :
-      Stop(price, "trailing-stop", direction), stop_distance(stop_distance) { }
-  private:
-    double stop_distance;
-
-    bool trigger(Ticker tick) {
-      // trail the stop if necessary
-      if (tick.bid - price > stop_distance) {
-        price = tick.bid - stop_distance;
-      }
-      return stop_trigger(tick);
-    }
-
-    std::string action() { return "STOPPED OUT"; }
-};
-
-class TakeProfit : public Stop {
-  public:
-    TakeProfit(double price, std::string direction) :
-      Stop(price, "take-profit", direction) { }
-
-    bool trigger(Ticker tick) {
-      if (direction == "long") {
-        if (tick.bid >= price) {
-          triggered = true;
-        }
-      }
-      else {
-        if (tick.ask <= price) {
-          triggered = true;
-        }
-      }
-      return triggered;
-    }
-
-    std::string action() { return "TAKING PROFIT"; }
 };

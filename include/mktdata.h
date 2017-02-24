@@ -4,7 +4,7 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include "../include/trading.h"
+#include "../include/strategies.h"
 
 class MktData {
   public:

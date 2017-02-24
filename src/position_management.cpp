@@ -12,7 +12,7 @@ using std::function;
 using std::ostringstream;
 
 bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int lever_rate, seconds timeout = 30s) {
-  auto tick = okcoin_futs.meta->tick.get();
+  auto tick = okcoin_futs_h->tick.get();
 
   string action;
   string direction;
@@ -36,7 +36,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
       price = tick.bid * (1 + 0.01);
       break;
     default :
-      okcoin_futs.meta->log->output("type NOT RECOGNIZED IN CALL TO futs_market");
+      okcoin_futs_h->log->output("type NOT RECOGNIZED IN CALL TO futs_market");
       return false;
   }
 
@@ -54,7 +54,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
       while (!done && !done_limit_check &&
              timestamp_now() < cancel_time) {
         // fetch the orderinfo every second
-        okcoin_futs.exchange->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
+        okcoin_futs_h->okcoin_futs->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
             [&](OKCoinFuts::OrderInfo orderinfo) {
               if (orderinfo.status != OKCoin::OrderStatus::Failed) {
                 final_info = orderinfo;
@@ -66,13 +66,13 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
                 done_limit_check = true;
             }
         ));
-        okcoin_futs.exchange->orderinfo(order_id, cancel_time);
+        okcoin_futs_h->okcoin_futs->orderinfo(order_id, cancel_time);
         sleep_for(seconds(1));
       }
 
       // given the limit enough time, cancel it
       if (final_info.status != OKCoin::OrderStatus::FullyFilled)
-        okcoin_futs.exchange->cancel_order(order_id, cancel_time);
+        okcoin_futs_h->okcoin_futs->cancel_order(order_id, cancel_time);
 
       if (final_info.filled_amount != 0) {
         trading_log->output(
@@ -83,9 +83,9 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
     }
     trading_done = true;
   };
-  okcoin_futs.exchange->set_trade_callback(trade_callback);
+  okcoin_futs_h->okcoin_futs->set_trade_callback(trade_callback);
 
-  okcoin_futs.exchange->order(type, amount, price, lever_rate, false, cancel_time);
+  okcoin_futs_h->okcoin_futs->order(type, amount, price, lever_rate, false, cancel_time);
 
   // check until the trade callback is finished, or cancel_time
   return check_until([&]() { return trading_done; }, cancel_time);
@@ -99,13 +99,13 @@ double BitcoinTrader::blend_signals() {
 }
 
 void BitcoinTrader::manage_positions(double signal) {
-  auto position = okcoin_futs.exchange->positions();
+  auto position = okcoin_futs_h->okcoin_futs->positions();
   if (!position.valid) {
     return;
   }
 
-  auto userinfo = okcoin_futs.user_info.get();
-  auto tick = okcoin_futs.meta->tick.get();
+  auto userinfo = okcoin_futs_h->user_info.get();
+  auto tick = okcoin_futs_h->tick.get();
 
   // calculate the number of contracts we have open, and the number of contracts we would like to have
   // negative contracts are short contracts
