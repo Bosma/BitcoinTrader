@@ -85,13 +85,6 @@ protected:
   // USERINFO FETCHING
   void fetch_userinfo();
 
-  static std::string dir_to_string(Position direction) { return (direction == Position::Long) ? "LONG" : "SHORT"; }
-  static std::string dir_to_action(Position direction) { return (direction == Position::Long) ? "BUY" : "SELL"; }
-  static std::string dir_to_past_tense(Position direction) { return (direction == Position::Long) ? "BOUGHT" : "SOLD"; }
-  static Currency dir_to_own(Position direction) { return (direction == Position::Long) ? Currency::BTC : Currency::USD; }
-  static Currency dir_to_tx(Position direction) { return (direction == Position::Long) ? Currency::USD : Currency::BTC; }
-  static std::string cur_to_string(Currency currency) { return (currency == Currency::BTC) ? "BTC" : "USD"; }
-
   std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas();
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;
