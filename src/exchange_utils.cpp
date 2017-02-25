@@ -88,11 +88,12 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   return size*nmemb;
 }
 
-std::string curl_post(std::string url, std::string post_fields) {
+std::string curl_post(std::string url, std::shared_ptr<Log> log, std::string post_fields) {
   CURL *curl;
   CURLcode res;
 
-  std::string output;
+  std::string output = "";
+
   curl = curl_easy_init();
   if (curl) {
     curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -104,10 +105,13 @@ std::string curl_post(std::string url, std::string post_fields) {
 
     res = curl_easy_perform(curl);
     if(res != CURLE_OK)
-      std::cout << curl_easy_strerror(res) << std::endl;
+      log->output("curl_post() ERROR " + std::string(curl_easy_strerror(res)) + ", with: "  + url + ", post_fields: " + post_fields);
 
     curl_easy_cleanup(curl);
-  } 
+  }
+  else
+    log->output("curl_post(): curl_easy_init() RETURNED NULL.");
+
   return output;
 }
 

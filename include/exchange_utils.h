@@ -8,6 +8,7 @@
 
 #include <curl/curl.h>
 #include "../json/json.hpp"
+#include "../include/log.h"
 
 bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
@@ -119,4 +120,4 @@ std::string dtos(double, int);
 
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
 
-std::string curl_post(std::string, std::string = "");
+std::string curl_post(std::string, std::shared_ptr<Log>, std::string = "");

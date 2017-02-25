@@ -157,7 +157,7 @@ json OKCoinSpot::lend_depth(Currency currency) {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
+  string response = curl_post(url, log, ampersand_list(p));
   json j;
   try {
     j = json::parse(response);
@@ -180,7 +180,7 @@ json OKCoinSpot::borrows_info(Currency currency) {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
+  string response = curl_post(url, log, ampersand_list(p));
   json j;
   try {
     j = json::parse(response);
@@ -205,7 +205,7 @@ json OKCoinSpot::unrepayments_info(Currency currency) {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
+  string response = curl_post(url, log, ampersand_list(p));
   json j;
   try {
     j = json::parse(response);
@@ -231,7 +231,7 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
+  string response = curl_post(url, log, ampersand_list(p));
   json j;
   try {
     j = json::parse(response);
@@ -251,7 +251,7 @@ json OKCoinSpot::repayment(string borrow_id) {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
+  string response = curl_post(url, log, ampersand_list(p));
   json j;
   try {
     j = json::parse(response);
@@ -268,7 +268,7 @@ bool OKCoinSpot::backfill_OHLC(minutes period, int n) {
   url << "&type=" << period_s(period);
   url << "&size=" << n;
 
-  auto response = curl_post(url.str());
+  auto response = curl_post(url.str(), log);
   json j;
   try {
     j = json::parse(response);

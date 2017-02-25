@@ -132,10 +132,8 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   string sig = sign(p);
   p["sign"] = sig;
 
-
-  string response = curl_post(url, ampersand_list(p));
-
   FuturePosition pos;
+  string response = curl_post(url, log, ampersand_list(p));
   try {
     json j;
     j = json::parse(response);
@@ -144,7 +142,6 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
       log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
     }
     else {
-      // I don't know why, but sometimes j["holding"] is just null, instead of 0 contracts
       if (j["holding"] != nullptr && !j["holding"].empty()) {
         json h = j["holding"][0];
         pos.buy.contracts = optionally_to_int(h["buy_amount"]);
@@ -177,7 +174,7 @@ bool OKCoinFuts::backfill_OHLC(minutes period, int n) {
   url << "&type=" << period_s(period);
   url << "&size=" << n;
 
-  auto response = curl_post(url.str());
+  auto response = curl_post(url.str(), log);
   json j;
   try {
     j = json::parse(response);
