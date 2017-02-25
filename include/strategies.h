@@ -49,6 +49,16 @@ class Strategy {
         signal.set(0);
       }
     }
+
+    std::string status() {
+      std::ostringstream os;
+      os << name;
+      if (signal.has_been_set())
+        os << " " << signal.get() << " ";
+      if (stop.has_been_set())
+        os << " " << stop.get() << " ";
+      return os.str();
+    }
 };
 
 class SMACrossover : public Strategy {

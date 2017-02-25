@@ -12,6 +12,7 @@
 #include <map>
 
 #include "../include/config.h"
+#include "../include/exchange_utils.h"
 
 class Log {
   public:

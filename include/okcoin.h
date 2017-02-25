@@ -14,6 +14,7 @@
 #include "../json/json.hpp"
 
 #include "../include/websocket.h"
+#include "../include/curl.h"
 #include "../include/log.h"
 #include "../include/exchange_utils.h"
 #include "../include/exchange.h"

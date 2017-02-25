@@ -60,6 +60,24 @@ class MktData {
       strategies.push_back(to_add);
     }
 
+    std::string status() {
+      std::ostringstream os;
+      os << "MktData with " << period.count() << "m period";
+      os << ", size: " << bars->size();
+      os << ", last message: " << bars->back().to_string();
+      return os.str();
+    }
+
+    std::string strategies_status() {
+      std::string s = std::accumulate(std::next(strategies.begin()),
+                                      strategies.end(),
+                                      strategies[0]->status(),
+                                      [](std::string a, std::shared_ptr<Strategy> s) {
+                                        return a + ", " + s->status();
+                                      });
+      return s;
+    }
+
     std::shared_ptr<boost::circular_buffer<OHLC>> bars;
     // bar period in minutes
     std::chrono::minutes period;

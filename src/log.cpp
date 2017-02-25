@@ -21,19 +21,9 @@ Log::~Log() {
 
 void Log::output(std::string message, bool alert) {
   std::stringstream ss;
-
-  std::time_t rawtime;
-  std::tm* timeinfo;
-  char buffer[80];
-  std::time(&rawtime);
-  timeinfo = std::localtime(&rawtime);
-  std::strftime(buffer, 80, "%F %T", timeinfo);
-
-  ss << buffer << ": " << message;
-
+  ss << ts_to_string(timestamp_now().count()) << ": " << message;
   if (alert)
     send_email(ss.str());
-
   *log << ss.str() << std::endl;
 };
 

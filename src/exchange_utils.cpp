@@ -88,30 +88,12 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   return size*nmemb;
 }
 
-std::string curl_post(std::string url, std::shared_ptr<Log> log, std::string post_fields) {
-  CURL *curl;
-  CURLcode res;
-
-  std::string output = "";
-
-  curl = curl_easy_init();
-  if (curl) {
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-    if (!post_fields.empty())
-      curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_fields.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, Curl_write_callback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &output);
-
-    res = curl_easy_perform(curl);
-    if(res != CURLE_OK)
-      log->output("curl_post() ERROR " + std::string(curl_easy_strerror(res)) + ", with: "  + url + ", post_fields: " + post_fields);
-
-    curl_easy_cleanup(curl);
-  }
-  else
-    log->output("curl_post(): curl_easy_init() RETURNED NULL.");
-
-  return output;
+std::string ts_to_string(long timestamp) {
+  std::time_t rawtime = (std::time_t) timestamp;
+  std::tm* timeinfo;
+  char buffer[80];
+  std::time(&rawtime);
+  timeinfo = std::localtime(&rawtime);
+  std::strftime(buffer, 80, "%F %T", timeinfo);
+  return std::string(buffer);
 }
-

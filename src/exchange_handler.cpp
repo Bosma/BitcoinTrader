@@ -68,10 +68,11 @@ string BitcoinTrader::status() {
     os << "bid: " << tick.bid << ", ask: " << tick.ask << std::endl;
     os << exchange_meta->print_userinfo();
     for (auto &m : exchange_meta->mktdata) {
-      os << "MktData with period: " <<  m.second->period.count();
-      os << ", size: " << m.second->bars->size() << endl;
-      os << "last: ";
-      os << m.second->bars->back().to_string() << endl;
+      os << m.second->status() << endl;
+    }
+    for (auto &m : exchange_meta->mktdata) {
+      os << m.second->period.count() << "m Strategies: ";
+      os << m.second->strategies_status() << endl;
     }
   }
   return os.str();
@@ -110,7 +111,7 @@ void BitcoinTrader::start() {
   check_until(can_open_positions);
 
   // manage positions on another thread
-  position_management();
+  //position_management();
 }
 
 void BitcoinTrader::position_management() {

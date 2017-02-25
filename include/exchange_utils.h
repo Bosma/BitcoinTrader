@@ -6,9 +6,7 @@
 #include <thread>
 #include <mutex>
 
-#include <curl/curl.h>
 #include "../json/json.hpp"
-#include "../include/log.h"
 
 bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
@@ -26,6 +24,8 @@ class Ticker {
     double ask;
     double last;
 };
+
+std::string ts_to_string(long);
 
 class OHLC {
   public:
@@ -55,7 +55,7 @@ class OHLC {
 
     std::string to_string() {
       std::ostringstream os;
-      os << "timestamp=" << timestamp <<
+      os << "timestamp=" << ts_to_string(timestamp) <<
         ",open=" << open << ",high=" << high <<
         ",low=" << low << ",close=" << close <<
         ",volume=" << volume;
@@ -119,5 +119,3 @@ double truncate_to(double, int);
 std::string dtos(double, int);
 
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s);
-
-std::string curl_post(std::string, std::shared_ptr<Log>, std::string = "");
