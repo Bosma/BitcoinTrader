@@ -25,7 +25,7 @@ class Exchange {
     virtual bool subscribed_to_OHLC(std::chrono::minutes) = 0;
     virtual void userinfo() = 0;
     virtual void ping() = 0;
-    virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
+    virtual bool backfill_OHLC(std::chrono::minutes, int) = 0;
     std::string status() {
       std::ostringstream os;
       os << name << ": " << std::endl;

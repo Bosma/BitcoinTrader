@@ -86,7 +86,7 @@ class OKCoinFuts : public OKCoin {
 
     // REST commands
     FuturePosition positions();
-    void backfill_OHLC(std::chrono::minutes, int);
+    bool backfill_OHLC(std::chrono::minutes, int);
 
   private:
     ContractType contract_type;

@@ -132,11 +132,13 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   string sig = sign(p);
   p["sign"] = sig;
 
-  string response = curl_post(url, ampersand_list(p));
-  FuturePosition pos;
-  if (!response.empty()) {
-    json j = json::parse(response);
 
+  string response = curl_post(url, ampersand_list(p));
+
+  FuturePosition pos;
+  try {
+    json j;
+    j = json::parse(response);
     if (j.count("errorcode") == 1) {
       string ec = j["errorcode"];
       log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
@@ -162,22 +164,31 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
       }
     }
   }
-  else
-    log->output("COULDN'T FETCH FUTUREPOSITION, CURL ERROR");
+  catch (exception& e) {
+    log->output("OKCoinFuts::positions(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
   return pos;
 }
 
-void OKCoinFuts::backfill_OHLC(minutes period, int n) {
+bool OKCoinFuts::backfill_OHLC(minutes period, int n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd";
   url << "&contract_type=" << contract_s(contract_type);
   url << "&type=" << period_s(period);
   url << "&size=" << n;
 
-  auto j = json::parse(curl_post(url.str()));
-
-  for (auto each : j)
-    OHLC_handler(period_s(period), each);
+  auto response = curl_post(url.str());
+  json j;
+  try {
+    j = json::parse(response);
+    for (auto each : j)
+      OHLC_handler(period_s(period), each);
+  }
+  catch (exception& e) {
+    log->output("OKCoinFuts::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    return false;
+  }
+  return true;
 }
 
 void OKCoinFuts::orderinfo_handler(json order) {

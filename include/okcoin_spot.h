@@ -35,6 +35,7 @@ class OKCoinSpot : public OKCoin {
       std::string id = "";
       double amount = 0;
       double rate = 0;
+      bool valid = false;
     };
     struct OrderInfo {
       double amount;
@@ -65,7 +66,7 @@ class OKCoinSpot : public OKCoin {
       orderinfo_callback = callback;
     }
 
-    void backfill_OHLC(std::chrono::minutes, int);
+    bool backfill_OHLC(std::chrono::minutes, int);
   private:
     std::function<void(UserInfo)> userinfo_callback;
     std::function<void(OrderInfo)> orderinfo_callback;

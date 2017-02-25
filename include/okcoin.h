@@ -62,7 +62,7 @@ class OKCoin : public Exchange {
     void userinfo();
     
     // backfill OHLC period
-    virtual void backfill_OHLC(std::chrono::minutes, int) = 0;
+    virtual bool backfill_OHLC(std::chrono::minutes, int) = 0;
 
     bool connected() {
       return ws.get_status() == websocket::Status::Open;

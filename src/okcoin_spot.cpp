@@ -11,6 +11,7 @@ using std::mutex;        using std::exception;
 using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
 using std::next;
+using std::to_string;
 
 OKCoinSpot::OKCoinSpot(std::string name, shared_ptr<Log> log, shared_ptr<Config> config) :
   OKCoin(name, Spot, log, config) { }
@@ -77,25 +78,39 @@ void OKCoinSpot::order(string type, string amount, nanoseconds timeout_time, str
 }
 
 OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
-  double rate = optionally_to_double(lend_depth(currency)[0]["rate"]);
-  double can_borrow = optionally_to_double(borrows_info(currency)["can_borrow"]);
-
-  if (amount > can_borrow)
-    amount = can_borrow;
-
   BorrowInfo result;
-  result.rate = rate;
-  switch (currency) {
-    case BTC : result.amount = truncate_to(amount, 2); break;
-    case USD : result.amount = floor(amount); break;
+
+  auto ld = lend_depth(currency);
+  auto bi = borrows_info(currency);
+  if (ld.empty() || bi.empty()) {
+    return result;
   }
 
-  auto response = borrow_money(currency, amount, rate);
+  json response;
+  try {
+    double rate = optionally_to_double(ld["lend_depth"][0]["rate"]);
+    double can_borrow = optionally_to_double(bi["can_borrow"]);
 
-  if (response["result"].get<bool>() == true)
-    result.id = to_string(response["borrow_id"].get<long>());
-  else
-    result.id = "failed";
+    if (amount > can_borrow)
+      amount = can_borrow;
+
+    result.rate = rate;
+    switch (currency) {
+      case BTC : result.amount = truncate_to(amount, 2); break;
+      case USD : result.amount = floor(amount); break;
+    }
+
+    response = borrow_money(currency, amount, rate);
+
+    if (!response.empty() &&
+        response["result"].get<bool>()) {
+      result.id = to_string(response["borrow_id"].get<long>());
+      result.valid = true;
+    }
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::borrow(): ERROR PARSING JSON " + string(e.what()) + ", with: lend_depth: " + ld.dump() + ", borrows_info: " + bi.dump() + ", borrow_money: " + response.dump());
+  }
 
   return result;
 }
@@ -103,22 +118,31 @@ OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
 double OKCoinSpot::close_borrow(Currency currency) {
   // get the open borrows
   auto j = unrepayments_info(currency);
-  if (j.size() != 0) {
-    string borrow_id = opt_to_string<int>(j[0]["borrow_id"]);
+  if (!j.empty()) {
+    json r;
+    try {
+      string borrow_id = opt_to_string<int>(j["unrepayments"][0]["borrow_id"]);
 
-    // repay loan
-    auto r = repayment(borrow_id);
-    bool repaid = r["result"];
-
-    if (repaid) {
-      double amount = j[0]["amount"];
-      return amount;
+      // repay loan
+      r = repayment(borrow_id);
+      if (r.empty()) {
+        return 0;
+      }
+      else {
+        bool repaid = r["result"];
+        if (repaid) {
+          double amount = j["unrepayments"][0]["amount"];
+          return amount;
+        }
+        else
+          return -1;
+      }
     }
-    else
-      return -1;
+    catch (exception& e) {
+      log->output("OKCoinSpot::close_borrow(): ERROR PARSING JSON " + string(e.what()) + ", with: unrepayments_info: " + j.dump() + ", repayment: " + r.dump());
+    }
   }
-  else
-    return 0;
+  return 0;
 }
 
 json OKCoinSpot::lend_depth(Currency currency) {
@@ -134,8 +158,14 @@ json OKCoinSpot::lend_depth(Currency currency) {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
-  return j["lend_depth"];
+  json j;
+  try {
+    j = json::parse(response);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::lend_depth(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
+  return j;
 }
 
 json OKCoinSpot::borrows_info(Currency currency) {
@@ -151,7 +181,13 @@ json OKCoinSpot::borrows_info(Currency currency) {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
+  json j;
+  try {
+    j = json::parse(response);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::borrows_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
   return j;
 }
 
@@ -170,8 +206,14 @@ json OKCoinSpot::unrepayments_info(Currency currency) {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
-  return j["unrepayments"];
+  json j;
+  try {
+    j = json::parse(response);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::unrepayments_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
+  return j;
 }
 
 json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
@@ -190,7 +232,13 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
+  json j;
+  try {
+    j = json::parse(response);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::borrow_money(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
   return j;
 }
 
@@ -204,20 +252,34 @@ json OKCoinSpot::repayment(string borrow_id) {
   p["sign"] = sig;
 
   string response = curl_post(url, ampersand_list(p));
-  auto j = json::parse(response);
+  json j;
+  try {
+    j = json::parse(response);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::repayment(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  }
   return j;
 }
 
-void OKCoinSpot::backfill_OHLC(minutes period, int n) {
+bool OKCoinSpot::backfill_OHLC(minutes period, int n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/kline.do?symbol=btc_usd";
   url << "&type=" << period_s(period);
   url << "&size=" << n;
 
-  auto j = json::parse(curl_post(url.str()));
-
-  for (auto each : j)
-    OHLC_handler(period_s(period), each);
+  auto response = curl_post(url.str());
+  json j;
+  try {
+    j = json::parse(response);
+    for (auto each : j)
+      OHLC_handler(period_s(period), each);
+  }
+  catch (exception& e) {
+    log->output("OKCoinSpot::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    return false;
+  }
+  return true;
 }
 
 void OKCoinSpot::orderinfo_handler(json order) {
