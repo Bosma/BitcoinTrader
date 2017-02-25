@@ -5,6 +5,9 @@ using std::mutex;
 using std::shared_ptr;
 using std::string;
 using std::chrono::minutes;
+using std::to_string;
+using std::this_thread::sleep_for;
+using namespace std::chrono_literals;
 
 OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Log> log, shared_ptr<Config> config, OKCoinFuts::ContractType contract_type) :
     ExchangeHandler(name, log, config), contract_type(contract_type) {
@@ -34,7 +37,14 @@ void OKCoinFutsHandler::set_up_and_start() {
 
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
-      okcoin_futs->backfill_OHLC(m.second->period, m.second->bars->capacity());
+      auto OHLC_is_fetched = [&]() {
+        bool success = okcoin_futs->backfill_OHLC(m.second->period, m.second->bars->capacity());
+        if (!success)
+          log->output("FAILED TO BACKFILL " + to_string(m.second->period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
+        return success;
+      };
+      if (!check_until(OHLC_is_fetched, timestamp_now() + 1min, 10s))
+        log->output("FAILED TO BACKFILL " + to_string(m.second->period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
       okcoin_futs->subscribe_to_OHLC(m.second->period);
     }
   };
