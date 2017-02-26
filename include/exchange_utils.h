@@ -25,11 +25,11 @@ class Ticker {
     double last;
 };
 
-std::string ts_to_string(long);
+std::string ts_to_string(std::chrono::nanoseconds);
 
 class OHLC {
   public:
-    OHLC(long timestamp, double open, double high,
+    OHLC(std::chrono::nanoseconds timestamp, double open, double high,
         double low, double close, double volume) :
       timestamp(timestamp),
       open(open),
@@ -38,7 +38,7 @@ class OHLC {
       close(close),
       volume(volume) { }
 
-    long timestamp;
+    std::chrono::nanoseconds timestamp;
     double open;
     double high;
     double low;

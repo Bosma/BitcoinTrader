@@ -25,9 +25,7 @@ class OKCoinSpot : public OKCoin {
 
       std::string to_string() {
         std::ostringstream os;
-        os << "Equity: " << asset_net << std::endl;
-        os << "BTC: " << free[BTC] << ", BTC (borrowed): " << borrow[BTC] << std::endl;
-        os << "USD: " << free[USD] << ", USD (borrowed): " << borrow[USD] << std::endl;
+        os << "Equity: " << asset_net << ", BTC: " << free[BTC] << ", BTC (borrowed): " << borrow[BTC] << ", USD: " << free[USD] << ", USD (borrowed): " << borrow[USD];
         return os.str();
       }
     };

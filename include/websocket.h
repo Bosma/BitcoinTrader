@@ -37,6 +37,20 @@ class websocket {
 
     // getters
     Status get_status() const { return status; };
+    std::string get_status_s() const {
+        switch (status) {
+            case Status::Open :
+                return "OPEN";
+            case Status::Closed :
+                return "CLOSED";
+            case Status::Connecting :
+                return "CONNECTING";
+            case Status::Failed :
+                return "FAILED";
+            default :
+                return "ERROR";
+        }
+    };
     std::string get_uri() const { return uri; };
     std::string get_error_reason() const { return error_reason; };
     int get_close_code() const { return close_code; };

@@ -12,6 +12,7 @@ class MktData {
       bars(new boost::circular_buffer<OHLC>(50)),
       period(period) { }
 
+    // TODO: remove backfilling variable
     void add(OHLC bar, bool backfilling = false) {
       std::lock_guard<std::mutex> l(lock);
 
@@ -25,7 +26,7 @@ class MktData {
         // if we receive a bar that's not contiguous
         // our old data is useless
         if (!bars->empty() &&
-            bar.timestamp != bars->back().timestamp + (period.count() * 60000))
+            bar.timestamp != bars->back().timestamp + period)
           bars->clear();
 
         bars->push_back(bar);
@@ -64,7 +65,7 @@ class MktData {
       std::ostringstream os;
       os << "MktData with " << period.count() << "m period";
       os << ", size: " << bars->size();
-      os << ", last message: " << bars->back().to_string();
+      os << ", last OHLC bar: " << bars->back().to_string();
       return os.str();
     }
 

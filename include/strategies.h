@@ -54,9 +54,9 @@ class Strategy {
       std::ostringstream os;
       os << name;
       if (signal.has_been_set())
-        os << " " << signal.get() << " ";
+        os << " signal: " << signal.get() << " ";
       if (stop.has_been_set())
-        os << " " << stop.get() << " ";
+        os << " stop: " << stop.get() << " ";
       return os.str();
     }
 };

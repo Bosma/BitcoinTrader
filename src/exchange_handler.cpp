@@ -59,21 +59,24 @@ BitcoinTrader::~BitcoinTrader() {
 }
 
 string BitcoinTrader::status() {
-  ostringstream os;
-  for (auto exchange_meta : exchange_metas()) {
-    lock_guard<mutex> l(exchange_meta->reconnect);
 
-    os << exchange_meta->exchange->status();
-    Ticker tick = exchange_meta->tick.get();
-    os << "bid: " << tick.bid << ", ask: " << tick.ask << std::endl;
-    os << exchange_meta->print_userinfo();
-    for (auto &m : exchange_meta->mktdata) {
+  ostringstream os;
+  auto metas = exchange_metas();
+  for (auto i = metas.begin(); i != metas.end(); i++) {
+    lock_guard<mutex> l((*i)->reconnect);
+    os << (*i)->exchange->status() << endl;
+    Ticker tick = (*i)->tick.get();
+    os << "Bid: " << tick.bid << ", Ask: " << tick.ask << ", ";
+    os << (*i)->print_userinfo() << endl;
+    for (auto &m : (*i)->mktdata) {
       os << m.second->status() << endl;
     }
-    for (auto &m : exchange_meta->mktdata) {
+    for (auto &m : (*i)->mktdata) {
       os << m.second->period.count() << "m Strategies: ";
       os << m.second->strategies_status() << endl;
     }
+    if (next(i) != metas.end())
+      os << endl;
   }
   return os.str();
 }
@@ -111,7 +114,7 @@ void BitcoinTrader::start() {
   check_until(can_open_positions);
 
   // manage positions on another thread
-  //position_management();
+  position_management();
 }
 
 void BitcoinTrader::position_management() {

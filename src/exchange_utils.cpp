@@ -88,11 +88,11 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   return size*nmemb;
 }
 
-std::string ts_to_string(long timestamp) {
-  std::time_t rawtime = (std::time_t) timestamp;
+std::string ts_to_string(std::chrono::nanoseconds timestamp) {
+  auto tp = std::chrono::high_resolution_clock::time_point(timestamp);
+  std::time_t rawtime = std::chrono::high_resolution_clock::to_time_t(tp);
   std::tm* timeinfo;
   char buffer[80];
-  std::time(&rawtime);
   timeinfo = std::localtime(&rawtime);
   std::strftime(buffer, 80, "%F %T", timeinfo);
   return std::string(buffer);

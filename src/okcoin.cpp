@@ -8,6 +8,9 @@ using std::ostringstream;
 using std::endl;
 using std::chrono::minutes;
 using std::chrono::seconds;
+using std::chrono::nanoseconds;
+using std::chrono::milliseconds;
+using std::chrono::duration_cast;
 using std::sort;
 using std::accumulate;
 using std::next;
@@ -92,6 +95,7 @@ void OKCoin::on_message(string const & message) {
           }
           // store the last message received
           channels[channel]->last_message = message;
+          channels[channel]->last_message_time = timestamp_now();
         }
         // we don't have a channel stored in the map
         // check for one off channel messages that have callbacks
@@ -214,10 +218,11 @@ void OKCoin::ping() {
 
 string OKCoin::status() {
   ostringstream ss;
-  ss << Exchange::status();
-  for (auto chan : channels) {
-    auto c = chan.second;
-    ss << c->name << " (" << c->status << "): " << c->last_message << endl;
+  ss << name << ": " << ws.get_status_s() << endl;
+  for (auto i = channels.begin(); i != channels.end(); i++) {
+    ss << (*i).second->to_string();
+    if (next(i) != channels.end())
+      ss << endl;
   }
   return ss.str();
 }
@@ -271,7 +276,7 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
 
 void OKCoin::OHLC_handler(string period, json trade) {
   if (OHLC_callback) {
-    long timestamp = optionally_to_long(trade[0]);
+    nanoseconds timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(trade[0])));
     double open = optionally_to_double(trade[1]);
     double high = optionally_to_double(trade[2]);
     double low = optionally_to_double(trade[3]);

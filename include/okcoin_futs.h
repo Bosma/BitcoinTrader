@@ -29,8 +29,7 @@ class OKCoinFuts : public OKCoin {
 
       std::string to_string() {
         std::ostringstream os;
-        os << "Equity: " << equity << ", Margin: " << margin << std::endl;
-        os << "Realized: " << realized << ", Unrealized: " << unrealized << std::endl;
+        os << "Equity: " << equity << ", Margin: " << margin << ", Realized: " << realized << ", Unrealized: " << unrealized;
         return os.str();
       }
     };

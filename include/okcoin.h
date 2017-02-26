@@ -33,6 +33,11 @@ class OKCoin : public Exchange {
       std::string name;
       std::string status;
       std::string last_message;
+      std::chrono::nanoseconds last_message_time;
+
+      std::string to_string() {
+        return name + " (" + ts_to_string(last_message_time) + "): " + status + ", last message: " + last_message;
+      }
     };
     enum class OrderStatus {
       Cancelled = -1,
@@ -58,12 +63,13 @@ class OKCoin : public Exchange {
     void start();
     
     void ping();
-    std::string status();
     
     void userinfo();
     
     // backfill OHLC period
     virtual bool backfill_OHLC(std::chrono::minutes, int) = 0;
+
+    std::string status();
 
     bool connected() {
       return ws.get_status() == websocket::Status::Open;

@@ -26,11 +26,7 @@ class Exchange {
     virtual void userinfo() = 0;
     virtual void ping() = 0;
     virtual bool backfill_OHLC(std::chrono::minutes, int) = 0;
-    std::string status() {
-      std::ostringstream os;
-      os << name << ": " << std::endl;
-      return os.str();
-    }
+    virtual std::string status() = 0;
     virtual bool connected() = 0;
 
     void set_ticker_callback(std::function<void(const Ticker)> callback) {
