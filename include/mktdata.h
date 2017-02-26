@@ -12,8 +12,7 @@ class MktData {
       bars(new boost::circular_buffer<OHLC>(50)),
       period(period) { }
 
-    // TODO: remove backfilling variable
-    void add(OHLC bar, bool backfilling = false) {
+    void add(OHLC bar) {
       std::lock_guard<std::mutex> l(lock);
 
       // don't add bars of the same timestamp
