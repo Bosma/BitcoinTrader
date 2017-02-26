@@ -157,8 +157,8 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
         pos.contract_id = opt_to_string<long>(h["contract_id"]);
         pos.create_date = opt_to_string<long>(h["create_date"]);
         pos.lever_rate = optionally_to_int(h["lever_rate"]);
-        pos.valid = true;
       }
+      pos.valid = true;
     }
   }
   catch (exception& e) {
