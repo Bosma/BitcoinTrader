@@ -36,9 +36,7 @@ class MktData {
         for (auto strategy : strategies) {
           for (auto indicator : strategy->indicators)
             bar.indis[strategy->name][indicator->name] = indicator->calculate(bars);
-          // don't send signals on backfills
-          if (!backfilling)
-            strategy->apply(bar);
+          strategy->apply(bar);
         }
       }
     }
