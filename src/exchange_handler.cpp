@@ -37,7 +37,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   done(false)
 {
   // create the strategies
-  strategies.push_back(make_shared<SMACrossover>("SMACrossover"));
+  strategies.push_back(make_shared<SMACrossover>("SMACrossover", trading_log));
 
   // we're using OKCoin Futs for our basket of strategies
   for (auto strategy : strategies) {
@@ -91,35 +91,38 @@ void BitcoinTrader::start() {
   // start fetching userinfo on another thread
   fetch_userinfo();
 
-  // wait until OKCoinFuts userinfo and ticks are fetched,
-  // and subscribed to market data
-  auto can_open_positions = [&]() {
-    // we can open positions if
-    bool can = true;
-    // we're subscribed to every OHLC period
-    for (auto &m : okcoin_futs_h->mktdata) {
-      lock_guard<mutex> l(okcoin_futs_h->reconnect);
-      can = can && okcoin_futs_h->okcoin_futs->subscribed_to_OHLC(m.first);
-    }
-    // and every strategy has a signal that's been set
-    can = can && accumulate(strategies.begin(), strategies.end(), true,
-                            [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
-    // and we have userinfo and a tick set
-    can = can &&
-        okcoin_futs_h->user_info.has_been_set() &&
-        okcoin_futs_h->tick.has_been_set();
-    return can;
-  };
-  // this can block forever, because there's no reason to manage positions if can_open_positions is never true
-  check_until(can_open_positions);
-
   // manage positions on another thread
   position_management();
 }
 
 void BitcoinTrader::position_management() {
   auto position_thread = [&]() {
-    while (!done && okcoin_futs_h->okcoin_futs->connected()) {
+    // wait until OKCoinFuts userinfo and ticks are fetched,
+    // and subscribed to market data
+    auto can_open_positions = [&]() {
+      // return right away if we're done
+      if (done)
+        return true;
+      // we can open positions if
+      bool can = true;
+      // we're subscribed to every OHLC period
+      for (auto &m : okcoin_futs_h->mktdata) {
+        lock_guard<mutex> l(okcoin_futs_h->reconnect);
+        can = can && okcoin_futs_h->okcoin_futs->subscribed_to_OHLC(m.first);
+      }
+      // every strategy has a set signal
+      can = can && accumulate(strategies.begin(), strategies.end(), true,
+                              [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
+      // and we have userinfo and a tick set
+      can = can &&
+            okcoin_futs_h->user_info.has_been_set() &&
+            okcoin_futs_h->tick.has_been_set();
+      return can;
+    };
+    // this can block forever, because there's no reason to manage positions if can_open_positions is never true
+    check_until(can_open_positions);
+
+    while (!done) {
       {
         lock_guard<mutex> l(okcoin_futs_h->reconnect);
         double blended_signal = blend_signals();

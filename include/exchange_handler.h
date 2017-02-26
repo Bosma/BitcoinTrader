@@ -41,7 +41,7 @@ protected:
   std::shared_ptr<Log> trading_log;
 
   // if this is being destructed
-  bool done;
+  std::atomic<bool> done;
 
   // vector of threads performing some recurring actions
   // used for destructor
