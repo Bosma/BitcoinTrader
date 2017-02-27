@@ -16,21 +16,21 @@ enum Position { Long, Short };
 std::chrono::nanoseconds timestamp_now();
 
 class Ticker {
-  public:
-    Ticker(double b, double a, double l) :
+public:
+  Ticker(double b, double a, double l) :
       bid(b), ask(a), last(l) { }
-    Ticker() { }
-    double bid;
-    double ask;
-    double last;
+  Ticker() { }
+  double bid;
+  double ask;
+  double last;
 };
 
 std::string ts_to_string(std::chrono::nanoseconds);
 
 class OHLC {
-  public:
-    OHLC(std::chrono::nanoseconds timestamp, double open, double high,
-        double low, double close, double volume) :
+public:
+  OHLC(std::chrono::nanoseconds timestamp, double open, double high,
+       double low, double close, double volume) :
       timestamp(timestamp),
       open(open),
       high(high),
@@ -38,39 +38,39 @@ class OHLC {
       close(close),
       volume(volume) { }
 
-    std::chrono::nanoseconds timestamp;
-    double open;
-    double high;
-    double low;
-    double close;
-    double volume;
-             // strategy name
-    std::map<std::string,
-                      // indicator name
-             std::map<std::string,
-                               // column name
-                      std::map<std::string,
-                               // indicator value 
-                               double>>> indis;
+  std::chrono::nanoseconds timestamp;
+  double open;
+  double high;
+  double low;
+  double close;
+  double volume;
+  // strategy name
+  std::map<std::string,
+      // indicator name
+      std::map<std::string,
+          // column name
+          std::map<std::string,
+              // indicator value
+              double>>> indis;
 
-    std::string to_string() {
-      std::ostringstream os;
-      os << "timestamp=" << ts_to_string(timestamp) <<
-        ",open=" << open << ",high=" << high <<
-        ",low=" << low << ",close=" << close <<
-        ",volume=" << volume;
-      for (auto strategy : indis) {
-        os << "," << strategy.first << "={ ";
-        for (auto indicator : strategy.second) {
-          os << indicator.first << "=(";
-          for (auto column : indicator.second)
-            os << column.first << "=" << column.second;
-          os << ")";
-        }
-        os << " }";
+  std::string to_string() {
+    std::ostringstream os;
+    os << "timestamp=" << ts_to_string(timestamp) <<
+       ",open=" << open << ",high=" << high <<
+       ",low=" << low << ",close=" << close <<
+       ",volume=" << volume;
+    for (auto strategy : indis) {
+      os << "," << strategy.first << "={ ";
+      for (auto indicator : strategy.second) {
+        os << indicator.first << "=(";
+        for (auto column : indicator.second)
+          os << column.first << "=" << column.second;
+        os << ")";
       }
-      return os.str();
+      os << " }";
     }
+    return os.str();
+  }
 };
 
 long optionally_to_long(nlohmann::json);
@@ -85,33 +85,33 @@ template <typename T> std::string opt_to_string(nlohmann::json object) {
 }
 
 template <class T> class Atomic {
-  public:
-    Atomic() : is_set(false) { };
-    Atomic(const Atomic&) = delete;
-    Atomic& operator=(const Atomic&) = delete;
+public:
+  Atomic() : is_set(false) { };
+  Atomic(const Atomic&) = delete;
+  Atomic& operator=(const Atomic&) = delete;
 
-    void set(T new_x) {
-      std::lock_guard<std::mutex> l(lock);
-      is_set = true;
-      x = new_x;
-    }
-    T get() {
-      std::lock_guard<std::mutex> l(lock);
-      return x;
-    }
-    void clear() {
-      std::lock_guard<std::mutex> l(lock);
-      T cleared;
-      is_set = false;
-      x = cleared;
-    }
-    bool has_been_set() {
-      return is_set;
-    }
-  private:
-    T x;
-    std::mutex lock;
-    bool is_set;
+  void set(T new_x) {
+    std::lock_guard<std::mutex> l(lock);
+    is_set = true;
+    x = new_x;
+  }
+  T get() {
+    std::lock_guard<std::mutex> l(lock);
+    return x;
+  }
+  void clear() {
+    std::lock_guard<std::mutex> l(lock);
+    T cleared;
+    is_set = false;
+    x = cleared;
+  }
+  bool has_been_set() {
+    return is_set;
+  }
+private:
+  T x;
+  std::mutex lock;
+  bool is_set;
 };
 
 double truncate_to(double, int);

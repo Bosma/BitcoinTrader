@@ -94,7 +94,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
 double BitcoinTrader::blend_signals() {
   // average the signals
   double signal_sum = accumulate(strategies.begin(), strategies.end(), 0,
-      [](double a, shared_ptr<Strategy> b) { return a + b->signal.get(); });
+                                 [](double a, shared_ptr<Strategy> b) { return a + b->signal.get(); });
   return signal_sum / strategies.size();
 }
 
@@ -128,15 +128,15 @@ void BitcoinTrader::manage_positions(double signal) {
     contracts_to_close = current_contracts;
     contracts_to_open = desired_contracts;
   }
-  // if the signs are the same
-  // we have to figure out if we're increasing or decreasing our exposure
+    // if the signs are the same
+    // we have to figure out if we're increasing or decreasing our exposure
   else {
     // if we are decreasing our exposure, close the difference
     if (abs(desired_contracts) < abs(current_contracts)) {
       contracts_to_close = current_contracts - desired_contracts;
       contracts_to_open = 0;
     }
-    // if we're increasing our exposure, open the difference
+      // if we're increasing our exposure, open the difference
     else {
       contracts_to_open = desired_contracts - current_contracts;
       contracts_to_close = 0;

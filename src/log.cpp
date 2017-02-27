@@ -1,7 +1,7 @@
 #include "../include/log.h"
 
 Log::Log(std::string file_name, std::shared_ptr<Config> config) :
-  config(config) {
+    config(config) {
   if (file_name == "") {
     log = &std::cout;
     output("LOGGING TO: std::cout");

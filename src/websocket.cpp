@@ -36,35 +36,35 @@ void websocket::connect() {
   websocketpp::lib::error_code ec;
 
   endpoint.set_open_handler(websocketpp::lib::bind(
-        &websocket::on_open,
-        this,
-        &endpoint,
-        websocketpp::lib::placeholders::_1
-        ));
+      &websocket::on_open,
+      this,
+      &endpoint,
+      websocketpp::lib::placeholders::_1
+  ));
   endpoint.set_tls_init_handler(websocketpp::lib::bind(
-        &websocket::on_tls_init,
-        this,
-        &endpoint,
-        websocketpp::lib::placeholders::_1
-        ));
+      &websocket::on_tls_init,
+      this,
+      &endpoint,
+      websocketpp::lib::placeholders::_1
+  ));
   endpoint.set_message_handler(websocketpp::lib::bind(
-        &websocket::on_message,
-        this,
-        websocketpp::lib::placeholders::_1,
-        websocketpp::lib::placeholders::_2
-        ));
+      &websocket::on_message,
+      this,
+      websocketpp::lib::placeholders::_1,
+      websocketpp::lib::placeholders::_2
+  ));
   endpoint.set_fail_handler(websocketpp::lib::bind(
-        &websocket::on_fail,
-        this,
-        &endpoint,
-        websocketpp::lib::placeholders::_1
-        ));
+      &websocket::on_fail,
+      this,
+      &endpoint,
+      websocketpp::lib::placeholders::_1
+  ));
   endpoint.set_close_handler(websocketpp::lib::bind(
-        &websocket::on_close,
-        this,
-        &endpoint,
-        websocketpp::lib::placeholders::_1
-        ));
+      &websocket::on_close,
+      this,
+      &endpoint,
+      websocketpp::lib::placeholders::_1
+  ));
   wspp_client::connection_ptr con = endpoint.get_connection(uri, ec);
 
   if (ec) {
@@ -96,11 +96,11 @@ wspp_context_ptr websocket::on_tls_init(wspp_client *, websocketpp::connection_h
   wspp_context_ptr ctx = websocketpp::lib::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
 
   ctx->set_options(asio::ssl::context::default_workarounds |
-      asio::ssl::context::no_sslv2 |
-      asio::ssl::context::no_sslv3 |
-      asio::ssl::context::no_tlsv1 |
-      asio::ssl::context::single_dh_use);
-  
+                   asio::ssl::context::no_sslv2 |
+                   asio::ssl::context::no_sslv3 |
+                   asio::ssl::context::no_tlsv1 |
+                   asio::ssl::context::single_dh_use);
+
   return ctx;
 }
 

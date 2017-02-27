@@ -16,7 +16,7 @@ bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time,
       completed_on_time = false;
       complete = true;
     }
-    // if we're under time (or our stop_time is 0)
+      // if we're under time (or our stop_time is 0)
     else {
       if (test())
         complete = true;
@@ -75,15 +75,15 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   size_t oldLength = s->size();
 
   try {
-      s->resize(oldLength + newLength);
+    s->resize(oldLength + newLength);
   }
   catch(std::bad_alloc &e) {
-      return 0;
+    return 0;
   }
 
   std::copy((char*) contents,
-      (char*) contents + newLength,
-      s->begin() + oldLength);
+            (char*) contents + newLength,
+            s->begin() + oldLength);
 
   return size*nmemb;
 }

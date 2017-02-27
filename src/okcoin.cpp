@@ -19,12 +19,12 @@ using std::stringstream;
 using std::to_string;
 
 OKCoin::OKCoin(string name, Market market, shared_ptr<Log> log, shared_ptr<Config> config) :
-  Exchange(name, log, config),
-  api_key((*config)["okcoin_apikey"]),
-  secret_key((*config)["okcoin_secretkey"]),
-  ws(OKCOIN_URL),
-  market(market),
-  error_reasons() {
+    Exchange(name, log, config),
+    api_key((*config)["okcoin_apikey"]),
+    secret_key((*config)["okcoin_secretkey"]),
+    ws(OKCOIN_URL),
+    market(market),
+    error_reasons() {
   ws.set_open_callback( bind(&OKCoin::on_open, this) );
   ws.set_message_callback( bind(&OKCoin::on_message, this, std::placeholders::_1) );
   ws.set_close_callback( bind(&OKCoin::on_close, this) );
@@ -97,8 +97,8 @@ void OKCoin::on_message(string const & message) {
           channels[channel]->last_message = message;
           channels[channel]->last_message_time = timestamp_now();
         }
-        // we don't have a channel stored in the map
-        // check for one off channel messages that have callbacks
+          // we don't have a channel stored in the map
+          // check for one off channel messages that have callbacks
         else {
           // only process messages that have no timeout or their timeout hasn't been reached
           auto ts = timestamp_now();
@@ -154,7 +154,7 @@ void OKCoin::on_message(string const & message) {
               log->output("RAW JSON: " + message);
             }
           }
-          // channel timeout has been reached
+            // channel timeout has been reached
           else {
             log->output("CHANNEL " + channel + " MESSAGE RECEIVED BUT TIMEOUT REACHED, NOT CALLING CALLBACK");
           }
@@ -165,8 +165,8 @@ void OKCoin::on_message(string const & message) {
         log->output("RAW JSON: " + message);
       }
     }
-    // message is not a channel message
-    // so it's an event message
+      // message is not a channel message
+      // so it's an event message
     else {
       if (j.count("event") == 1) {
         if (j["event"] == "pong") {
@@ -310,9 +310,9 @@ string OKCoin::ampersand_list(json j) {
   };
 
   std::string splatted = std::accumulate(
-      next(parameters.begin()), 
-      parameters.end(), 
-      parameters.begin()->first + "=" + parameters.begin()->second, 
+      next(parameters.begin()),
+      parameters.end(),
+      parameters.begin()->first + "=" + parameters.begin()->second,
       how_to_join);
   return splatted;
 };

@@ -13,8 +13,8 @@ using std::ostringstream;using std::make_shared;
 using std::next;
 
 OKCoinFuts::OKCoinFuts(std::string name, ContractType contract_type, shared_ptr<Log> log, shared_ptr<Config> config) :
-  OKCoin(name, Future, log, config),
-  contract_type(contract_type) { }
+    OKCoin(name, Future, log, config),
+    contract_type(contract_type) { }
 
 void OKCoinFuts::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_futureusd_btc_ticker_" + contract_s(contract_type));

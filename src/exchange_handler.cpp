@@ -21,20 +21,20 @@ vector<shared_ptr<ExchangeHandler>> BitcoinTrader::exchange_metas() {
 }
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
-  okcoin_futs_h(
-      make_shared<OKCoinFutsHandler>("OKCoinFuts",
-                                     make_shared<Log>((*config)["okcoin_futs_log"]),
-                                     config,
-                                     OKCoinFuts::ContractType::Weekly)
-  ),
-  okcoin_spot_h(
-      make_shared<OKCoinSpotHandler>("OKCoinSpot",
-                                     make_shared<Log>((*config)["okcoin_spot_log"]),
-                                                      config)
-  ),
-  config(config),
-  trading_log(new Log((*config)["trading_log"], config)),
-  done(false)
+    okcoin_futs_h(
+        make_shared<OKCoinFutsHandler>("OKCoinFuts",
+                                       make_shared<Log>((*config)["okcoin_futs_log"]),
+                                       config,
+                                       OKCoinFuts::ContractType::Weekly)
+    ),
+    okcoin_spot_h(
+        make_shared<OKCoinSpotHandler>("OKCoinSpot",
+                                       make_shared<Log>((*config)["okcoin_spot_log"]),
+                                       config)
+    ),
+    config(config),
+    trading_log(new Log((*config)["trading_log"], config)),
+    done(false)
 {
   // create the strategies
   strategies.push_back(make_shared<SMACrossover>("SMACrossover", trading_log));
