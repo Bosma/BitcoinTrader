@@ -16,6 +16,8 @@ SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
     crossed_below(false) { }
 
 void SMACrossover::apply(OHLC bar) {
+  process_stop(bar);
+
   double stop_percentage = 0.01;
 
   if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&
@@ -43,6 +45,6 @@ void SMACrossover::apply(OHLC bar) {
   }
 }
 
-void SMACrossover::apply(const Ticker new_tick) {
+void SMACrossover::apply(const Ticker& new_tick) {
   process_stop(new_tick);
 }

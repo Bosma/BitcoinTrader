@@ -21,7 +21,7 @@ public:
       log(log) { }
 
   virtual void apply(OHLC) = 0;
-  virtual void apply(const Ticker) = 0;
+  virtual void apply(const Ticker&) = 0;
 
   std::string name;
   std::chrono::minutes period;
@@ -48,7 +48,16 @@ public:
     return os.str();
   }
 
-  void process_stop(const Ticker tick) {
+  void process_stop(const OHLC& bar) {
+    Ticker fake_tick;
+    // since the bid is used if we are long, set the bid to the low of the bar to see if that bar would have stopped us out
+    fake_tick.bid = bar.low;
+    // vice versa
+    fake_tick.ask = bar.high;
+    process_stop(fake_tick);
+  }
+
+  void process_stop(const Ticker& tick) {
     if (stop.has_been_set()) {
       auto current_signal = signal.get();
       auto current_stop = stop.get();
@@ -69,7 +78,7 @@ public:
   SMACrossover(std::string, std::shared_ptr<Log>);
 
   void apply(OHLC bar);
-  void apply(const Ticker);
+  void apply(const Ticker&);
 
 private:
   bool crossed_above;
