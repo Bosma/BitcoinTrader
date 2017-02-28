@@ -1,4 +1,4 @@
-#include "../include/exchange_handler.h"
+#include "bitcointrader.h"
 
 using std::shared_ptr;
 using std::accumulate;
