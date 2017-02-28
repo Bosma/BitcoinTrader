@@ -49,15 +49,17 @@ public:
   }
 
   void process_stop(const Ticker tick) {
-    auto current_signal = signal.get();
-    auto current_stop = stop.get();
-    // if we are long and the bid is less than the stop price
-    if ((current_signal > 0 && tick.bid < current_stop) ||
-        // or if we are short and the ask is greater than the stop price
-        (current_signal < 0 && tick.ask > current_stop)) {
-      // set this signal to 0
-      log->output(name + ": STOPPED OUT AT " + std::to_string(current_stop) + ", SIGNAL CHANGED FROM " + std::to_string(current_signal) + " TO 0");
-      signal.set(0);
+    if (stop.has_been_set()) {
+      auto current_signal = signal.get();
+      auto current_stop = stop.get();
+      // if we are long and the bid is less than the stop price
+      if ((current_signal > 0 && tick.bid < current_stop) ||
+          // or if we are short and the ask is greater than the stop price
+          (current_signal < 0 && tick.ask > current_stop)) {
+        // set this signal to 0
+        log->output(name + ": STOPPED OUT AT " + std::to_string(current_stop) + ", SIGNAL CHANGED FROM " + std::to_string(current_signal) + " TO 0");
+        signal.set(0);
+      }
     }
   }
 };

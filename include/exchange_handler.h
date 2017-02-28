@@ -21,10 +21,6 @@ public:
 
   std::string status();
 
-  // interfaces to Exchange
-  // (declared public because may be used interactively)
-  void cancel_order(std::string);
-
   // start the exchange
   // after setting callbacks and creating log files
   void start();

@@ -113,7 +113,15 @@ void BitcoinTrader::manage_positions(double signal) {
   double max_exposure = position.lever_rate * equity;
   double desired_exposure = signal * max_exposure;;
   int desired_contracts = static_cast<int>(floor(desired_exposure / 100));
-  desired_contracts = desired_contracts >= 0 ? 1 : -1;
+
+  // TODO: remove for live
+  if (desired_contracts > 0)
+    desired_contracts = 1;
+  else if (desired_contracts == 0)
+    desired_contracts = 0;
+  else
+    desired_contracts = -1;
+
   int current_contracts = position.buy.contracts - position.sell.contracts;
 
   // number of contracts we have to close and/or open
