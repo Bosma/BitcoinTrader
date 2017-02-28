@@ -102,7 +102,7 @@ OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
 
     response = borrow_money(currency, amount, rate);
 
-    if (!response.empty() && response.at(0) != '<' &&
+    if (!response.empty() &&
         response["result"].get<bool>()) {
       result.id = to_string(response["borrow_id"].get<long>());
       result.valid = true;
