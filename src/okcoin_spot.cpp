@@ -102,7 +102,7 @@ OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
 
     response = borrow_money(currency, amount, rate);
 
-    if (!response.empty() &&
+    if (!response.empty() && response.at(0) != '<' &&
         response["result"].get<bool>()) {
       result.id = to_string(response["borrow_id"].get<long>());
       result.valid = true;
@@ -159,11 +159,13 @@ json OKCoinSpot::lend_depth(Currency currency) {
 
   string response = curl_post(url, log, ampersand_list(p));
   json j;
-  try {
-    j = json::parse(response);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::lend_depth(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::lend_depth(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return j;
 }
@@ -182,11 +184,13 @@ json OKCoinSpot::borrows_info(Currency currency) {
 
   string response = curl_post(url, log, ampersand_list(p));
   json j;
-  try {
-    j = json::parse(response);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::borrows_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::borrows_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return j;
 }
@@ -207,11 +211,13 @@ json OKCoinSpot::unrepayments_info(Currency currency) {
 
   string response = curl_post(url, log, ampersand_list(p));
   json j;
-  try {
-    j = json::parse(response);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::unrepayments_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::unrepayments_info(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return j;
 }
@@ -233,11 +239,13 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
 
   string response = curl_post(url, log, ampersand_list(p));
   json j;
-  try {
-    j = json::parse(response);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::borrow_money(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::borrow_money(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return j;
 }
@@ -253,11 +261,13 @@ json OKCoinSpot::repayment(string borrow_id) {
 
   string response = curl_post(url, log, ampersand_list(p));
   json j;
-  try {
-    j = json::parse(response);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::repayment(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::repayment(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return j;
 }
@@ -270,14 +280,16 @@ bool OKCoinSpot::backfill_OHLC(minutes period, int n) {
 
   auto response = curl_post(url.str(), log);
   json j;
-  try {
-    j = json::parse(response);
-    for (auto each : j)
-      OHLC_handler(period_s(period), each);
-  }
-  catch (exception& e) {
-    log->output("OKCoinSpot::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
-    return false;
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      j = json::parse(response);
+      for (auto each : j)
+        OHLC_handler(period_s(period), each);
+    }
+    catch (exception &e) {
+      log->output("OKCoinSpot::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+      return false;
+    }
   }
   return true;
 }

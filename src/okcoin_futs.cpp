@@ -134,35 +134,36 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
 
   FuturePosition pos;
   string response = curl_post(url, log, ampersand_list(p));
-  try {
-    json j;
-    j = json::parse(response);
-    if (j.count("errorcode") == 1) {
-      string ec = j["errorcode"];
-      log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
-    }
-    else {
-      if (j["holding"] != nullptr && !j["holding"].empty()) {
-        json h = j["holding"][0];
-        pos.buy.contracts = optionally_to_int(h["buy_amount"]);
-        pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
-        pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
-        pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
-        pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
-        pos.sell.contracts = optionally_to_int(h["sell_amount"]);
-        pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
-        pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
-        pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
-        pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
-        pos.contract_id = opt_to_string<long>(h["contract_id"]);
-        pos.create_date = opt_to_string<long>(h["create_date"]);
-        pos.lever_rate = optionally_to_int(h["lever_rate"]);
+  if (!response.empty() && response.at(0) != '<') {
+    try {
+      json j;
+      j = json::parse(response);
+      if (j.count("errorcode") == 1) {
+        string ec = j["errorcode"];
+        log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
+      } else {
+        if (j["holding"] != nullptr && !j["holding"].empty()) {
+          json h = j["holding"][0];
+          pos.buy.contracts = optionally_to_int(h["buy_amount"]);
+          pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
+          pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
+          pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
+          pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
+          pos.sell.contracts = optionally_to_int(h["sell_amount"]);
+          pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
+          pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
+          pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
+          pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
+          pos.contract_id = opt_to_string<long>(h["contract_id"]);
+          pos.create_date = opt_to_string<long>(h["create_date"]);
+          pos.lever_rate = optionally_to_int(h["lever_rate"]);
+        }
+        pos.valid = true;
       }
-      pos.valid = true;
     }
-  }
-  catch (exception& e) {
-    log->output("OKCoinFuts::positions(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    catch (exception &e) {
+      log->output("OKCoinFuts::positions(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+    }
   }
   return pos;
 }
@@ -175,17 +176,21 @@ bool OKCoinFuts::backfill_OHLC(minutes period, int n) {
   url << "&size=" << n;
 
   auto response = curl_post(url.str(), log);
-  json j;
-  try {
-    j = json::parse(response);
-    for (auto each : j)
-      OHLC_handler(period_s(period), each);
+  if (!response.empty() && response.at(0) != '<') {
+    json j;
+    try {
+      j = json::parse(response);
+      for (auto each : j)
+        OHLC_handler(period_s(period), each);
+      return true;
+    }
+    catch (exception &e) {
+      log->output("OKCoinFuts::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+      return false;
+    }
   }
-  catch (exception& e) {
-    log->output("OKCoinFuts::backfill_OHLC(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
+  else
     return false;
-  }
-  return true;
 }
 
 void OKCoinFuts::orderinfo_handler(json order) {
