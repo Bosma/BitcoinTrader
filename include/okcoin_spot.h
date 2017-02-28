@@ -64,7 +64,7 @@ public:
     orderinfo_callback = callback;
   }
 
-  bool backfill_OHLC(std::chrono::minutes, int);
+  bool backfill_OHLC(std::chrono::minutes, unsigned long);
 private:
   std::function<void(UserInfo)> userinfo_callback;
   std::function<void(OrderInfo)> orderinfo_callback;

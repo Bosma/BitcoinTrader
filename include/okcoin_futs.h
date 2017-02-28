@@ -85,7 +85,7 @@ public:
 
   // REST commands
   FuturePosition positions();
-  bool backfill_OHLC(std::chrono::minutes, int);
+  bool backfill_OHLC(std::chrono::minutes, unsigned long);
 
 private:
   ContractType contract_type;

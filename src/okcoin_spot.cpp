@@ -272,7 +272,7 @@ json OKCoinSpot::repayment(string borrow_id) {
   return j;
 }
 
-bool OKCoinSpot::backfill_OHLC(minutes period, int n) {
+bool OKCoinSpot::backfill_OHLC(minutes period, unsigned long n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/kline.do?symbol=btc_usd";
   url << "&type=" << period_s(period);

@@ -67,7 +67,7 @@ public:
   void userinfo();
 
   // backfill OHLC period
-  virtual bool backfill_OHLC(std::chrono::minutes, int) = 0;
+  virtual bool backfill_OHLC(std::chrono::minutes, unsigned long) = 0;
 
   std::string status();
 

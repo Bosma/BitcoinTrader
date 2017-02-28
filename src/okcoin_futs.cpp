@@ -168,7 +168,7 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   return pos;
 }
 
-bool OKCoinFuts::backfill_OHLC(minutes period, int n) {
+bool OKCoinFuts::backfill_OHLC(minutes period, unsigned long n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd";
   url << "&contract_type=" << contract_s(contract_type);
