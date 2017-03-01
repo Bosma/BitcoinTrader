@@ -29,10 +29,10 @@ std::string ts_to_string(std::chrono::nanoseconds);
 
 class IndicatorValue {
 public:
-  Value() : is_set(false) {}
+  IndicatorValue() : is_set(false) {}
 
   void set(const double new_value) {
-    set = true;
+    is_set = true;
     value = new_value;
   }
   double get() const {
@@ -59,11 +59,20 @@ public:
   bool operator!=(const IndicatorValue& other) {
     return value != other.value;
   }
+  friend std::ostream& operator<<(std::ostream& stream, const IndicatorValue iv) {
+    if (iv.has_been_set())
+      stream << iv.value;
+    else
+      stream << "N/A";
+    return stream;
+  }
 
 private:
   double value;
   bool is_set;
 };
+
+
 
 class OHLC {
 public:
@@ -93,12 +102,15 @@ public:
               IndicatorValue>>> indis;
 
   // returns if all indicators are set for a given strategy
-  bool all_indis_set(const std::string& name) const {
+  bool all_indis_set(std::string name) const {
     bool all_set = true;
-    if (indis.count(name) == 1)
-      for (auto& indicator : indis[name])
+
+    if (indis.count(name)) {
+      for (auto& indicator : indis.at(name)) {
         for (auto& column : indicator.second)
-            all_set = all_set && column.second.has_been_set();
+          all_set = all_set && column.second.has_been_set();
+      }
+    }
     return all_set;
   }
 

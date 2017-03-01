@@ -49,6 +49,14 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // tell the mktdata object about the strategy
     okcoin_futs_h->mktdata[strategy->period]->add_strategy(strategy);
   }
+  // double the capacity of each mktdata
+  for (auto& m : okcoin_futs_h->mktdata) {
+    auto new_capacity = m.second->bars->capacity() * 2;
+    // since we can only backfill 2000, truncate values over 2000
+    if (new_capacity > 2000)
+      new_capacity = 2000;
+    m.second->bars->set_capacity(new_capacity);
+  }
 }
 
 BitcoinTrader::~BitcoinTrader() {
@@ -122,14 +130,10 @@ void BitcoinTrader::position_management() {
     // this can block forever, because there's no reason to manage positions if can_open_positions is never true
     check_until(can_open_positions);
 
-    while (!done) {
-      {
-        lock_guard<mutex> l(okcoin_futs_h->reconnect);
-        double blended_signal = blend_signals();
-        manage_positions(blended_signal);
-      }
-      sleep_for(5s);
-    }
+    std::ofstream csv("data.csv");
+    for (auto& bar : *okcoin_futs_h->mktdata[15min]->bars)
+      csv << bar.to_string() << endl;
+    csv.close(); std::cout << "closed csv" << std::endl;
   };
   running_threads.push_back(make_shared<thread>(position_thread));
 }

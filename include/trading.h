@@ -28,6 +28,7 @@ public:
 
   std::map<std::string, IndicatorValue> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
     std::map<std::string, IndicatorValue> values;
+    IndicatorValue mavg;
     if (period <= bars->size()) {
       std::vector<OHLC> period_bars(bars->end() - period, bars->end());
 
@@ -35,8 +36,9 @@ public:
       for (auto bar : period_bars)
         sum += bar.close;
 
-      values["mavg"].set(sum / period);
+      mavg.set(sum / period);
     }
+    values["mavg"] = mavg;
     return values;
   }
 };
@@ -48,18 +50,23 @@ public:
 
   std::map<std::string, IndicatorValue> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
     std::map<std::string, IndicatorValue> values;
+    IndicatorValue mavg, up, dn, bw;
     if (period <= bars->size()) {
       std::vector<OHLC> period_bars(bars->end() - period, bars->end());
       auto welford = welfords_algorithm(period_bars);
 
-      double mavg = welford.first;
+      double moving_average = welford.first;
       double std = sqrt(welford.second);
 
-      values["mavg"].set(mavg);
-      values["up"].set(mavg + (std * sd));
-      values["dn"].set(mavg - (std * sd));
-      values["bw"].set(values["up"] - values["dn"]);
+      mavg.set(moving_average);
+      up.set(moving_average + (std * sd));
+      dn.set(moving_average - (std * sd));
+      bw.set(values["up"].get() - values["dn"].get());
     }
+    values["mavg"] = mavg;
+    values["up"] = up;
+    values["dn"] = dn;
+    values["bw"] = bw;
     return values;
   }
 
