@@ -136,7 +136,7 @@ void BitcoinTrader::position_management() {
         double blended_signal = blend_signals();
         manage_positions(blended_signal);
       }
-      sleep_for(5s);
+      check_until([&]() { return done; }, timestamp_now() + 5s);
     }
   };
   running_threads.push_back(make_shared<thread>(position_thread));
@@ -178,7 +178,7 @@ void BitcoinTrader::fetch_userinfo() {
         if (exchange->exchange->connected())
           exchange->exchange->userinfo();
       }
-      sleep_for(1s);
+      check_until([&]() { return done; }, timestamp_now() + 5s);
     }
   };
   running_threads.push_back(make_shared<thread>(userinfo_thread));
