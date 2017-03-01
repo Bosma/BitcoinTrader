@@ -38,6 +38,8 @@ int main(int argc, char *argv[]) {
         done = true;
       else if (args[0] == "status")
         cout << trader.status();
+      else if (args[0] == "csv")
+        trader.print_bars();
     }
   }
 

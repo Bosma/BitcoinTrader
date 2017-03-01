@@ -130,10 +130,14 @@ void BitcoinTrader::position_management() {
     // this can block forever, because there's no reason to manage positions if can_open_positions is never true
     check_until(can_open_positions);
 
-    std::ofstream csv("data.csv");
-    for (auto& bar : *okcoin_futs_h->mktdata[15min]->bars)
-      csv << bar.to_string() << endl;
-    csv.close(); std::cout << "closed csv" << std::endl;
+    while (!done) {
+      {
+        lock_guard<mutex> l(okcoin_futs_h->reconnect);
+        double blended_signal = blend_signals();
+        manage_positions(blended_signal);
+      }
+      sleep_for(5s);
+    }
   };
   running_threads.push_back(make_shared<thread>(position_thread));
 }
