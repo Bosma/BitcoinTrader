@@ -18,6 +18,10 @@ SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
 void SMACrossover::apply(OHLC bar) {
   process_stop(bar);
 
+  // only send signals when we have all indicators set
+  if (!bar.all_indis_set(name))
+    return;
+
   double stop_percentage = 0.01;
 
   if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&

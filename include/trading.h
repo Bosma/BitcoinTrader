@@ -16,7 +16,7 @@
 class Indicator {
 public:
   Indicator(std::string name, int period) : name(name), period(period) { }
-  virtual std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>>) = 0;
+  virtual std::map<std::string, IndicatorValue> calculate(std::shared_ptr<boost::circular_buffer<OHLC>>) = 0;
   std::string name;
   int period;
 };
@@ -26,9 +26,8 @@ public:
   MovingAverage(std::string name, int period) :
       Indicator(name, period) { }
 
-  std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
-    std::map<std::string, double> values;
-    double ma_value;
+  std::map<std::string, IndicatorValue> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
+    std::map<std::string, IndicatorValue> values;
     if (period <= bars->size()) {
       std::vector<OHLC> period_bars(bars->end() - period, bars->end());
 
@@ -36,12 +35,8 @@ public:
       for (auto bar : period_bars)
         sum += bar.close;
 
-      ma_value = sum / period;
+      values["mavg"].set(sum / period);
     }
-    else
-      ma_value = 0;
-
-    values["mavg"] = ma_value;
     return values;
   }
 };
@@ -51,8 +46,8 @@ public:
   BollingerBands(std::string name, int period = 20, double sd = 2) :
       Indicator(name, period), sd(sd) { }
 
-  std::map<std::string, double> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
-    std::map<std::string, double> values;
+  std::map<std::string, IndicatorValue> calculate(std::shared_ptr<boost::circular_buffer<OHLC>> bars) {
+    std::map<std::string, IndicatorValue> values;
     if (period <= bars->size()) {
       std::vector<OHLC> period_bars(bars->end() - period, bars->end());
       auto welford = welfords_algorithm(period_bars);
@@ -60,16 +55,10 @@ public:
       double mavg = welford.first;
       double std = sqrt(welford.second);
 
-      values["mavg"] = mavg;
-      values["up"] = mavg + (std * sd);
-      values["dn"] = mavg - (std * sd);
-      values["bw"] = values["up"] - values["dn"];
-    }
-    else {
-      values["mavg"] = 0;
-      values["up"] = 0;
-      values["dn"] = 0;
-      values["bw"] = 0;
+      values["mavg"].set(mavg);
+      values["up"].set(mavg + (std * sd));
+      values["dn"].set(mavg - (std * sd));
+      values["bw"].set(values["up"] - values["dn"]);
     }
     return values;
   }

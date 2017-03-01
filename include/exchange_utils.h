@@ -27,6 +27,44 @@ public:
 
 std::string ts_to_string(std::chrono::nanoseconds);
 
+class IndicatorValue {
+public:
+  Value() : is_set(false) {}
+
+  void set(const double new_value) {
+    set = true;
+    value = new_value;
+  }
+  double get() const {
+    return value;
+  }
+  bool has_been_set() const {
+    return is_set;
+  }
+  bool operator<(const IndicatorValue& other) {
+    return value < other.value;
+  }
+  bool operator>(const IndicatorValue& other) {
+    return value > other.value;
+  }
+  bool operator<=(const IndicatorValue& other) {
+    return value <= other.value;
+  }
+  bool operator>=(const IndicatorValue& other) {
+    return value >= other.value;
+  }
+  bool operator==(const IndicatorValue& other) {
+    return value == other.value;
+  }
+  bool operator!=(const IndicatorValue& other) {
+    return value != other.value;
+  }
+
+private:
+  double value;
+  bool is_set;
+};
+
 class OHLC {
 public:
   OHLC(std::chrono::nanoseconds timestamp, double open, double high,
@@ -44,6 +82,7 @@ public:
   double low;
   double close;
   double volume;
+
   // strategy name
   std::map<std::string,
       // indicator name
@@ -51,7 +90,17 @@ public:
           // column name
           std::map<std::string,
               // indicator value
-              double>>> indis;
+              IndicatorValue>>> indis;
+
+  // returns if all indicators are set for a given strategy
+  bool all_indis_set(const std::string& name) const {
+    bool all_set = true;
+    if (indis.count(name) == 1)
+      for (auto& indicator : indis[name])
+        for (auto& column : indicator.second)
+            all_set = all_set && column.second.has_been_set();
+    return all_set;
+  }
 
   std::string to_string() {
     std::ostringstream os;
@@ -59,16 +108,13 @@ public:
        ",open=" << open << ",high=" << high <<
        ",low=" << low << ",close=" << close <<
        ",volume=" << volume;
-    for (auto strategy : indis) {
-      os << "," << strategy.first << "={ ";
-      for (auto indicator : strategy.second) {
-        os << indicator.first << "=(";
-        for (auto column : indicator.second)
-          os << column.first << "=" << column.second;
-        os << ")";
-      }
-      os << " }";
-    }
+
+    std::vector<std::string> vs;
+    for (auto& strategy : indis)
+      for (auto& indicator : strategy.second)
+        for (auto& column : indicator.second)
+          os << "," << strategy.first << "." << indicator.first << "." << column.first << "=" << column.second;
+
     return os.str();
   }
 };

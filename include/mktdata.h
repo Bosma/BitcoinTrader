@@ -28,8 +28,6 @@ public:
           bar.timestamp != bars->back().timestamp + period)
         bars->clear();
 
-      bars->push_back(bar);
-
       // for each indicator
       // calculate the indicator value
       // from the bars (with the new value)
@@ -38,6 +36,8 @@ public:
           bar.indis[strategy->name][indicator->name] = indicator->calculate(bars);
         strategy->apply(bar);
       }
+
+      bars->push_back(bar);
     }
   }
 
