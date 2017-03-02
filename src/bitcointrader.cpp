@@ -136,7 +136,7 @@ void BitcoinTrader::position_management() {
         double blended_signal = blend_signals();
         manage_positions(blended_signal);
       }
-      check_until([&]() { return done == true; }, timestamp_now() + 5s);
+      sleep_for(5s);
     }
   };
   running_threads.push_back(make_shared<thread>(position_thread));
@@ -148,9 +148,7 @@ void BitcoinTrader::check_connection() {
     while (!done) {
       // give some time for everything to start up after we reconnect
       if (warm_up) {
-        // if we don't complete on time, we're done, so just break out of loop
-        if (check_until([&]() { return done == true; }, timestamp_now() + 10s))
-          break;
+        sleep_for(10s);
         warm_up = false;
       }
       for (auto exchange : exchange_metas()) {
@@ -180,7 +178,7 @@ void BitcoinTrader::fetch_userinfo() {
         if (exchange->exchange->connected())
           exchange->exchange->userinfo();
       }
-      check_until([&]() { return done == true; }, timestamp_now() + 5s);
+      sleep_for(1s);
     }
   };
   running_threads.push_back(make_shared<thread>(userinfo_thread));
