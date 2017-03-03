@@ -74,7 +74,7 @@ string BitcoinTrader::status() {
     lock_guard<mutex> l((*i)->reconnect);
     os << (*i)->exchange->status() << endl;
     Ticker tick = (*i)->tick.get();
-    os << "Bid: " << tick.bid << ", Ask: " << tick.ask << ", ";
+    os << "Bid: " << tick.bid << ", Ask: " << tick.ask << endl;
     for (auto &m : (*i)->mktdata) {
       os << m.second->status() << endl;
     }
