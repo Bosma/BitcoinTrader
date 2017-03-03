@@ -88,9 +88,6 @@ protected:
   bool GTC(Position, double, double);
   std::function<void(std::string)> GTC_callback;
 
-  // USERINFO FETCHING
-  void fetch_userinfo();
-
   std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas();
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;

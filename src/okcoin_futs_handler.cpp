@@ -22,7 +22,6 @@ void OKCoinFutsHandler::set_up_and_start() {
   // and they can start waiting again
   cancel_checking = false;
 
-  user_info.clear();
   tick.clear();
 
   okcoin_futs = std::make_shared<OKCoinFuts>(name, contract_type, log, config);
@@ -66,15 +65,6 @@ void OKCoinFutsHandler::set_up_and_start() {
   };
   okcoin_futs->set_ticker_callback(ticker_callback);
 
-  auto userinfo_callback = [&](OKCoinFuts::UserInfo info) {
-    user_info.set(info);
-  };
-  okcoin_futs->set_userinfo_callback(userinfo_callback);
-
   // start the exchange
   okcoin_futs->start();
-}
-
-string OKCoinFutsHandler::print_userinfo() {
-  return user_info.get().to_string();
 }

@@ -64,7 +64,7 @@ public:
 
   void ping();
 
-  void userinfo();
+  void userinfo(std::chrono::nanoseconds);
 
   // backfill OHLC period
   virtual bool backfill_OHLC(std::chrono::minutes, unsigned long) = 0;

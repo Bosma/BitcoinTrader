@@ -14,7 +14,6 @@ void OKCoinSpotHandler::set_up_and_start() {
   std::lock_guard<std::mutex> l(reconnect);
   cancel_checking = false;
 
-  user_info.clear();
   tick.clear();
 
   okcoin_spot = std::make_shared<OKCoinSpot>(name, log, config);
@@ -26,19 +25,10 @@ void OKCoinSpotHandler::set_up_and_start() {
   };
   okcoin_spot->set_open_callback(open_callback);
 
-  auto userinfo_callback = [&](OKCoinSpot::UserInfo info) {
-    user_info.set(info);
-  };
-  okcoin_spot->set_userinfo_callback(userinfo_callback);
-
   auto ticker_callback = [&](const Ticker new_tick) {
     tick.set(new_tick);
   };
   okcoin_spot->set_ticker_callback(ticker_callback);
 
   okcoin_spot->start();
-}
-
-string OKCoinSpotHandler::print_userinfo() {
-  return user_info.get().to_string();
 }

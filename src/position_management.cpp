@@ -99,12 +99,25 @@ double BitcoinTrader::blend_signals() {
 }
 
 void BitcoinTrader::manage_positions(double signal) {
+  // Fetch the current position
+  // If something is wrong, restart this function
   auto position = okcoin_futs_h->okcoin_futs->positions();
-  if (!position.valid) {
+  if (!position.valid)
     return;
-  }
 
-  auto userinfo = okcoin_futs_h->user_info.get();
+  // Fetch the current OKCoin Futs account information (to get the equity)
+  // If we do not get a response in time, restart this function
+  auto cancel_time = timestamp_now() + 10s;
+  Atomic<OKCoinFuts::UserInfo> userinfo_a;
+  okcoin_futs_h->okcoin_futs->set_userinfo_callback([&userinfo_a](OKCoinFuts::UserInfo new_userinfo) {
+    userinfo_a.set(new_userinfo);
+  });
+  okcoin_futs_h->okcoin_futs->userinfo(cancel_time);
+  if (!check_until([&]() { return userinfo_a.has_been_set(); }, cancel_time))
+    return;
+
+  auto userinfo = userinfo_a.get();
+  // TODO: check if this tick is stale, we shouldn't trade off old information.
   auto tick = okcoin_futs_h->tick.get();
 
   // calculate the number of contracts we have open, and the number of contracts we would like to have

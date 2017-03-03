@@ -245,10 +245,14 @@ void OKCoin::populate_error_reasons() {
   }
 }
 
-void OKCoin::userinfo() {
+void OKCoin::userinfo(std::chrono::nanoseconds invalid_time) {
+  string channel = "ok_" + market_s(market) + "usd_userinfo";
+
+  channel_timeouts[channel] = invalid_time;
+
   json j;
   j["event"] = "addChannel";
-  j["channel"] = "ok_" + market_s(market) + "usd_userinfo";
+  j["channel"] = channel;
 
   json p;
   p["api_key"] = api_key;

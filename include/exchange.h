@@ -23,7 +23,7 @@ public:
   virtual void subscribe_to_ticker() = 0;
   virtual void subscribe_to_OHLC(std::chrono::minutes) = 0;
   virtual bool subscribed_to_OHLC(std::chrono::minutes) = 0;
-  virtual void userinfo() = 0;
+  virtual void userinfo(std::chrono::nanoseconds) = 0;
   virtual void ping() = 0;
   virtual bool backfill_OHLC(std::chrono::minutes, unsigned long) = 0;
   virtual std::string status() = 0;

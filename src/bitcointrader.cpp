@@ -75,7 +75,6 @@ string BitcoinTrader::status() {
     os << (*i)->exchange->status() << endl;
     Ticker tick = (*i)->tick.get();
     os << "Bid: " << tick.bid << ", Ask: " << tick.ask << ", ";
-    os << (*i)->print_userinfo() << endl;
     for (auto &m : (*i)->mktdata) {
       os << m.second->status() << endl;
     }
@@ -95,9 +94,6 @@ void BitcoinTrader::start() {
 
   // check connection and reconnect if down on another thread
   check_connection();
-
-  // start fetching userinfo on another thread
-  fetch_userinfo();
 
   // manage positions on another thread
   position_management();
@@ -121,10 +117,8 @@ void BitcoinTrader::position_management() {
       // every strategy has a set signal
       can = can && accumulate(strategies.begin(), strategies.end(), true,
                               [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
-      // and we have userinfo and a tick set
-      can = can &&
-            okcoin_futs_h->user_info.has_been_set() &&
-            okcoin_futs_h->tick.has_been_set();
+      // and we have a tick set
+      can = can && okcoin_futs_h->tick.has_been_set();
       return can;
     };
     // this can block forever, because there's no reason to manage positions if can_open_positions is never true
@@ -167,19 +161,4 @@ void BitcoinTrader::check_connection() {
     }
   };
   running_threads.push_back(make_shared<thread>(connection_thread));
-}
-
-void BitcoinTrader::fetch_userinfo() {
-  auto userinfo_thread = [&]() {
-    while (!done) {
-      for (auto exchange : exchange_metas()) {
-        lock_guard<mutex> l(exchange->reconnect);
-
-        if (exchange->exchange->connected())
-          exchange->exchange->userinfo();
-      }
-      sleep_for(1s);
-    }
-  };
-  running_threads.push_back(make_shared<thread>(userinfo_thread));
 }

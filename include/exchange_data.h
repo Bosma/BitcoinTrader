@@ -28,5 +28,4 @@ public:
   std::atomic<bool> cancel_checking;
 
   virtual void set_up_and_start() = 0;
-  virtual std::string print_userinfo() = 0;
 };

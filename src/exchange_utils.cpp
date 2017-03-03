@@ -6,6 +6,12 @@ using std::function;
 using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
+// Repeatedly call test() every time_between_checks until stop_time
+// If stop_time is 0 it will check test() forever
+// Returns true if test() is evaluated to be true before stop_time
+// IE: returns TRUE if test()
+// If stop_time is reached before test() is true, returns false
+// IE: returns FALSE if we have timed out
 bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time, std::chrono::milliseconds time_between_checks) {
   bool complete = false;
   bool completed_on_time = true;
