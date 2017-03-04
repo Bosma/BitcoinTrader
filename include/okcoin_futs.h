@@ -60,7 +60,7 @@ public:
     Position sell;
     std::string contract_id = "";
     std::string create_date = "";
-    int lever_rate = 0;
+    int lever_rate = 10;
     double margin_call_price = 0;
     bool valid = false;
   };

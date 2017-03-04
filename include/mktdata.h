@@ -8,8 +8,8 @@
 
 class MktData {
 public:
-  MktData(std::chrono::minutes period) :
-      bars(new boost::circular_buffer<OHLC>(50)),
+  MktData(std::chrono::minutes period, unsigned long size) :
+      bars(new boost::circular_buffer<OHLC>(size)),
       period(period) { }
 
   void add(OHLC bar) {
@@ -53,8 +53,6 @@ public:
   }
 
   void add_strategy(std::shared_ptr<Strategy> to_add) {
-    if (to_add->max_lookback() > bars->capacity())
-      bars->set_capacity(to_add->max_lookback());
     strategies.push_back(to_add);
   }
 

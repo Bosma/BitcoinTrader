@@ -44,18 +44,10 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // if we do not have a mktdata object for this period
     if (okcoin_futs_h->mktdata.count(strategy->period) == 0) {
       // create a mktdata object with the period the strategy uses
-      okcoin_futs_h->mktdata[strategy->period] = make_shared<MktData>(strategy->period);
+      okcoin_futs_h->mktdata[strategy->period] = make_shared<MktData>(strategy->period, 2000);
     }
     // tell the mktdata object about the strategy
     okcoin_futs_h->mktdata[strategy->period]->add_strategy(strategy);
-  }
-  // double the capacity of each mktdata
-  for (auto& m : okcoin_futs_h->mktdata) {
-    auto new_capacity = m.second->bars->capacity() * 2;
-    // since we can only backfill 2000, truncate values over 2000
-    if (new_capacity > 2000)
-      new_capacity = 2000;
-    m.second->bars->set_capacity(new_capacity);
   }
 }
 

@@ -30,14 +30,6 @@ public:
   Atomic<double> signal;
   Atomic<double> stop;
 
-  int max_lookback() {
-    int max = 0;
-    for (auto indicator : indicators)
-      if (indicator->period > max)
-        max = indicator->period;
-    return max;
-  }
-
   std::string status() {
     std::ostringstream os;
     os << name;
