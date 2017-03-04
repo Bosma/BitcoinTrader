@@ -98,13 +98,7 @@ double BitcoinTrader::blend_signals() {
   return signal_sum / strategies.size();
 }
 
-void BitcoinTrader::manage_positions(double signal) {
-  // Fetch the current position
-  // If something is wrong, restart this function
-  auto position = okcoin_futs_h->okcoin_futs->positions();
-  if (!position.valid)
-    return;
-
+bool BitcoinTrader::futs_userinfo(OKCoinFuts::UserInfo& userinfo) {
   // Fetch the current OKCoin Futs account information (to get the equity)
   // If we do not get a response in time, restart this function
   auto cancel_time = timestamp_now() + 10s;
@@ -113,12 +107,30 @@ void BitcoinTrader::manage_positions(double signal) {
     userinfo_a.set(new_userinfo);
   });
   okcoin_futs_h->okcoin_futs->userinfo(cancel_time);
-  if (!check_until([&]() { return userinfo_a.has_been_set(); }, cancel_time))
+  if (check_until([&userinfo_a]() { return userinfo_a.has_been_set(); }, cancel_time)) {
+    userinfo = userinfo_a.get();
+    return true;
+  }
+  else
+    return false;
+}
+
+void BitcoinTrader::manage_positions(double signal) {
+  // fetch the current position
+  // if something is wrong, restart this function
+  auto position = okcoin_futs_h->okcoin_futs->positions();
+  if (!position.valid)
     return;
 
-  auto userinfo = userinfo_a.get();
-  // TODO: check if this tick is stale, we shouldn't trade off old information.
+  // fetch userinfo, if we cannot just return
+  OKCoinFuts::UserInfo userinfo;
+  if (!futs_userinfo(userinfo))
+    return;
+
+  // fetch tick, return if it's stale
   auto tick = okcoin_futs_h->tick.get();
+  if (timestamp_now() - tick.timestamp > 30s)
+    return;
 
   // calculate the number of contracts we have open, and the number of contracts we would like to have
   // negative contracts are short contracts

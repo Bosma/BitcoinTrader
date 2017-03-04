@@ -69,6 +69,8 @@ protected:
   // match the signal with the exposure on the exchange
   void manage_positions(double);
 
+  bool futs_userinfo(OKCoinFuts::UserInfo&);
+
   // EXECUTION ALGORITHMS
   // functions to set trade and orderinfo callbacks
 

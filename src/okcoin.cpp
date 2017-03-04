@@ -296,7 +296,7 @@ void OKCoin::ticker_handler(json j) {
     double last = optionally_to_double(j["last"]);
     double bid = optionally_to_double(j["buy"]);
     double ask = optionally_to_double(j["sell"]);
-    Ticker tick(last, bid, ask);
+    Ticker tick(last, bid, ask, timestamp_now());
 
     ticker_callback(tick);
   }

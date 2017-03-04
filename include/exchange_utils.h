@@ -17,12 +17,13 @@ std::chrono::nanoseconds timestamp_now();
 
 class Ticker {
 public:
-  Ticker(double b, double a, double l) :
-      bid(b), ask(a), last(l) { }
+  Ticker(double b, double a, double l, std::chrono::nanoseconds ts) :
+      bid(b), ask(a), last(l), timestamp(ts) { }
   Ticker() { }
   double bid;
   double ask;
   double last;
+  std::chrono::nanoseconds timestamp;
 };
 
 std::string ts_to_string(std::chrono::nanoseconds);

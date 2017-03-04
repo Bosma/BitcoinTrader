@@ -137,6 +137,7 @@ void BitcoinTrader::check_connection() {
         sleep_for(10s);
         warm_up = false;
       }
+      // TODO: add channel checking.
       for (auto exchange : exchange_metas()) {
         if (exchange->exchange &&
             // if the time since the last message received is > 1min
