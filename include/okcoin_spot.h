@@ -57,19 +57,19 @@ public:
   void limit_buy(double, double, std::chrono::nanoseconds);
   void limit_sell(double, double, std::chrono::nanoseconds);
 
-  void set_userinfo_callback(std::function<void(UserInfo)> callback) {
+  void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {
     userinfo_callback = callback;
   }
-  void set_orderinfo_callback(std::function<void(OrderInfo)> callback) {
+  void set_orderinfo_callback(std::function<void(const OrderInfo&)> callback) {
     orderinfo_callback = callback;
   }
 
   bool backfill_OHLC(std::chrono::minutes, unsigned long);
 private:
-  std::function<void(UserInfo)> userinfo_callback;
-  std::function<void(OrderInfo)> orderinfo_callback;
+  std::function<void(const UserInfo&)> userinfo_callback;
+  std::function<void(const OrderInfo&)> orderinfo_callback;
 
-  void order(std::string, std::string, std::chrono::nanoseconds, std::string price = "");
+  void order(const std::string&, const std::string&, std::chrono::nanoseconds, const std::string& price = "");
 
   // INTERNAL REST BORROWING FUNCTIONS
   BorrowInfo borrow(Currency, double);
@@ -78,9 +78,9 @@ private:
   json borrows_info(Currency);
   json unrepayments_info(Currency);
   json borrow_money(Currency, double, double);
-  json repayment(std::string);
+  json repayment(const std::string&);
 
   // HANDLERS FOR CHANNEL MESSAGES
-  void orderinfo_handler(nlohmann::json);
-  void userinfo_handler(nlohmann::json);
+  void orderinfo_handler(const json&);
+  void userinfo_handler(const json&);
 };

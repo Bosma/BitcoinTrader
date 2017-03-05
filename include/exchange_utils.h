@@ -8,6 +8,8 @@
 
 #include "../json/json.hpp"
 
+using json = nlohmann::json;
+
 bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
 enum Currency { BTC, USD };
@@ -42,22 +44,22 @@ public:
   bool has_been_set() const {
     return is_set;
   }
-  bool operator<(const IndicatorValue& other) {
+  bool operator<(const IndicatorValue& other) const {
     return value < other.value;
   }
-  bool operator>(const IndicatorValue& other) {
+  bool operator>(const IndicatorValue& other) const {
     return value > other.value;
   }
-  bool operator<=(const IndicatorValue& other) {
+  bool operator<=(const IndicatorValue& other) const {
     return value <= other.value;
   }
-  bool operator>=(const IndicatorValue& other) {
+  bool operator>=(const IndicatorValue& other) const {
     return value >= other.value;
   }
-  bool operator==(const IndicatorValue& other) {
+  bool operator==(const IndicatorValue& other) const {
     return value == other.value;
   }
-  bool operator!=(const IndicatorValue& other) {
+  bool operator!=(const IndicatorValue& other) const {
     return value != other.value;
   }
   friend std::ostream& operator<<(std::ostream& stream, const IndicatorValue iv) {
@@ -122,7 +124,6 @@ public:
        ",low=" << low << ",close=" << close <<
        ",volume=" << volume;
 
-    std::vector<std::string> vs;
     for (auto& strategy : indis)
       for (auto& indicator : strategy.second)
         for (auto& column : indicator.second)
@@ -132,10 +133,10 @@ public:
   }
 };
 
-long optionally_to_long(nlohmann::json);
-double optionally_to_double(nlohmann::json);
-int optionally_to_int(nlohmann::json);
-template <typename T> std::string opt_to_string(nlohmann::json object) {
+long optionally_to_long(const json&);
+double optionally_to_double(const json&);
+int optionally_to_int(const json&);
+template <typename T> std::string opt_to_string(const json& object) {
   if (object.is_string()) {
     return object.get<std::string>();
   }

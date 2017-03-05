@@ -38,56 +38,56 @@ void OKCoin::start() {
   ws.connect();
 }
 
-void OKCoin::on_message(string const & message) {
+void OKCoin::on_message(const string& message) {
   ts_since_last = timestamp_now();
 
   try {
-    auto j = json::parse(message);
+    const json j = json::parse(message);
 
     // if our json is an array
     // it's a response from some channel
     if (j.is_array()) {
+      const json& channel_message = j[0];
       // there should be a channel key
-      if (j[0].count("channel") == 1) {
+      if (channel_message.count("channel") == 1) {
         // fetch the channel name
-        string channel = j[0]["channel"];
+        const string& channel = channel_message["channel"];
         // if we have a channel stored with that name
         // it's a price or data channel
         if (channels.count(channel) == 1) {
           // we have a channel in our map
-          if (channels[channel]->status == "subscribing") {
+          if (channels[channel]->status == Channel::Status::Subscribing) {
             // if it's subscribing it's the first message we've received
-            if (j[0].count("success") == 1) {
-              if (j[0]["success"] == "true") {
-                channels[channel]->status = "subscribed";
+            if (channel_message.count("success") == 1) {
+              if (channel_message["success"] == "true") {
+                channels[channel]->status = Channel::Status::Subscribed;
                 log->output("SUBSCRIBED TO " + channel);
               }
               else {
-                channels[channel]->status = "failed";
+                channels[channel]->status = Channel::Status::Failed;
                 log->output("UNSUCCESSFULLY SUBSCRIBED TO " + channel);
               }
             }
           }
-          else if (channels[channel]->status == "subscribed") {
+          else if (channels[channel]->status == Channel::Status::Subscribed) {
             // we're subscribed so delegate to a channel handler
-            // construct the beginning of the channel names
-            string kline = "ok_sub_" + market_s(market) + "usd_btc_kline_";
-            string ticker = "ok_sub_" + market_s(market) + "usd_btc_ticker";
 
-            if (channel.find(ticker) != string::npos) {
-              ticker_handler(j[0]["data"]);
+            if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
+              ticker_handler(channel_message["data"]);
             }
-            else if (channel.find(kline) != string::npos) {
+            else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
               // remove beginning of channel name to obtain period
               std::regex period_r("_([^_]*)$", std::regex::extended);
               std::smatch match;
               string period;
               if (std::regex_search(channel, match, period_r))
                 period = match[1];
+              else
+                throw std::runtime_error("cannot get the period using regex");
 
-              auto data = j[0]["data"];
+              const json& data = channel_message["data"];
               if (data[0].is_array()) // data is an array of trades
-                for (auto trade : data)
+                for (auto& trade : data)
                   OHLC_handler(period, trade);
               else // data is a trade
                 OHLC_handler(period, data);
@@ -106,16 +106,15 @@ void OKCoin::on_message(string const & message) {
               ts <= channel_timeouts[channel]) {
             if (channel == "ok_" + market_s(market) + "usd_trade") {
               // results of a trade
-              if (j[0].count("errorcode") == 1) {
-                string ec = j[0]["errorcode"];
-                log->output("FAILED TRADE ON " + channel + " WITH ERROR: " + error_reasons[ec]);
+              if (channel_message.count("errorcode") == 1) {
+                log->output("FAILED TRADE ON " + channel + " WITH ERROR: " + error_reasons[channel_message["errorcode"].get<string>()]);
                 if (trade_callback)
                   trade_callback("failed");
               }
               else {
-                auto data = j[0]["data"];
-                string order_id = data["order_id"];
-                string result = data["result"];
+                const json& data = channel_message["data"];
+                const string& order_id = data["order_id"];
+                const string& result = data["result"];
                 if (result == "true") {
                   if (trade_callback)
                     trade_callback(order_id);
@@ -128,30 +127,25 @@ void OKCoin::on_message(string const & message) {
               }
             }
             else if (channel == "ok_" + market_s(market) + "usd_orderinfo") {
-              json orders = j[0]["data"]["orders"];
-              if (orders.empty())
+              const json& data = channel_message["data"];
+              if (data["orders"].empty())
                 log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
               else
-                orderinfo_handler(orders[0]);
+                orderinfo_handler(data["orders"][0]);
             }
             else if (channel == "ok_" + market_s(market) + "usd_userinfo") {
-              if (j[0].count("errorcode") == 1) {
-                string ec = j[0]["errorcode"];
-                log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[ec]);
-              }
-              else {
-                userinfo_handler(j[0]["data"]);
-              }
+              if (channel_message.count("errorcode") == 1)
+                log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[channel_message["errorcode"]]);
+              else
+                userinfo_handler(channel_message["data"]);
             }
             else if (channel == "ok_" + market_s(market) + "usd_cancel_order") {
-              if (j[0].count("errorcode") == 1) {
-                string ec = j[0]["errorcode"];
-                log->output("COULDN'T CANCEL ORDER " + j[0]["order_id"].get<string>() + " WITH ERROR: " + error_reasons[ec]);
-              }
+              if (j[0].count("errorcode") == 1)
+                log->output("COULDN'T CANCEL ORDER " + channel_message["order_id"].get<string>() + " WITH ERROR: " +
+                            error_reasons[channel_message["errorcode"]]);
             }
             else {
-              log->output("MESSAGE WITH UNKNOWN CHANNEL");
-              log->output("RAW JSON: " + message);
+              log->output("MESSAGE WITH UNKNOWN CHANNEL, JSON: " + message);
             }
           }
             // channel timeout has been reached
@@ -182,10 +176,8 @@ void OKCoin::on_message(string const & message) {
       }
     }
   }
-  catch (exception& e) {
-    stringstream ss;
-    ss << "EXCEPTION IN on_message: " << e.what();
-    log->output(ss.str() + " WITH JSON: " + message);
+  catch (const exception& e) {
+    log->output("EXCEPTION IN OKCoin::on_message:" + string(e.what()) + " WITH JSON: " + message);
   }
 }
 
@@ -216,6 +208,7 @@ void OKCoin::ping() {
   ws.send("{'event':'ping'}");
 }
 
+// TODO: remove ostringstream and use std::accumulate.
 string OKCoin::status() {
   ostringstream ss;
   ss << name << ": " << ws.get_status_s() << endl;
@@ -268,17 +261,18 @@ void OKCoin::subscribe_to_channel(string const & channel) {
 
   ws.send("{'event':'addChannel','channel':'" + channel + "'}");
 
-  shared_ptr<Channel> chan(new Channel(channel, "subscribing"));
+  // TODO: do channels need to be shared_ptrs?
+  shared_ptr<Channel> chan(new Channel(channel, Channel::Status::Subscribing));
   channels[channel] = chan;
 }
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
   log->output("UNSUBSCRIBING TO " + channel);
   ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
-  channels[channel]->status = "unsubscribed";
+  channels[channel]->status = Channel::Status::Unsubscribed;
 }
 
-void OKCoin::OHLC_handler(string period, json trade) {
+void OKCoin::OHLC_handler(const string& period, const json& trade) {
   if (OHLC_callback) {
     nanoseconds timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(trade[0])));
     double open = optionally_to_double(trade[1]);
@@ -291,7 +285,7 @@ void OKCoin::OHLC_handler(string period, json trade) {
   }
 }
 
-void OKCoin::ticker_handler(json j) {
+void OKCoin::ticker_handler(const json& j) {
   if (ticker_callback) {
     double last = optionally_to_double(j["last"]);
     double bid = optionally_to_double(j["buy"]);
@@ -302,14 +296,14 @@ void OKCoin::ticker_handler(json j) {
   }
 }
 
-string OKCoin::ampersand_list(json j) {
+string OKCoin::ampersand_list(const json& j) {
   // convert to map (which is sorted by default)
   std::map<string, string> parameters;
-  for (json::iterator it = j.begin(); it != j.end(); ++it)
+  for (auto it = j.begin(); it != j.end(); ++it)
     parameters[it.key()] = it.value().get<string>();
 
   // join them by &=
-  auto how_to_join = [](std::string a, std::pair<std::string, std::string> b) -> std::string {
+  auto how_to_join = [](std::string a, std::pair<std::string, std::string> b) {
     return a + "&" + b.first + "=" + b.second;
   };
 
@@ -321,13 +315,13 @@ string OKCoin::ampersand_list(json j) {
   return splatted;
 };
 
-string OKCoin::sign(json parameters) {
+string OKCoin::sign(const json& parameters) {
   string to_sign = ampersand_list(parameters);
   to_sign += "&secret_key=" + secret_key;
   return get_sig(to_sign);
 }
 
-string OKCoin::get_sig(string s) {
+string OKCoin::get_sig(const string& s) {
   unsigned char result[MD5_DIGEST_LENGTH];
   MD5((unsigned char*) s.c_str(), s.size(), result);
   ostringstream sout;
@@ -338,7 +332,7 @@ string OKCoin::get_sig(string s) {
   }
   string signature = sout.str();
   // convert signature to upper case
-  for (auto & c: signature) c = toupper(c);
+  for (auto & c: signature) c = static_cast<char>(toupper(c));
 
   return signature;
 }

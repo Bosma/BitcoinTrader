@@ -29,16 +29,16 @@ public:
   virtual std::string status() = 0;
   virtual bool connected() = 0;
 
-  void set_ticker_callback(std::function<void(const Ticker)> callback) {
+  void set_ticker_callback(std::function<void(const Ticker&)> callback) {
     ticker_callback = callback;
   }
-  void set_OHLC_callback(std::function<void(std::chrono::minutes, OHLC)> callback) {
+  void set_OHLC_callback(std::function<void(std::chrono::minutes, const OHLC&)> callback) {
     OHLC_callback = callback;
   }
   void set_open_callback(std::function<void()> callback) {
     open_callback = callback;
   }
-  void set_trade_callback(std::function<void(std::string)> callback) {
+  void set_trade_callback(std::function<void(const std::string&)> callback) {
     trade_callback = callback;
   }
   void set_filled_callback(std::function<void(double)> callback) {
@@ -56,10 +56,10 @@ protected:
   std::shared_ptr<Config> config;
   std::shared_ptr<Log> log;
 
-  std::function<void(const Ticker)> ticker_callback;
-  std::function<void(std::chrono::minutes, OHLC)> OHLC_callback;
+  std::function<void(const Ticker&)> ticker_callback;
+  std::function<void(std::chrono::minutes, const OHLC&)> OHLC_callback;
   std::function<void()> open_callback;
-  std::function<void(std::string)> trade_callback;
+  std::function<void(const std::string&)> trade_callback;
   std::function<void(double)> filled_callback;
   std::function<void()> pong_callback;
 

@@ -34,7 +34,7 @@ bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time,
   return completed_on_time;
 }
 
-long optionally_to_long(nlohmann::json object) {
+long optionally_to_long(const json& object) {
   if (object.is_string()) {
     return stol(object.get<std::string>());
   }
@@ -42,7 +42,7 @@ long optionally_to_long(nlohmann::json object) {
     return object;
 }
 
-double optionally_to_double(nlohmann::json object) {
+double optionally_to_double(const json& object) {
   if (object.is_string()) {
     return stod(object.get<std::string>());
   }
@@ -50,7 +50,7 @@ double optionally_to_double(nlohmann::json object) {
     return object;
 }
 
-int optionally_to_int(nlohmann::json object) {
+int optionally_to_int(const json& object) {
   if (object.is_string()) {
     return stoi(object.get<std::string>());
   }

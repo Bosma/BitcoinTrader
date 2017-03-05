@@ -25,7 +25,7 @@ void OKCoinSpotHandler::set_up_and_start() {
   };
   okcoin_spot->set_open_callback(open_callback);
 
-  auto ticker_callback = [&](const Ticker new_tick) {
+  auto ticker_callback = [&](const Ticker& new_tick) {
     tick.set(new_tick);
   };
   okcoin_spot->set_ticker_callback(ticker_callback);

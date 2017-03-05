@@ -23,20 +23,23 @@ class OKCoin : public Exchange {
 public:
   const std::string OKCOIN_URL = "wss://real.okcoin.com:10440/websocket/okcoinapi";
   enum Market { Future, Spot };
-  static std::string market_s(Market mkt) {
+  static std::string market_s(const Market mkt) {
     return mkt == Future ? "future" : "spot";
   }
   struct Channel {
-    Channel(std::string name, std::string status) :
+    enum class Status {
+      Subscribing, Subscribed, Failed, Unsubscribed
+    };
+    Channel(std::string name, Status status) :
         name(name),
         status(status) { }
     std::string name;
-    std::string status;
+    Status status;
     std::string last_message;
     std::chrono::nanoseconds last_message_time;
 
     std::string to_string() {
-      return name + " (" + ts_to_string(last_message_time) + "): " + status + ", last message: " + last_message;
+      return name + " (" + ts_to_string(last_message_time) + "): last message: " + last_message;
     }
   };
   enum class OrderStatus {
@@ -47,16 +50,6 @@ public:
     CancelRequest = 4,
     Failed = 5
   };
-  static std::string status_s(OrderStatus o) {
-    switch (o) {
-      case OrderStatus::Cancelled : return "cancelled";
-      case OrderStatus::Unfilled : return "unfilled";
-      case OrderStatus::PartiallyFilled : return "partially filled";
-      case OrderStatus::FullyFilled : return "fully filled";
-      case OrderStatus::CancelRequest : return "cancel requested";
-      case OrderStatus::Failed : return "failed";
-    }
-  }
 
   OKCoin(std::string, Market, std::shared_ptr<Log>, std::shared_ptr<Config>);
 
@@ -95,14 +88,14 @@ protected:
   void unsubscribe_to_channel(std::string const &);
 
   // HANDLERS FOR CHANNEL MESSAGES
-  void OHLC_handler(std::string, nlohmann::json);
-  void ticker_handler(nlohmann::json);
-  virtual void userinfo_handler(nlohmann::json) = 0;
-  virtual void orderinfo_handler(nlohmann::json) = 0;
+  void OHLC_handler(const std::string&, const json&);
+  void ticker_handler(const json&);
+  virtual void userinfo_handler(const json&) = 0;
+  virtual void orderinfo_handler(const json&) = 0;
 
   // GET MD5 HASH OF PARAMETERS
-  std::string sign(json);
-  std::string ampersand_list(json);
+  std::string sign(const json&);
+  std::string ampersand_list(const json&);
 
   static const std::string period_s(std::chrono::minutes period) {
     if (period == std::chrono::minutes(1))
@@ -121,5 +114,5 @@ protected:
       return std::chrono::minutes(0);
   }
 private:
-  std::string get_sig(std::string);
+  std::string get_sig(const std::string&);
 };

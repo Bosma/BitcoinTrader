@@ -18,6 +18,7 @@
 
 class OKCoinFuts : public OKCoin {
 public:
+  // TODO: convert these to enum classes
   enum ContractType { Weekly, NextWeekly, Quarterly };
   enum OrderType { OpenLong = 1, OpenShort = 2,
     CloseLong = 3, CloseShort = 4 };
@@ -73,13 +74,13 @@ public:
   void open(Position, double, double, int, std::chrono::nanoseconds);
   void close(Position, double, double, int, std::chrono::nanoseconds);
   void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);
-  void cancel_order(std::string, std::chrono::nanoseconds);
-  void orderinfo(std::string, std::chrono::nanoseconds);
+  void cancel_order(const std::string&, std::chrono::nanoseconds);
+  void orderinfo(const std::string&, std::chrono::nanoseconds);
 
-  void set_userinfo_callback(std::function<void(UserInfo)> callback) {
+  void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {
     userinfo_callback = callback;
   }
-  void set_orderinfo_callback(std::function<void(OrderInfo)> callback) {
+  void set_orderinfo_callback(std::function<void(const OrderInfo&)> callback) {
     orderinfo_callback = callback;
   }
 
@@ -90,14 +91,14 @@ public:
 private:
   ContractType contract_type;
 
-  std::function<void(UserInfo)> userinfo_callback;
-  std::function<void(OrderInfo)> orderinfo_callback;
+  std::function<void(const UserInfo&)> userinfo_callback;
+  std::function<void(const OrderInfo&)> orderinfo_callback;
 
-  void orderinfo_handler(nlohmann::json);
-  void userinfo_handler(nlohmann::json);
+  void orderinfo_handler(const json&);
+  void userinfo_handler(const json&);
 
   // convert contract type into string for ws messages
-  static const std::string contract_s(ContractType type) {
+  static const std::string contract_s(const ContractType type) {
     switch (type) {
       case Weekly : return "this_week"; break;
       case NextWeekly : return "next_week"; break;

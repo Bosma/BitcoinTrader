@@ -52,12 +52,12 @@ void OKCoinFutsHandler::set_up_and_start() {
   };
   okcoin_futs->set_open_callback(open_callback);
 
-  auto OHLC_callback = [&](minutes period, OHLC bar) {
+  auto OHLC_callback = [&](minutes period, const OHLC& bar) {
     mktdata[period]->add(bar);
   };
   okcoin_futs->set_OHLC_callback(OHLC_callback);
 
-  auto ticker_callback = [&](const Ticker new_tick) {
+  auto ticker_callback = [&](const Ticker& new_tick) {
     for (auto &m : mktdata) {
       m.second->add(new_tick);
     }

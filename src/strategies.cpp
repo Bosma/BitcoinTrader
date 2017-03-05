@@ -50,7 +50,7 @@ SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
     crossed_above(false),
     crossed_below(false) { }
 
-void SMACrossover::apply(OHLC bar) {
+void SMACrossover::apply(const OHLC& bar) {
   // used for backfilling
   process_stop(bar);
 
@@ -60,7 +60,7 @@ void SMACrossover::apply(OHLC bar) {
 
   double stop_percentage = 0.01;
 
-  if (bar.indis[name]["sma_fast"]["mavg"] > bar.indis[name]["sma_slow"]["mavg"] &&
+  if (bar.indis.at(name).at("sma_fast").at("mavg") > bar.indis.at(name).at("sma_slow").at("mavg") &&
       !crossed_above) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
@@ -72,7 +72,7 @@ void SMACrossover::apply(OHLC bar) {
     crossed_above = true;
     crossed_below = false;
   }
-  else if (bar.indis[name]["sma_fast"]["mavg"] < bar.indis[name]["sma_slow"]["mavg"] &&
+  else if (bar.indis.at(name).at("sma_fast").at("mavg") < bar.indis.at(name).at("sma_slow").at("mavg") &&
            !crossed_below) {
     auto new_stop = bar.close * (1 + stop_percentage);
     stop.set(new_stop);

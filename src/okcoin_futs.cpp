@@ -28,7 +28,7 @@ bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
 
   return channels.count(channel) == 1 &&
-         channels[channel]->status == "subscribed";
+         channels[channel]->status == Channel::Status::Subscribed;
 }
 
 void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
@@ -68,7 +68,7 @@ void OKCoinFuts::order(OrderType type, double amount, double price, int lever_ra
   ws.send(j.dump());
 }
 
-void OKCoinFuts::cancel_order(std::string order_id, nanoseconds invalid_time) {
+void OKCoinFuts::cancel_order(const std::string& order_id, nanoseconds invalid_time) {
   string channel = "ok_futureusd_cancel_order";
 
   channel_timeouts[channel] = invalid_time;
@@ -91,7 +91,7 @@ void OKCoinFuts::cancel_order(std::string order_id, nanoseconds invalid_time) {
   ws.send(j.dump());
 }
 
-void OKCoinFuts::orderinfo(string order_id, nanoseconds invalid_time) {
+void OKCoinFuts::orderinfo(const string& order_id, nanoseconds invalid_time) {
   string channel = "ok_futureusd_orderinfo";
 
   channel_timeouts[channel] = invalid_time;
@@ -136,14 +136,13 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   string response = curl_post(url, log, ampersand_list(p));
   if (!response.empty() && response.at(0) != '<') {
     try {
-      json j;
-      j = json::parse(response);
+      json j = json::parse(response);
       if (j.count("errorcode") == 1) {
-        string ec = j["errorcode"];
-        log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[ec]);
-      } else {
+        log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[j["errorcode"]]);
+      }
+      else {
         if (j["holding"] != nullptr && !j["holding"].empty()) {
-          json h = j["holding"][0];
+          const json& h = j["holding"][0];
           pos.buy.contracts = optionally_to_int(h["buy_amount"]);
           pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
           pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
@@ -169,18 +168,14 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
 }
 
 bool OKCoinFuts::backfill_OHLC(minutes period, unsigned long n) {
-  ostringstream url;
-  url << "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd";
-  url << "&contract_type=" + contract_s(contract_type);
-  url << "&type=" + period_s(period);
-  url << "&size=" << n;
+  string url = "https://www.okcoin.com/api/v1/future_kline.do?symbol=btc_usd&contract_type=" + contract_s(contract_type) +
+      "&type=" + period_s(period) + "&size=" + to_string(n);
 
-  auto response = curl_post(url.str(), log);
+  auto response = curl_post(url, log);
   if (!response.empty() && response.at(0) != '<') {
-    json j;
     try {
-      j = json::parse(response);
-      for (auto each : j)
+      json j = json::parse(response);
+      for (auto& each : j)
         OHLC_handler(period_s(period), each);
       return true;
     }
@@ -193,7 +188,7 @@ bool OKCoinFuts::backfill_OHLC(minutes period, unsigned long n) {
     return false;
 }
 
-void OKCoinFuts::orderinfo_handler(json order) {
+void OKCoinFuts::orderinfo_handler(const json& order) {
   if (orderinfo_callback) {
     OrderInfo new_order;
     new_order.amount = optionally_to_double(order["amount"]);
@@ -209,14 +204,13 @@ void OKCoinFuts::orderinfo_handler(json order) {
     new_order.symbol = order["symbol"];
     new_order.type = static_cast<OrderType>(optionally_to_int(order["type"]));
     new_order.unit_amount = optionally_to_int(order["unit_amount"]);
-
     orderinfo_callback(new_order);
   }
 }
 
-void OKCoinFuts::userinfo_handler(nlohmann::json j) {
+void OKCoinFuts::userinfo_handler(const json& j) {
   if (userinfo_callback) {
-    auto data = j["info"]["btc"];
+    const json& data = j["info"]["btc"];
     if (data.count("contracts") == 0) {
       UserInfo info;
       info.equity = optionally_to_double(data["account_rights"]);

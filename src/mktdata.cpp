@@ -6,32 +6,33 @@ MktData::MktData(std::chrono::minutes period, unsigned long size) :
 
 }
 
-void MktData::add(OHLC new_bar) {
+void MktData::add(const OHLC& new_bar) {
   std::lock_guard<std::mutex> l(lock);
+  OHLC bar = new_bar;
 
   // don't add bars of the same timestamp
   bool found = false;
   for (auto& x : bars)
-    if (x.timestamp == new_bar.timestamp)
+    if (x.timestamp == bar.timestamp)
       found = true;
 
   if (bars.empty() || !found) {
     // if we receive a bar that's not contiguous
     // our old data is useless
     if (!bars.empty() &&
-        new_bar.timestamp != bars.back().timestamp + period)
+        bar.timestamp != bars.back().timestamp + period)
       bars.clear();
 
     // for each indicator
     // calculate the indicator value
     // from the bars (with the new value)
-    for (auto strategy : strategies) {
-      for (auto indicator : strategy->indicators)
-        new_bar.indis[strategy->name][indicator->name] = indicator->calculate(bars);
-      strategy->apply(new_bar);
+    for (const auto& strategy : strategies) {
+      for (const auto& indicator : strategy->indicators)
+        bar.indis[strategy->name][indicator->name] = indicator->calculate(bars);
+      strategy->apply(bar);
     }
 
-    bars.push_back(new_bar);
+    bars.push_back(std::move(bar));
   }
 }
 

@@ -44,7 +44,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
 
   bool trading_done = false;
   auto cancel_time = timestamp_now() + timeout;
-  auto trade_callback = [&](string order_id) {
+  auto trade_callback = [&](const string& order_id) {
     if (order_id != "failed") {
       bool done_limit_check = false;
       // until we are done,
@@ -54,8 +54,8 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
       while (!done && !done_limit_check &&
              timestamp_now() < cancel_time) {
         // fetch the orderinfo every second
-        okcoin_futs_h->okcoin_futs->set_orderinfo_callback(function<void(OKCoinFuts::OrderInfo)>(
-            [&](OKCoinFuts::OrderInfo orderinfo) {
+        okcoin_futs_h->okcoin_futs->set_orderinfo_callback(
+            [&](const OKCoinFuts::OrderInfo& orderinfo) {
               if (orderinfo.status != OKCoin::OrderStatus::Failed) {
                 final_info = orderinfo;
                 // early stopping if we fill for the entire amount
@@ -65,7 +65,7 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
               else // early stop if order status is failed (this shouldn't be called)
                 done_limit_check = true;
             }
-        ));
+        );
         okcoin_futs_h->okcoin_futs->orderinfo(order_id, cancel_time);
         sleep_for(seconds(1));
       }
@@ -103,7 +103,7 @@ bool BitcoinTrader::futs_userinfo(OKCoinFuts::UserInfo& userinfo) {
   // If we do not get a response in time, restart this function
   auto cancel_time = timestamp_now() + 10s;
   Atomic<OKCoinFuts::UserInfo> userinfo_a;
-  okcoin_futs_h->okcoin_futs->set_userinfo_callback([&userinfo_a](OKCoinFuts::UserInfo new_userinfo) {
+  okcoin_futs_h->okcoin_futs->set_userinfo_callback([&userinfo_a](const OKCoinFuts::UserInfo& new_userinfo) {
     userinfo_a.set(new_userinfo);
   });
   okcoin_futs_h->okcoin_futs->userinfo(cancel_time);

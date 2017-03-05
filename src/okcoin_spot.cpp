@@ -28,7 +28,7 @@ bool OKCoinSpot::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + period_s(period);
 
   return channels.count(channel) == 1 &&
-         channels[channel]->status == "subscribed";
+         channels[channel]->status == Channel::Status::Subscribed;
 }
 
 void OKCoinSpot::market_buy(double usd_amount, nanoseconds timeout_time) {
@@ -47,7 +47,7 @@ void OKCoinSpot::limit_sell(double amount, double price, nanoseconds timeout_tim
   order("sell", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::order(string type, string amount, nanoseconds timeout_time, string price) {
+void OKCoinSpot::order(const string& type, const string& amount, nanoseconds timeout_time, const string& price) {
   string channel = "ok_spotusd_trade";
 
   channel_timeouts[channel] = timeout_time;
@@ -119,27 +119,24 @@ double OKCoinSpot::close_borrow(Currency currency) {
   // get the open borrows
   auto j = unrepayments_info(currency);
   if (!j.empty()) {
-    json r;
+    json response;
     try {
-      string borrow_id = opt_to_string<int>(j["unrepayments"][0]["borrow_id"]);
+      const string& borrow_id = opt_to_string<int>(j["unrepayments"][0]["borrow_id"]);
 
       // repay loan
-      r = repayment(borrow_id);
-      if (r.empty()) {
+      response = repayment(borrow_id);
+      if (response.empty()) {
         return 0;
       }
       else {
-        bool repaid = r["result"];
-        if (repaid) {
-          double amount = j["unrepayments"][0]["amount"];
-          return amount;
-        }
+        if (response["result"])
+          return j["unrepayments"][0]["amount"];
         else
           return -1;
       }
     }
     catch (exception& e) {
-      log->output("OKCoinSpot::close_borrow(): ERROR PARSING JSON " + string(e.what()) + ", with: unrepayments_info: " + j.dump() + ", repayment: " + r.dump());
+      log->output("OKCoinSpot::close_borrow(): ERROR PARSING JSON " + string(e.what()) + ", with: unrepayments_info: " + j.dump() + ", repayment: " + response.dump());
     }
   }
   return 0;
@@ -250,7 +247,7 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
   return j;
 }
 
-json OKCoinSpot::repayment(string borrow_id) {
+json OKCoinSpot::repayment(const string& borrow_id) {
   string url = "https://www.okcoin.com/api/v1/repayment.do";
 
   json p;
@@ -275,7 +272,7 @@ json OKCoinSpot::repayment(string borrow_id) {
 bool OKCoinSpot::backfill_OHLC(minutes period, unsigned long n) {
   ostringstream url;
   url << "https://www.okcoin.com/api/v1/kline.do?symbol=btc_usd";
-  url << "&type=" << period_s(period);
+  url << "&type=" + period_s(period);
   url << "&size=" << n;
 
   auto response = curl_post(url.str(), log);
@@ -294,7 +291,7 @@ bool OKCoinSpot::backfill_OHLC(minutes period, unsigned long n) {
   return true;
 }
 
-void OKCoinSpot::orderinfo_handler(json order) {
+void OKCoinSpot::orderinfo_handler(const json& order) {
 
   if (orderinfo_callback) {
     OrderInfo new_order;
@@ -312,9 +309,9 @@ void OKCoinSpot::orderinfo_handler(json order) {
   }
 }
 
-void OKCoinSpot::userinfo_handler(json j) {
+void OKCoinSpot::userinfo_handler(const json& j) {
   if (userinfo_callback) {
-    auto funds = j["info"]["funds"];
+    const json& funds = j["info"]["funds"];
     UserInfo info;
     info.asset_net = optionally_to_double(funds["asset"]["net"]);
     info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);

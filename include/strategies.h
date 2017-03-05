@@ -20,7 +20,7 @@ public:
       indicators(indicators),
       log(log) { }
 
-  virtual void apply(OHLC) = 0;
+  virtual void apply(const OHLC&) = 0;
   virtual void apply(const Ticker&) = 0;
 
   std::string name;
@@ -40,7 +40,7 @@ class SMACrossover : public Strategy {
 public:
   SMACrossover(std::string, std::shared_ptr<Log>);
 
-  void apply(OHLC bar);
+  void apply(const OHLC&);
   void apply(const Ticker&);
 
 private:
