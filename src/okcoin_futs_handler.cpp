@@ -38,28 +38,30 @@ void OKCoinFutsHandler::set_up_and_start() {
     for (auto &m : mktdata) {
       auto OHLC_is_fetched = [&]() {
         log->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
-        bool success = okcoin_futs->backfill_OHLC(m.second->period, m.second->bars.capacity());
+        bool success = okcoin_futs->backfill_OHLC(m.second.period, m.second.bars.capacity());
         if (success)
           log->output("FINISHED BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         else
-          log->output("FAILED TO BACKFILL " + to_string(m.second->period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
+          log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
         return success;
       };
       if (!check_until(OHLC_is_fetched, timestamp_now() + 1min, 10s))
-        log->output("FAILED TO BACKFILL " + to_string(m.second->period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
-      okcoin_futs->subscribe_to_OHLC(m.second->period);
+        log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
+      okcoin_futs->subscribe_to_OHLC(m.second.period);
     }
   };
   okcoin_futs->set_open_callback(open_callback);
 
   auto OHLC_callback = [&](minutes period, const OHLC& bar) {
-    mktdata[period]->add(bar);
+    // do not need to check for existence of period in map, since it is designed to exist
+    // if there somehow isn't, this is called inside a try
+    mktdata.at(period).add(bar);
   };
   okcoin_futs->set_OHLC_callback(OHLC_callback);
 
   auto ticker_callback = [&](const Ticker& new_tick) {
     for (auto &m : mktdata) {
-      m.second->add(new_tick);
+      m.second.add(new_tick);
     }
     tick.set(new_tick);
   };

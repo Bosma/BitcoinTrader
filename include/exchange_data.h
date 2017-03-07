@@ -21,7 +21,7 @@ public:
 
   std::shared_ptr<Exchange> exchange;
 
-  std::map<std::chrono::minutes, std::shared_ptr<MktData>> mktdata;
+  std::map<std::chrono::minutes, MktData> mktdata;
   Atomic<Ticker> tick;
 
   std::mutex reconnect;

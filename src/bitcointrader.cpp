@@ -12,6 +12,7 @@ using std::chrono::minutes;        using std::bind;
 using std::to_string;              using std::ostringstream;
 using std::make_shared;            using std::make_unique;
 using namespace std::placeholders; using std::to_string;
+using std::piecewise_construct;    using std::forward_as_tuple;
 using namespace std::chrono_literals;
 using std::accumulate;
 
@@ -44,10 +45,12 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     // if we do not have a mktdata object for this period
     if (okcoin_futs_h->mktdata.count(strategy->period) == 0) {
       // create a mktdata object with the period the strategy uses
-      okcoin_futs_h->mktdata[strategy->period] = make_shared<MktData>(strategy->period, 2000);
+      okcoin_futs_h->mktdata.emplace(piecewise_construct,
+                                     forward_as_tuple(strategy->period),
+                                     forward_as_tuple(strategy->period, 2000));
     }
     // tell the mktdata object about the strategy
-    okcoin_futs_h->mktdata[strategy->period]->add_strategy(strategy);
+    okcoin_futs_h->mktdata.at(strategy->period).add_strategy(strategy);
   }
 }
 
@@ -68,11 +71,11 @@ string BitcoinTrader::status() {
     Ticker tick = (*i)->tick.get();
     os << "Bid: " << tick.bid << ", Ask: " << tick.ask << endl;
     for (auto &m : (*i)->mktdata) {
-      os << m.second->status() << endl;
+      os << m.second.status() << endl;
     }
     for (auto &m : (*i)->mktdata) {
-      os << m.second->period.count() << "m Strategies: ";
-      os << m.second->strategies_status() << endl;
+      os << m.second.period.count() << "m Strategies: ";
+      os << m.second.strategies_status() << endl;
     }
     if (next(i) != metas.end())
       os << endl;
