@@ -53,9 +53,9 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
 
 BitcoinTrader::~BitcoinTrader() {
   done = true;
-  for (auto t : running_threads)
-    if (t && t->joinable())
-      t->join();
+  for (auto& t : running_threads)
+    if (t.joinable())
+      t.join();
 }
 
 string BitcoinTrader::status() {
@@ -125,7 +125,7 @@ void BitcoinTrader::position_management() {
       sleep_for(5s);
     }
   };
-  running_threads.push_back(make_shared<thread>(position_thread));
+  running_threads.emplace_back(position_thread);
 }
 
 void BitcoinTrader::check_connection() {
@@ -152,5 +152,5 @@ void BitcoinTrader::check_connection() {
       sleep_for(1s);
     }
   };
-  running_threads.push_back(make_shared<thread>(connection_thread));
+  running_threads.emplace_back(connection_thread);
 }

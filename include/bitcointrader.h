@@ -51,7 +51,7 @@ protected:
 
   // vector of threads performing some recurring actions
   // used for destructor
-  std::vector<std::shared_ptr<std::thread>> running_threads;
+  std::vector<std::thread> running_threads;
 
   // used to check if the exchange is working
   void check_connection();
