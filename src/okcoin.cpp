@@ -208,16 +208,15 @@ void OKCoin::ping() {
   ws.send("{'event':'ping'}");
 }
 
-// TODO: remove ostringstream and use std::accumulate.
 string OKCoin::status() {
-  ostringstream ss;
-  ss << name << ": " << ws.get_status_s() << endl;
-  for (auto i = channels.begin(); i != channels.end(); i++) {
-    ss << i->second.to_string();
-    if (next(i) != channels.end())
-      ss << endl;
-  }
-  return ss.str();
+  string ss = name + ": " + ws.get_status_s() + "\n";
+  ss += accumulate(next(channels.begin()),
+                   channels.end(),
+                   channels.begin()->second.to_string(),
+                   [](string a, auto b) {
+                     return "\n" + b.second.to_string();
+                   });
+  return ss;
 }
 
 void OKCoin::populate_error_reasons() {
