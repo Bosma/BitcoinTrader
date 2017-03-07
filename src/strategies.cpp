@@ -26,6 +26,7 @@ void Strategy::process_stop(const Ticker& new_tick) {
       log->output(name + ": STOPPED OUT AT " + std::to_string(current_stop) + ", SIGNAL CHANGED FROM " +
                   std::to_string(current_signal) + " TO 0");
       signal.set(0);
+      stop.clear();
     }
   }
 }

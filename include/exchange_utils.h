@@ -161,7 +161,7 @@ public:
   }
   void clear() {
     std::lock_guard<std::mutex> l(lock);
-    T cleared;
+    T cleared{};
     is_set = false;
     x = cleared;
   }
