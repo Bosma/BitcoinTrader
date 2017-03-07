@@ -56,20 +56,20 @@ void OKCoin::on_message(const string& message) {
         // it's a price or data channel
         if (channels.count(channel) == 1) {
           // we have a channel in our map
-          if (channels[channel]->status == Channel::Status::Subscribing) {
+          if (channels.at(channel).status == Channel::Status::Subscribing) {
             // if it's subscribing it's the first message we've received
             if (channel_message.count("success") == 1) {
               if (channel_message["success"] == "true") {
-                channels[channel]->status = Channel::Status::Subscribed;
+                channels.at(channel).status = Channel::Status::Subscribed;
                 log->output("SUBSCRIBED TO " + channel);
               }
               else {
-                channels[channel]->status = Channel::Status::Failed;
+                channels.at(channel).status = Channel::Status::Failed;
                 log->output("UNSUCCESSFULLY SUBSCRIBED TO " + channel);
               }
             }
           }
-          else if (channels[channel]->status == Channel::Status::Subscribed) {
+          else if (channels.at(channel).status == Channel::Status::Subscribed) {
             // we're subscribed so delegate to a channel handler
 
             if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
@@ -94,8 +94,8 @@ void OKCoin::on_message(const string& message) {
             }
           }
           // store the last message received
-          channels[channel]->last_message = message;
-          channels[channel]->last_message_time = timestamp_now();
+          channels.at(channel).last_message = message;
+          channels.at(channel).last_message_time = timestamp_now();
         }
           // we don't have a channel stored in the map
           // check for one off channel messages that have callbacks
@@ -213,7 +213,7 @@ string OKCoin::status() {
   ostringstream ss;
   ss << name << ": " << ws.get_status_s() << endl;
   for (auto i = channels.begin(); i != channels.end(); i++) {
-    ss << (*i).second->to_string();
+    ss << i->second.to_string();
     if (next(i) != channels.end())
       ss << endl;
   }
@@ -261,15 +261,19 @@ void OKCoin::subscribe_to_channel(string const & channel) {
 
   ws.send("{'event':'addChannel','channel':'" + channel + "'}");
 
-  // TODO: do channels need to be shared_ptrs?
-  shared_ptr<Channel> chan(new Channel(channel, Channel::Status::Subscribing));
-  channels[channel] = chan;
+  channels.emplace(std::piecewise_construct,
+                   std::forward_as_tuple(channel),
+                   std::forward_as_tuple(channel, Channel::Status::Subscribing));
 }
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
-  log->output("UNSUBSCRIBING TO " + channel);
-  ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
-  channels[channel]->status = Channel::Status::Unsubscribed;
+  if (channels.count(channel)) {
+    log->output("UNSUBSCRIBING TO " + channel);
+    ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
+    channels.at(channel).status = Channel::Status::Unsubscribed;
+  }
+  else
+    log->output("ATTEMPT TO UNSUBSCRIBE TO CHANNEL " + channel + " BUT NOT SUBSCRIBED");
 }
 
 void OKCoin::OHLC_handler(const string& period, const json& trade) {

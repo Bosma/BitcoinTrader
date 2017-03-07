@@ -28,7 +28,7 @@ bool OKCoinSpot::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + period_s(period);
 
   return channels.count(channel) == 1 &&
-         channels[channel]->status == Channel::Status::Subscribed;
+         channels.at(channel).status == Channel::Status::Subscribed;
 }
 
 void OKCoinSpot::market_buy(double usd_amount, nanoseconds timeout_time) {

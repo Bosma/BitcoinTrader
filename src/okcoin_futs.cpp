@@ -28,7 +28,7 @@ bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
 
   return channels.count(channel) == 1 &&
-         channels[channel]->status == Channel::Status::Subscribed;
+         channels.at(channel).status == Channel::Status::Subscribed;
 }
 
 void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {

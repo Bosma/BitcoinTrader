@@ -26,7 +26,8 @@ public:
   static std::string market_s(const Market mkt) {
     return mkt == Future ? "future" : "spot";
   }
-  struct Channel {
+  class Channel {
+  public:
     enum class Status {
       Subscribing, Subscribed, Failed, Unsubscribed
     };
@@ -83,7 +84,7 @@ protected:
   std::map<std::string, std::string> error_reasons;
   void populate_error_reasons();
 
-  std::map<std::string, std::shared_ptr<Channel>> channels;
+  std::map<std::string, Channel> channels;
   void subscribe_to_channel(std::string const &);
   void unsubscribe_to_channel(std::string const &);
 
