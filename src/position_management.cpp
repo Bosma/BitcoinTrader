@@ -19,25 +19,21 @@ bool BitcoinTrader::futs_market(OKCoinFuts::OrderType type, double amount, int l
   double price;
 
   switch (type) {
-    case OKCoinFuts::OpenLong :
+    case OKCoinFuts::OrderType::OpenLong :
       action = "OPENING"; direction = "LONG";
       price = tick.bid * (1 + 0.01);
       break;
-    case OKCoinFuts::OpenShort :
+    case OKCoinFuts::OrderType::OpenShort :
       action = "OPENING"; direction = "SHORT";
       price = tick.ask * (1 - 0.01);
       break;
-    case OKCoinFuts::CloseLong :
+    case OKCoinFuts::OrderType::CloseLong :
       action = "CLOSING"; direction = "LONG";
       price = tick.ask * (1 - 0.01);
       break;
-    case OKCoinFuts::CloseShort :
+    case OKCoinFuts::OrderType::CloseShort :
       action = "CLOSING"; direction = "SHORT";
       price = tick.bid * (1 + 0.01);
-      break;
-    default :
-      okcoin_futs_h->log->output("type NOT RECOGNIZED IN CALL TO futs_market");
-      return false;
   }
 
   trading_log->output("MARKET " + action + " " + to_string(amount) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(price));

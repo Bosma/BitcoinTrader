@@ -12,8 +12,8 @@ using json = nlohmann::json;
 
 bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
 
-enum Currency { BTC, USD };
-enum Position { Long, Short };
+enum class Currency { BTC, USD };
+enum class Position { Long, Short };
 
 std::chrono::nanoseconds timestamp_now();
 

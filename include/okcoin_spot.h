@@ -25,7 +25,7 @@ public:
 
     std::string to_string() {
       std::ostringstream os;
-      os << "Equity: " << asset_net << ", BTC: " << free[BTC] << ", BTC (borrowed): " << borrow[BTC] << ", USD: " << free[USD] << ", USD (borrowed): " << borrow[USD];
+      os << "Equity: " << asset_net << ", BTC: " << free[Currency::BTC] << ", BTC (borrowed): " << borrow[Currency::BTC] << ", USD: " << free[Currency::USD] << ", USD (borrowed): " << borrow[Currency::USD];
       return os.str();
     }
   };

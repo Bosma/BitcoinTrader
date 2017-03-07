@@ -96,8 +96,8 @@ OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
 
     result.rate = rate;
     switch (currency) {
-      case BTC : result.amount = truncate_to(amount, 2); break;
-      case USD : result.amount = floor(amount); break;
+      case Currency::BTC : result.amount = truncate_to(amount, 2); break;
+      case Currency::USD : result.amount = floor(amount); break;
     }
 
     response = borrow_money(currency, amount, rate);
@@ -148,8 +148,8 @@ json OKCoinSpot::lend_depth(Currency currency) {
   json p;
   p["api_key"] = api_key;
   switch (currency) {
-    case BTC : p["symbol"] = "btc_usd"; break;
-    case USD : p["symbol"] = "usd"; break;
+    case Currency::BTC : p["symbol"] = "btc_usd"; break;
+    case Currency::USD : p["symbol"] = "usd"; break;
   }
   string sig = sign(p);
   p["sign"] = sig;
@@ -173,8 +173,8 @@ json OKCoinSpot::borrows_info(Currency currency) {
   json p;
   p["api_key"] = api_key;
   switch (currency) {
-    case BTC : p["symbol"] = "btc_usd"; break;
-    case USD : p["symbol"] = "usd"; break;
+    case Currency::BTC : p["symbol"] = "btc_usd"; break;
+    case Currency::USD : p["symbol"] = "usd"; break;
   }
   string sig = sign(p);
   p["sign"] = sig;
@@ -198,8 +198,8 @@ json OKCoinSpot::unrepayments_info(Currency currency) {
   json p;
   p["api_key"] = api_key;
   switch (currency) {
-    case BTC : p["symbol"] = "btc_usd"; break;
-    case USD : p["symbol"] = "usd"; break;
+    case Currency::BTC : p["symbol"] = "btc_usd"; break;
+    case Currency::USD : p["symbol"] = "usd"; break;
   }
   p["current_page"] = 1;
   p["page_length"] = 10;
@@ -225,8 +225,8 @@ json OKCoinSpot::borrow_money(Currency currency, double amount, double rate) {
   json p;
   p["api_key"] = api_key;
   switch (currency) {
-    case BTC : p["symbol"] = "btc_usd"; break;
-    case USD : p["symbol"] = "usd"; break;
+    case Currency::BTC : p["symbol"] = "btc_usd"; break;
+    case Currency::USD : p["symbol"] = "usd"; break;
   }
   p["amount"] = amount;
   p["rate"] = rate;

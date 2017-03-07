@@ -18,9 +18,8 @@
 
 class OKCoinFuts : public OKCoin {
 public:
-  // TODO: convert these to enum classes
-  enum ContractType { Weekly, NextWeekly, Quarterly };
-  enum OrderType { OpenLong = 1, OpenShort = 2,
+  enum class ContractType { Weekly, NextWeekly, Quarterly };
+  enum class OrderType { OpenLong = 1, OpenShort = 2,
     CloseLong = 3, CloseShort = 4 };
   struct UserInfo {
     double equity = 0;
@@ -100,9 +99,9 @@ private:
   // convert contract type into string for ws messages
   static const std::string contract_s(const ContractType type) {
     switch (type) {
-      case Weekly : return "this_week"; break;
-      case NextWeekly : return "next_week"; break;
-      case Quarterly : return "quarter"; break;
+      case ContractType::Weekly : return "this_week";
+      case ContractType::NextWeekly : return "next_week";
+      case ContractType::Quarterly : return "quarter";
     }
   }
 };

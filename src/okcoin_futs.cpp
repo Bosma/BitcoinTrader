@@ -32,12 +32,12 @@ bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
 }
 
 void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
-  OrderType order_type = (position == Long) ? OpenLong : OpenShort;
+  OrderType order_type = (position == Position::Long) ? OrderType::OpenLong : OrderType::OpenShort;
   order(order_type, amount, price, leverage, false, invalid_time);
 }
 
 void OKCoinFuts::close(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
-  OrderType order_type = (position == Long) ? CloseLong : CloseShort;
+  OrderType order_type = (position == Position::Long) ? OrderType::CloseLong : OrderType::CloseShort;
   order(order_type, amount, price, leverage, false, invalid_time);
 }
 
@@ -57,7 +57,7 @@ void OKCoinFuts::order(OrderType type, double amount, double price, int lever_ra
   p["contract_type"] = contract_s(contract_type);
   p["price"] = dtos(price, 2);
   p["symbol"] = "btc_usd";
-  p["type"] = dtos(type, 0);
+  p["type"] = dtos(static_cast<int>(type), 0);
   p["lever_rate"] = dtos(lever_rate, 0);
   p["match_price"] = match_price ? "1" : "0";
   string sig = sign(p);
