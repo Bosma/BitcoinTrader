@@ -6,7 +6,7 @@
 
 #include <curl/curl.h>
 
-#include "bitcointrader.h"
+#include "handlers/bitcointrader.h"
 
 using std::cin;    using std::cout;
 using std::string; using std::shared_ptr;
