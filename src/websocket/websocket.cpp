@@ -107,6 +107,7 @@ wspp_context_ptr websocket::on_tls_init(wspp_client *, websocketpp::connection_h
 void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr msg) {
   if (message_callback) {
     std::string m = msg->get_payload();
+    // TODO: use a thread pool instead of detached threads
     std::thread t([this, m = std::move(m)]() {
       message_callback(m);
     });
