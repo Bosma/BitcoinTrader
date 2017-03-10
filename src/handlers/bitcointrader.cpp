@@ -16,11 +16,6 @@ using std::piecewise_construct;    using std::forward_as_tuple;
 using namespace std::chrono_literals;
 using std::accumulate;
 
-// REQUIRED TO EXPLICITLY ADD EACH EXCHANGE HERE
-vector<shared_ptr<ExchangeHandler>> BitcoinTrader::exchange_metas() {
-  return { okcoin_futs_h, okcoin_spot_h };
-}
-
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     okcoin_futs_h(
         make_shared<OKCoinFutsHandler>("OKCoinFuts",
@@ -28,18 +23,11 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
                                        config,
                                        OKCoinFuts::ContractType::Weekly)
     ),
-    okcoin_spot_h(
-        make_shared<OKCoinSpotHandler>("OKCoinSpot",
-                                       make_shared<Log>((*config)["okcoin_spot_log"]),
-                                       config)
-    ),
     config(config),
     trading_log(new Log((*config)["trading_log"], config)),
     done(false)
 {
-  // TODO: move strategy and exchange handler creation to user folder
-  // create the strategies
-  strategies.push_back(make_shared<SMACrossover>("SMACrossover", trading_log));
+  create_strategies();
 
   // we're using OKCoin Futs for our basket of strategies
   for (auto strategy : strategies) {
@@ -68,7 +56,7 @@ string BitcoinTrader::status() {
   auto metas = exchange_metas();
   for (auto i = metas.begin(); i != metas.end(); i++) {
     lock_guard<mutex> l((*i)->reconnect);
-    os << (*i)->exchange->status() << endl;
+    os << (*i)->exchange->status();
     Ticker tick = (*i)->tick.get();
     os << "Bid: " << tick.bid << ", Ask: " << tick.ask << endl;
     for (auto &m : (*i)->mktdata) {

@@ -210,12 +210,8 @@ void OKCoin::ping() {
 
 string OKCoin::status() {
   string ss = name + ": " + ws.get_status_s() + "\n";
-  ss += accumulate(next(channels.begin()),
-                   channels.end(),
-                   channels.begin()->second.to_string(),
-                   [](string a, auto b) {
-                     return "\n" + b.second.to_string();
-                   });
+  for (auto& chan : channels)
+    ss += chan.second.to_string() + "\n";
   return ss;
 }
 

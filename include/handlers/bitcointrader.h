@@ -8,9 +8,6 @@
 #include "okcoin_futs_handler.h"
 #include "okcoin_spot_handler.h"
 
-// TODO: automate this so a user does not have to manually include anything
-#include "user/smacrossover.h"
-
 class BitcoinTrader {
 public:
   // Exchanges and their data
@@ -39,7 +36,12 @@ public:
 
 protected:
   std::shared_ptr<OKCoinFutsHandler> okcoin_futs_h;
-  std::shared_ptr<OKCoinSpotHandler> okcoin_spot_h;
+  // required to explicitly add each exchange handler above here:
+  std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas() {
+    return { okcoin_futs_h };
+  }
+
+  void create_strategies();
 
   // private config options
   // sourced from config file
@@ -92,7 +94,6 @@ protected:
   bool GTC(Position, double, double);
   std::function<void(std::string)> GTC_callback;
 
-  std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas();
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;
     for (auto x : exchange_metas())

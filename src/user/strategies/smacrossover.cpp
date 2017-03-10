@@ -1,4 +1,4 @@
-#include "user/smacrossover.h"
+#include "user/strategies/smacrossover.h"
 
 using std::shared_ptr;
 using std::string;
