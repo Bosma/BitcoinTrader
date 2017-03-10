@@ -14,7 +14,7 @@ using std::next;
 using std::to_string;
 
 OKCoinSpot::OKCoinSpot(std::string name, shared_ptr<Log> log, shared_ptr<Config> config) :
-    OKCoin(name, Spot, log, config) { }
+    OKCoin(name, Market::Spot, log, config) { }
 
 void OKCoinSpot::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");

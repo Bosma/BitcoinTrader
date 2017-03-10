@@ -22,9 +22,9 @@
 class OKCoin : public Exchange {
 public:
   const std::string OKCOIN_URL = "wss://real.okcoin.com:10440/websocket/okcoinapi";
-  enum Market { Future, Spot };
+  enum class Market { Future, Spot };
   static std::string market_s(const Market mkt) {
-    return mkt == Future ? "future" : "spot";
+    return mkt == Market::Future ? "future" : "spot";
   }
   class Channel {
   public:
