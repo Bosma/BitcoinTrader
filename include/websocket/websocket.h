@@ -47,8 +47,6 @@ public:
               return "CONNECTING";
           case Status::Failed :
               return "FAILED";
-          default :
-              return "ERROR";
       }
   };
   std::string get_uri() const { return uri; };
