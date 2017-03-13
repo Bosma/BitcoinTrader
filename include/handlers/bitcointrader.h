@@ -1,5 +1,7 @@
 #pragma once
 
+#include <boost/optional.hpp>
+
 #include "utilities/log.h"
 #include "exchanges/okcoin_futs.h"
 #include "exchanges/okcoin_spot.h"
@@ -36,19 +38,19 @@ public:
 
 protected:
   std::shared_ptr<OKCoinFutsHandler> okcoin_futs_h;
+  std::shared_ptr<ExchangeHandler> strategy_h;
   // required to explicitly add each exchange handler above here:
   std::vector<std::shared_ptr<ExchangeHandler>> exchange_metas() {
     return { okcoin_futs_h };
   }
 
-  void create_strategies();
+  // user defined functions
+  void user_specifications();
+  double blend_signals();
 
   // private config options
   // sourced from config file
   std::shared_ptr<Config> config;
-
-  // used for logging trading actions
-  std::shared_ptr<Log> trading_log;
 
   // if this is being destructed
   std::atomic<bool> done;
@@ -62,37 +64,9 @@ protected:
 
   // map of OHLC bars together with indicator values
   // keyed by period in minutes they represent
-
   std::vector<std::shared_ptr<Strategy>> strategies;
 
-  // thread loop calling below two functions
   void position_management();
-  // blend the signals from each strategy
-  // according to some signal blending method
-  double blend_signals();
-  // match the signal with the exposure on the exchange
-  void manage_positions(double);
-
-  bool futs_userinfo(OKCoinFuts::UserInfo&);
-
-  // EXECUTION ALGORITHMS
-  // functions to set trade and orderinfo callbacks
-
-  // generic market buy / sell amount of BTC
-  bool market(Position, double);
-
-  // market buy / sell (used for okcoin_futs)
-  bool futs_market(OKCoinFuts::OrderType, double, int, std::chrono::seconds);
-
-  // limit order that will cancel after some seconds
-  // and after those seconds will run callback given
-  // (to set take-profits / stop-losses)
-  bool limit(Position, double, double, std::chrono::seconds);
-
-  // good-til-cancelled limit orders
-  // will run callback after receiving order_id
-  bool GTC(Position, double, double);
-  std::function<void(std::string)> GTC_callback;
 
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;

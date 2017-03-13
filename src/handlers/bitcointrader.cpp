@@ -20,26 +20,25 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
     okcoin_futs_h(
         make_shared<OKCoinFutsHandler>("OKCoinFuts",
                                        make_shared<Log>((*config)["okcoin_futs_log"]),
+                                       make_shared<Log>((*config)["trading_log"]),
                                        config,
                                        OKCoinFuts::ContractType::Weekly)
     ),
     config(config),
-    trading_log(new Log((*config)["trading_log"], config)),
     done(false)
 {
-  create_strategies();
+  user_specifications();
 
-  // we're using OKCoin Futs for our basket of strategies
   for (auto strategy : strategies) {
     // if we do not have a mktdata object for this period
-    if (okcoin_futs_h->mktdata.count(strategy->period) == 0) {
+    if (strategy_h->mktdata.count(strategy->period) == 0) {
       // create a mktdata object with the period the strategy uses
-      okcoin_futs_h->mktdata.emplace(piecewise_construct,
+      strategy_h->mktdata.emplace(piecewise_construct,
                                      forward_as_tuple(strategy->period),
                                      forward_as_tuple(strategy->period, 2000));
     }
     // tell the mktdata object about the strategy
-    okcoin_futs_h->mktdata.at(strategy->period).add_strategy(strategy);
+    strategy_h->mktdata.at(strategy->period).add_strategy(strategy);
   }
 }
 
@@ -51,7 +50,6 @@ BitcoinTrader::~BitcoinTrader() {
 }
 
 string BitcoinTrader::status() {
-
   ostringstream os;
   auto metas = exchange_metas();
   for (auto i = metas.begin(); i != metas.end(); i++) {
@@ -112,7 +110,7 @@ void BitcoinTrader::position_management() {
       {
         lock_guard<mutex> l(okcoin_futs_h->reconnect);
         double blended_signal = blend_signals();
-        manage_positions(blended_signal);
+        strategy_h->manage_positions(blended_signal);
       }
       sleep_for(5s);
     }

@@ -5,8 +5,8 @@ using std::mutex;
 using std::shared_ptr;
 using std::string;
 
-OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Log> log, shared_ptr<Config> config) :
-    ExchangeHandler(name, log, config) {
+OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Log> log, shared_ptr<Log> trading_log, shared_ptr<Config> config) :
+    ExchangeHandler(name, log, trading_log, config) {
 }
 
 void OKCoinSpotHandler::set_up_and_start() {

@@ -9,8 +9,8 @@ using std::to_string;
 using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
-OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Log> log, shared_ptr<Config> config, OKCoinFuts::ContractType contract_type) :
-    ExchangeHandler(name, log, config), contract_type(contract_type) {
+OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Log> log, shared_ptr<Log> trading_log, shared_ptr<Config> config, OKCoinFuts::ContractType contract_type) :
+    ExchangeHandler(name, log, trading_log, config), contract_type(contract_type) {
 }
 
 void OKCoinFutsHandler::set_up_and_start() {
@@ -37,10 +37,10 @@ void OKCoinFutsHandler::set_up_and_start() {
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
       auto OHLC_is_fetched = [&]() {
-        log->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
+        trading_log->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         bool success = okcoin_futs->backfill_OHLC(m.second.period, m.second.bars.capacity());
         if (success)
-          log->output("FINISHED BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
+          trading_log->output("FINISHED BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         else
           log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
         return success;
