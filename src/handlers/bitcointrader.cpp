@@ -92,15 +92,15 @@ void BitcoinTrader::position_management() {
       // we can open positions if
       bool can = true;
       // we're subscribed to every OHLC period
-      for (auto &m : okcoin_futs_h->mktdata) {
-        lock_guard<mutex> l(okcoin_futs_h->reconnect);
-        can = can && okcoin_futs_h->okcoin_futs->subscribed_to_OHLC(m.first);
+      for (auto &m : strategy_h->mktdata) {
+        lock_guard<mutex> l(strategy_h->reconnect);
+        can = can && strategy_h->exchange->subscribed_to_OHLC(m.first);
       }
       // every strategy has a set signal
       can = can && accumulate(strategies.begin(), strategies.end(), true,
                               [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
       // and we have a tick set
-      can = can && okcoin_futs_h->tick.has_been_set();
+      can = can && strategy_h->tick.has_been_set();
       return can;
     };
     // this can block forever, because there's no reason to manage positions if can_open_positions is never true
@@ -108,7 +108,7 @@ void BitcoinTrader::position_management() {
 
     while (!done) {
       {
-        lock_guard<mutex> l(okcoin_futs_h->reconnect);
+        lock_guard<mutex> l(strategy_h->reconnect);
         double blended_signal = blend_signals();
         strategy_h->manage_positions(blended_signal);
       }
