@@ -17,13 +17,6 @@ using namespace std::chrono_literals;
 using std::accumulate;
 
 BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
-    okcoin_futs_h(
-        make_shared<OKCoinFutsHandler>("OKCoinFuts",
-                                       make_shared<Log>((*config)["okcoin_futs_log"]),
-                                       make_shared<Log>((*config)["trading_log"]),
-                                       config,
-                                       OKCoinFuts::ContractType::Weekly)
-    ),
     config(config),
     done(false)
 {

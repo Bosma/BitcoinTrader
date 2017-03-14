@@ -3,10 +3,14 @@
 using std::lock_guard;
 using std::mutex;
 using std::shared_ptr;
+using std::make_shared;
 using std::string;
 
-OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Log> log, shared_ptr<Log> trading_log, shared_ptr<Config> config) :
-    ExchangeHandler(name, log, trading_log, config) {
+OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Config> config, string log, string trading_log) :
+    ExchangeHandler(name,
+                    config,
+                    make_shared<Log>((*config)[log]),
+                    make_shared<Log>((*config)[trading_log])) {
 }
 
 void OKCoinSpotHandler::set_up_and_start() {
