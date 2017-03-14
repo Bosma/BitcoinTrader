@@ -23,6 +23,7 @@ public:
   std::shared_ptr<Exchange> exchange;
 
   std::map<std::chrono::minutes, MktData> mktdata;
+  std::vector<std::shared_ptr<Strategy>> strategies;
   Atomic<Ticker> tick;
 
   std::mutex reconnect;

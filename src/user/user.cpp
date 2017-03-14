@@ -7,17 +7,13 @@ using std::make_shared;
 using std::shared_ptr;
 
 void BitcoinTrader::user_specifications() {
-  // specify which exchange will manage positions
-  // we're using OKCoin Futs for our basket of strategies
-  strategy_h = okcoin_futs_h;
-
-  // create and add strategies
-  strategies.push_back(make_shared<SMACrossover>("SMACrossover", strategy_h->trading_log));
+  // create and add strategies to each exchange
+  okcoin_futs_h->strategies.push_back(make_shared<SMACrossover>("SMACrossover", okcoin_futs_h->trading_log));
 }
 
-double BitcoinTrader::blend_signals() {
+double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {
   // average the signals
-  double signal_sum = accumulate(strategies.begin(), strategies.end(), 0,
+  double signal_sum = accumulate(handler->strategies.begin(), handler->strategies.end(), 0,
                                  [](double a, shared_ptr<Strategy> b) { return a + b->signal.get(); });
-  return signal_sum / strategies.size();
+  return signal_sum / handler->strategies.size();
 }
