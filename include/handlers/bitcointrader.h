@@ -22,7 +22,7 @@ public:
 
   std::string status();
   void print_bars() {
-    for (auto handler : exchange_handlers()) {
+    for (auto handler : exchange_handlers) {
       for (auto& m : handler->mktdata) {
         std::string file_name = handler->name + "_" + std::to_string(m.first.count()) + "m.csv";
         std::ofstream csv(file_name);
@@ -41,9 +41,7 @@ public:
 protected:
   std::shared_ptr<OKCoinFutsHandler> okcoin_futs_h;
   // required to explicitly add each exchange handler above here:
-  std::vector<std::shared_ptr<ExchangeHandler>> exchange_handlers() {
-    return { okcoin_futs_h };
-  }
+  std::vector<std::shared_ptr<ExchangeHandler>> exchange_handlers;
 
   // user defined functions
   void user_specifications();
@@ -67,7 +65,7 @@ protected:
 
   std::vector<std::shared_ptr<Exchange>> exchanges() {
     std::vector<std::shared_ptr<Exchange>> to_return;
-    for (auto x : exchange_handlers())
+    for (auto x : exchange_handlers)
       to_return.push_back(x->exchange);
     return to_return;
   }

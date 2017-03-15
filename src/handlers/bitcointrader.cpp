@@ -23,7 +23,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   user_specifications();
 
   // for each exchange handler
-  for (auto handler : exchange_handlers()) {
+  for (auto handler : exchange_handlers) {
     // for every strategy that this exchange handler manages
     for (auto strategy : handler->strategies) {
       // if we do not have a mktdata object for this period
@@ -49,8 +49,7 @@ BitcoinTrader::~BitcoinTrader() {
 
 string BitcoinTrader::status() {
   ostringstream os;
-  auto metas = exchange_handlers();
-  for (auto i = metas.begin(); i != metas.end(); i++) {
+  for (auto i = exchange_handlers.begin(); i != exchange_handlers.end(); i++) {
     lock_guard<mutex> l((*i)->reconnect);
     os << (*i)->exchange->status();
     Ticker tick = (*i)->tick.get();
@@ -62,14 +61,14 @@ string BitcoinTrader::status() {
       os << m.second.period.count() << "m Strategies: ";
       os << m.second.strategies_status() << endl;
     }
-    if (next(i) != metas.end())
+    if (next(i) != exchange_handlers.end())
       os << endl;
   }
   return os.str();
 }
 
 void BitcoinTrader::start() {
-  for (auto exchange : exchange_handlers())
+  for (auto exchange : exchange_handlers)
     exchange->set_up_and_start();
 
   // check connection and reconnect if down on another thread
@@ -114,7 +113,7 @@ void BitcoinTrader::position_management() {
     }
   };
 
-  for (auto handler : exchange_handlers())
+  for (auto handler : exchange_handlers)
     running_threads.emplace_back(position_thread, handler);
 }
 
@@ -127,7 +126,7 @@ void BitcoinTrader::check_connection() {
         sleep_for(10s);
         warm_up = false;
       }
-      for (auto exchange : exchange_handlers()) {
+      for (auto exchange : exchange_handlers) {
         if (exchange->exchange &&
             // if the time since the last message received is > 1min
             (((timestamp_now() - exchange->exchange->ts_since_last) > 1min) ||

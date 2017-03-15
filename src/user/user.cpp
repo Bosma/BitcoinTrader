@@ -14,6 +14,10 @@ void BitcoinTrader::user_specifications() {
                                                  "trading_log",
                                                  OKCoinFuts::ContractType::Weekly);
 
+
+  // required to explicitly add each exchange to the handlers list
+  exchange_handlers.push_back(okcoin_futs_h);
+
   // create and add strategies to each exchange
   okcoin_futs_h->strategies.push_back(make_shared<SMACrossover>("SMACrossover", okcoin_futs_h->trading_log));
 }
