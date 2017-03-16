@@ -7,7 +7,7 @@ using std::to_string;
 using namespace std::chrono_literals;
 
 SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
-    Strategy(name,
+    SignalStrategy(name,
              15min,
              {
                  make_shared<MovingAverage>("sma_fast", 30),

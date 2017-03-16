@@ -4,7 +4,7 @@
 
 #include <boost/circular_buffer.hpp>
 
-#include "strategies.h"
+#include "signalstrategy.h"
 
 class MktData {
 public:
@@ -13,7 +13,7 @@ public:
   void add(const OHLC&);
   void add(const Ticker&);
 
-  void add_strategy(std::shared_ptr<Strategy>);
+  void add_strategy(std::shared_ptr<SignalStrategy>);
 
   std::string status();
 
@@ -23,6 +23,6 @@ public:
   // bar period in minutes
   std::chrono::minutes period;
 private:
-  std::vector<std::shared_ptr<Strategy>> strategies;
+  std::vector<std::shared_ptr<SignalStrategy>> strategies;
   std::mutex lock;
 };

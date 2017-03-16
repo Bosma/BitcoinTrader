@@ -43,7 +43,7 @@ void MktData::add(const Ticker& new_tick) {
     s->apply(new_tick);
 }
 
-void MktData::add_strategy(std::shared_ptr<Strategy> new_strategy) {
+void MktData::add_strategy(std::shared_ptr<SignalStrategy> new_strategy) {
   strategies.push_back(new_strategy);
 }
 
@@ -59,7 +59,7 @@ std::string MktData::strategies_status() {
   std::string s = std::accumulate(std::next(strategies.begin()),
                                   strategies.end(),
                                   strategies[0]->status(),
-                                  [](std::string a, std::shared_ptr<Strategy> s) {
+                                  [](std::string a, std::shared_ptr<SignalStrategy> s) {
                                     return a + ", " + s->status();
                                   });
   return s;

@@ -25,7 +25,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
   // for each exchange handler
   for (auto handler : exchange_handlers) {
     // for every strategy that this exchange handler manages
-    for (auto strategy : handler->strategies) {
+    for (auto strategy : handler->signal_strategies) {
       // if we do not have a mktdata object for this period
       if (handler->mktdata.count(strategy->period) == 0) {
         // create a mktdata object with the period the strategy uses
@@ -94,8 +94,8 @@ void BitcoinTrader::position_management() {
         can = can && handler->exchange->subscribed_to_OHLC(m.first);
       }
       // every strategy has a set signal
-      can = can && accumulate(handler->strategies.begin(), handler->strategies.end(), true,
-                              [](bool a, shared_ptr<Strategy> b) { return a && b->signal.has_been_set(); });
+      can = can && accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), true,
+                              [](bool a, shared_ptr<SignalStrategy> b) { return a && b->signal.has_been_set(); });
       // and we have a tick set
       can = can && handler->tick.has_been_set();
       return can;

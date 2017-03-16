@@ -9,7 +9,7 @@ file (GLOB_RECURSE SOURCES "src/*.cpp")
 
 include_directories (include)
 
-include_directories (json)
-include_directories (websocketpp)
+include_directories (libs/json)
+include_directories (libs/websocketpp)
 
 add_executable (BitcoinTrader ${SOURCES})

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "trading/strategies.h"
+#include "trading/signalstrategy.h"
 
-class SMACrossover : public Strategy {
+class SMACrossover : public SignalStrategy {
 public:
   SMACrossover(std::string, std::shared_ptr<Log>);
 

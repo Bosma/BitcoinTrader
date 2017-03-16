@@ -1,9 +1,9 @@
-#include "trading/strategies.h"
+#include "trading/signalstrategy.h"
 
 using std::string;
 using std::to_string;
 
-std::string Strategy::status() {
+std::string SignalStrategy::status() {
   std::ostringstream os;
   os << name;
   if (signal.has_been_set())
@@ -13,7 +13,7 @@ std::string Strategy::status() {
   return os.str();
 }
 
-void Strategy::process_stop(const Ticker& new_tick) {
+void SignalStrategy::process_stop(const Ticker& new_tick) {
   if (stop.has_been_set()) {
     auto current_signal = signal.get();
     auto current_stop = stop.get();
@@ -30,7 +30,7 @@ void Strategy::process_stop(const Ticker& new_tick) {
   }
 }
 
-void Strategy::process_stop(const OHLC& bar) {
+void SignalStrategy::process_stop(const OHLC& bar) {
   Ticker fake_tick;
   // since the bid is used if we are long, set the bid to the low of the bar to see if that bar would have stopped us out
   fake_tick.bid = bar.low;

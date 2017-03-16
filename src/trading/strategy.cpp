@@ -1,0 +1,2 @@
+#include "trading/strategy.h"
+
