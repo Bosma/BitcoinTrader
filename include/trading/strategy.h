@@ -14,6 +14,8 @@ public:
       name(name),
       log(log) { }
 
+  virtual std::string status() = 0;
+
   std::string name;
   std::shared_ptr<Log> log;
 };

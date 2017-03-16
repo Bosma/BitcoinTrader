@@ -17,8 +17,6 @@ public:
 
   std::string status();
 
-  std::string strategies_status();
-
   buffer bars;
   // bar period in minutes
   std::chrono::minutes period;

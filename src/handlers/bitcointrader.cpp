@@ -57,9 +57,8 @@ string BitcoinTrader::status() {
     for (auto &m : (*i)->mktdata) {
       os << m.second.status() << endl;
     }
-    for (auto &m : (*i)->mktdata) {
-      os << m.second.period.count() << "m Strategies: ";
-      os << m.second.strategies_status() << endl;
+    for (auto s : (*i)->strategies()) {
+      os << s->status() << endl;
     }
     if (next(i) != exchange_handlers.end())
       os << endl;

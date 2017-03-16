@@ -40,7 +40,6 @@ public:
 
 protected:
   std::shared_ptr<OKCoinFutsHandler> okcoin_futs_h;
-  // required to explicitly add each exchange handler above here:
   std::vector<std::shared_ptr<ExchangeHandler>> exchange_handlers;
 
   // user defined functions

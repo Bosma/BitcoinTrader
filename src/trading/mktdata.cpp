@@ -54,13 +54,3 @@ std::string MktData::status() {
   os << ", last OHLC bar: " + bars.back().to_string();
   return os.str();
 }
-
-std::string MktData::strategies_status() {
-  std::string s = std::accumulate(std::next(strategies.begin()),
-                                  strategies.end(),
-                                  strategies[0]->status(),
-                                  [](std::string a, std::shared_ptr<SignalStrategy> s) {
-                                    return a + ", " + s->status();
-                                  });
-  return s;
-}

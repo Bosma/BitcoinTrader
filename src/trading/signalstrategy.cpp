@@ -5,7 +5,7 @@ using std::to_string;
 
 std::string SignalStrategy::status() {
   std::ostringstream os;
-  os << name;
+  os << name << " (" << period.count() << "m)";
   if (signal.has_been_set())
     os << " signal: " << signal.get() << " ";
   if (stop.has_been_set())

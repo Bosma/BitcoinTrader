@@ -21,7 +21,7 @@ public:
   Atomic<double> signal;
   Atomic<double> stop;
 
-  std::string status();
+  std::string status() override;
 
   void process_stop(const Ticker&);
   void process_stop(const OHLC&);

@@ -24,6 +24,13 @@ public:
 
   std::map<std::chrono::minutes, MktData> mktdata;
   std::vector<std::shared_ptr<SignalStrategy>> signal_strategies;
+  // get vector of above strategies together
+  std::vector<std::shared_ptr<Strategy>> strategies() {
+    std::vector<std::shared_ptr<Strategy>> s;
+    s.insert(s.end(),
+             signal_strategies.begin(), signal_strategies.end());
+    return s;
+  }
   Atomic<Ticker> tick;
 
   std::mutex reconnect;
