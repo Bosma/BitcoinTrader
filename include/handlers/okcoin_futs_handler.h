@@ -13,7 +13,7 @@ public:
   void manage_positions(double) override;
 
   boost::optional<OKCoinFuts::UserInfo> okcoin_futs_userinfo();
-  bool market(OKCoinFuts::OrderType, double, int, double, std::chrono::seconds);
+  bool limit(OKCoinFuts::OrderType, double, int, double, std::chrono::seconds);
 
   std::shared_ptr<OKCoinFuts> okcoin_futs;
   OKCoinFuts::ContractType contract_type;

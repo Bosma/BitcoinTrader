@@ -8,8 +8,8 @@ using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 using boost::optional;
 
-// TODO: With max_price not immedately executable, this is just a limit with a cancel time. change its name and verify.
-bool OKCoinFutsHandler::market(OKCoinFuts::OrderType type, double amount, int lever_rate, double max_price, std::chrono::seconds timeout) {
+bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lever_rate, double limit_price,
+                              std::chrono::seconds timeout) {
   bool trading_done = false;
   auto cancel_time = timestamp_now() + timeout;
   auto trade_callback = [&](const string& order_id) {
@@ -54,7 +54,7 @@ bool OKCoinFutsHandler::market(OKCoinFuts::OrderType type, double amount, int le
   };
   okcoin_futs->set_trade_callback(trade_callback);
 
-  okcoin_futs->order(type, amount, max_price, lever_rate, false, cancel_time);
+  okcoin_futs->order(type, amount, limit_price, lever_rate, false, cancel_time);
 
   // check until the trade callback is finished, or cancel_time
   return check_until([&]() { return trading_done; }, cancel_time);
