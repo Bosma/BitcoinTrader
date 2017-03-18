@@ -1,7 +1,5 @@
 #pragma once
 
-#include <boost/optional.hpp>
-
 #include "handlers/exchange_handler.h"
 #include "exchanges/okcoin_futs.h"
 
@@ -12,7 +10,7 @@ public:
   void set_up_and_start() override;
   void manage_positions(double) override;
 
-  boost::optional<OKCoinFuts::UserInfo> okcoin_futs_userinfo();
+  boost::optional<OKCoinFuts::UserInfo> userinfo();
   // open a limit that closes after some time
   bool limit(OKCoinFuts::OrderType, double, int, double, std::chrono::seconds);
 

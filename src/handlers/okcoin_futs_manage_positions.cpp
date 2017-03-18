@@ -16,11 +16,11 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   // fetch the current position
   // if something is wrong, restart this function
   auto position = okcoin_futs->positions();
-  if (!position.valid)
+  if (!position)
     return;
 
   // fetch userinfo, if we cannot just return
-  auto userinfo = okcoin_futs_userinfo();
+  auto userinfo = userinfo();
   if (!userinfo)
     return;
 
@@ -32,7 +32,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   // calculate the number of contracts we have open, and the number of contracts we would like to have
   // negative contracts are short contracts
   double equity = userinfo->equity * t.last;
-  double max_exposure = position.lever_rate * equity;
+  double max_exposure = position->lever_rate * equity;
   double desired_exposure = signal * max_exposure;;
   int desired_contracts = static_cast<int>(floor(desired_exposure / 100));
 
@@ -44,7 +44,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   else
     desired_contracts = -1;
 
-  int current_contracts = position.buy.contracts - position.sell.contracts;
+  int current_contracts = position->buy.contracts - position->sell.contracts;
 
   // number of contracts we have to close and/or open
   int contracts_to_close;
@@ -103,7 +103,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     calculations(to_close);
     logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // limit with price crossing the bid/ask immediately executes with maximum slippage
-    if (!limit(to_close, abs(contracts_to_close), position.lever_rate, max_price, std::chrono::seconds())) {
+    if (!limit(to_close, abs(contracts_to_close), position->lever_rate, max_price, std::chrono::seconds())) {
       // if we've failed to close, discontinue
       return;
     }
@@ -116,6 +116,6 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // no need to check for success, since it's the last thing we do
     // if it fails, manage positions loops again
-    limit(to_close, abs(contracts_to_open), position.lever_rate, max_price, std::chrono::seconds());
+    limit(to_close, abs(contracts_to_open), position->lever_rate, max_price, std::chrono::seconds());
   }
 }

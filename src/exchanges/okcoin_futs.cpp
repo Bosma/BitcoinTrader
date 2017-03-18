@@ -10,7 +10,7 @@ using std::endl;         using std::lock_guard;
 using std::mutex;        using std::exception;
 using std::to_string;    using std::ifstream;
 using std::ostringstream;using std::make_shared;
-using std::next;
+using std::next;         using boost::optional;
 
 OKCoinFuts::OKCoinFuts(std::string name, ContractType contract_type, shared_ptr<Log> log, shared_ptr<Config> config) :
     OKCoin(name, Market::Future, log, config),
@@ -122,7 +122,7 @@ void OKCoinFuts::orderinfo(const string& order_id, nanoseconds invalid_time) {
   }
 }
 
-OKCoinFuts::FuturePosition OKCoinFuts::positions() {
+optional<OKCoinFuts::FuturePosition> OKCoinFuts::positions() {
   string url = "https://www.okcoin.com/api/v1/future_position.do";
 
   json p;
@@ -132,7 +132,6 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
   string sig = sign(p);
   p["sign"] = sig;
 
-  FuturePosition pos;
   string response = curl_post(url, log, ampersand_list(p));
   if (!response.empty() && response.at(0) != '<') {
     try {
@@ -141,6 +140,7 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
         log->output("COULDN'T FETCH FUTUREPOSITION WITH ERROR: " + error_reasons[j["errorcode"]]);
       }
       else {
+        FuturePosition pos{};
         if (j["holding"] != nullptr && !j["holding"].empty()) {
           const json& h = j["holding"][0];
           pos.buy.contracts = optionally_to_int(h["buy_amount"]);
@@ -157,14 +157,14 @@ OKCoinFuts::FuturePosition OKCoinFuts::positions() {
           pos.create_date = opt_to_string<long>(h["create_date"]);
           pos.lever_rate = optionally_to_int(h["lever_rate"]);
         }
-        pos.valid = true;
+        return pos;
       }
     }
     catch (exception &e) {
       log->output("OKCoinFuts::positions(): ERROR PARSING JSON " + string(e.what()) + ", with: " + response);
     }
   }
-  return pos;
+  return {};
 }
 
 bool OKCoinFuts::backfill_OHLC(minutes period, unsigned long n) {

@@ -48,7 +48,6 @@ public:
     OrderType type;
     int unit_amount;
   };
-  // TODO: replace valid with boost::optional in usages
   struct FuturePosition {
     struct Position {
       int contracts = 0;
@@ -78,7 +77,7 @@ public:
   void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);
   void cancel_order(const std::string&, std::chrono::nanoseconds);
   void orderinfo(const std::string&, std::chrono::nanoseconds);
-  FuturePosition positions();
+  boost::optional<FuturePosition> positions();
 
   void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {
     userinfo_callback = callback;

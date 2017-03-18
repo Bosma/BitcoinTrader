@@ -60,7 +60,7 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
   return check_until([&]() { return trading_done; }, cancel_time);
 }
 
-optional<OKCoinFuts::UserInfo> OKCoinFutsHandler::okcoin_futs_userinfo() {
+optional<OKCoinFuts::UserInfo> OKCoinFutsHandler::userinfo() {
   // Fetch the current OKCoin Futs account information (to get the equity)
   auto cancel_time = timestamp_now() + 10s;
   Atomic<OKCoinFuts::UserInfo> userinfo_a;

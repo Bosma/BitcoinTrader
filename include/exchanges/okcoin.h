@@ -63,7 +63,6 @@ public:
 
   void userinfo(std::chrono::nanoseconds);
 
-
 protected:
   std::string api_key;
   std::string secret_key;

@@ -7,6 +7,7 @@
 #include <memory>
 #include <functional>
 #include <thread>
+#include <boost/optional.hpp>
 #include "utilities/exchange_utils.h"
 #include "utilities/log.h"
 
