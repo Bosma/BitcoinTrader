@@ -12,12 +12,11 @@
 
 class ExchangeHandler {
 public:
-  ExchangeHandler(std::string name, std::shared_ptr<Config> config, std::shared_ptr<Log> log, std::shared_ptr<Log> trading_log) :
-      name(name), log(log), trading_log(trading_log), config(config), cancel_checking(false) {
+  ExchangeHandler(std::string name, std::shared_ptr<Config> config) :
+      name(name), config(config), cancel_checking(false) {
   }
   std::string name;
-  std::shared_ptr<Log> log;
-  std::shared_ptr<Log> trading_log;
+  std::map<std::string, std::shared_ptr<Log>> logs;
   std::shared_ptr<Config> config;
 
   std::shared_ptr<Exchange> exchange;
@@ -32,6 +31,10 @@ public:
     return s;
   }
   Atomic<Ticker> tick;
+
+  void make_log(std::string name, std::string config_key) {
+    logs[name] = std::make_shared<Log>((*config)[config_key]);
+  }
 
   std::mutex reconnect;
   std::atomic<bool> cancel_checking;

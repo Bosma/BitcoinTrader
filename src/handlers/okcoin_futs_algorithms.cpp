@@ -8,33 +8,8 @@ using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 using boost::optional;
 
-bool OKCoinFutsHandler::okcoin_futs_market(OKCoinFuts::OrderType type, double amount, int lever_rate, seconds timeout) {
-  auto t = tick.get();
-
-  string action;
-  string direction;
-  double price;
-
-  switch (type) {
-    case OKCoinFuts::OrderType::OpenLong :
-      action = "OPENING"; direction = "LONG";
-      price = t.bid * (1 + 0.01);
-      break;
-    case OKCoinFuts::OrderType::OpenShort :
-      action = "OPENING"; direction = "SHORT";
-      price = t.ask * (1 - 0.01);
-      break;
-    case OKCoinFuts::OrderType::CloseLong :
-      action = "CLOSING"; direction = "LONG";
-      price = t.ask * (1 - 0.01);
-      break;
-    case OKCoinFuts::OrderType::CloseShort :
-      action = "CLOSING"; direction = "SHORT";
-      price = t.bid * (1 + 0.01);
-  }
-
-  trading_log->output("MARKET " + action + " " + to_string(amount) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(price));
-
+// TODO: With max_price not immedately executable, this is just a limit with a cancel time. change its name and verify.
+bool OKCoinFutsHandler::market(OKCoinFuts::OrderType type, double amount, int lever_rate, double max_price, std::chrono::seconds timeout) {
   bool trading_done = false;
   auto cancel_time = timestamp_now() + timeout;
   auto trade_callback = [&](const string& order_id) {
@@ -68,17 +43,18 @@ bool OKCoinFutsHandler::okcoin_futs_market(OKCoinFuts::OrderType type, double am
         okcoin_futs->cancel_order(order_id, cancel_time);
 
       if (final_info.filled_amount != 0) {
-        trading_log->output(
+        // TODO: switch to execution and give comma separated list of relevent execution values
+        logs.at("trading")->output(
             "FILLED FOR " + to_string(final_info.filled_amount) + " BTC @ $" + to_string(final_info.avg_price));
       }
       else
-        trading_log->output("NOT FILLED IN TIME");
+        logs.at("trading")->output("NOT FILLED IN TIME");
     }
     trading_done = true;
   };
   okcoin_futs->set_trade_callback(trade_callback);
 
-  okcoin_futs->order(type, amount, price, lever_rate, false, cancel_time);
+  okcoin_futs->order(type, amount, max_price, lever_rate, false, cancel_time);
 
   // check until the trade callback is finished, or cancel_time
   return check_until([&]() { return trading_done; }, cancel_time);
@@ -86,7 +62,6 @@ bool OKCoinFutsHandler::okcoin_futs_market(OKCoinFuts::OrderType type, double am
 
 optional<OKCoinFuts::UserInfo> OKCoinFutsHandler::okcoin_futs_userinfo() {
   // Fetch the current OKCoin Futs account information (to get the equity)
-  // If we do not get a response in time, restart this function
   auto cancel_time = timestamp_now() + 10s;
   Atomic<OKCoinFuts::UserInfo> userinfo_a;
   okcoin_futs->set_userinfo_callback([&userinfo_a](const OKCoinFuts::UserInfo& new_userinfo) {

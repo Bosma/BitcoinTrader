@@ -73,10 +73,36 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     }
   }
 
+  string action;
+  string direction;
+  double max_price;
+
+  auto calculations = [&action, &direction, &max_price, &t](auto type) {
+    switch (type) {
+      case OKCoinFuts::OrderType::OpenLong :
+        action = "OPENING"; direction = "LONG";
+        max_price = t.bid * (1 + 0.01);
+        break;
+      case OKCoinFuts::OrderType::OpenShort :
+        action = "OPENING"; direction = "SHORT";
+        max_price = t.ask * (1 - 0.01);
+        break;
+      case OKCoinFuts::OrderType::CloseLong :
+        action = "CLOSING"; direction = "LONG";
+        max_price = t.ask * (1 - 0.01);
+        break;
+      case OKCoinFuts::OrderType::CloseShort :
+        action = "CLOSING"; direction = "SHORT";
+        max_price = t.bid * (1 + 0.01);
+    }
+  };
+
   // if we have any contracts to close, convert the contracts to long or short contracts instead of negative/positive
   if (contracts_to_close != 0) {
     auto to_close = (contracts_to_close >= 0) ? OKCoinFuts::OrderType::CloseLong : OKCoinFuts::OrderType::CloseShort;
-    if (!okcoin_futs_market(to_close, abs(contracts_to_close), position.lever_rate)) {
+    calculations(to_close);
+    logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
+    if (!market(to_close, abs(contracts_to_close), position.lever_rate, max_price, std::chrono::seconds())) {
       // if we've failed to close, discontinue
       return;
     }
@@ -85,8 +111,10 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   // if we have any contracts to open, convert the contracts to long or short contracts instead of negative/positive
   if (contracts_to_open != 0) {
     auto to_close = (contracts_to_open >= 0) ? OKCoinFuts::OrderType::OpenLong : OKCoinFuts::OrderType::OpenShort;
+    calculations(to_close);
+    logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // no need to check for success, since it's the last thing we do
     // if it fails, manage positions loops again
-    okcoin_futs_market(to_close, abs(contracts_to_open), position.lever_rate);
+    market(to_close, abs(contracts_to_open), position.lever_rate, max_price, std::chrono::seconds());
   }
 }

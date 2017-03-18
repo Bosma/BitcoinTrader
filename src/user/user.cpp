@@ -10,16 +10,20 @@ void BitcoinTrader::user_specifications() {
   // create the exchanges that you will use
   okcoin_futs_h = make_shared<OKCoinFutsHandler>("OKCoinFuts",
                                                  config,
-                                                 "okcoin_futs_log",
-                                                 "trading_log",
                                                  OKCoinFuts::ContractType::Weekly);
+
+
+  // create the log files
+  okcoin_futs_h->make_log("trading", "futs_trading_log");
+  okcoin_futs_h->make_log("execution", "futs_execution_log");
+  okcoin_futs_h->make_log("exchange", "futs_exchange_log");
 
   // required to explicitly add each exchange to the handlers list
   exchange_handlers.push_back(okcoin_futs_h);
 
   // create and add strategies to each exchange
   okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover",
-                                                                       okcoin_futs_h->trading_log));
+                                                                       okcoin_futs_h->logs.at("trading")));
 }
 
 double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {

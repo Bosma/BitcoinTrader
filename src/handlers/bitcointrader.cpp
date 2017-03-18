@@ -131,7 +131,7 @@ void BitcoinTrader::check_connection() {
             (((timestamp_now() - exchange->exchange->ts_since_last) > 1min) ||
              // if the websocket has closed
              !exchange->exchange->connected())) {
-          exchange->log->output("RECONNECTING TO " + exchange->name);
+          exchange->logs["exchange"]->output("RECONNECTING TO " + exchange->name);
           exchange->set_up_and_start();
           warm_up = true;
         }
