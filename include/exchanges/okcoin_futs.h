@@ -48,6 +48,7 @@ public:
     OrderType type;
     int unit_amount;
   };
+  // TODO: replace valid with boost::optional in usages
   struct FuturePosition {
     struct Position {
       int contracts = 0;
@@ -67,14 +68,17 @@ public:
 
   OKCoinFuts(std::string, ContractType, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
 
-  void subscribe_to_ticker();
-  void subscribe_to_OHLC(std::chrono::minutes);
-  bool subscribed_to_OHLC(std::chrono::minutes);
+  void subscribe_to_ticker() override;
+  void subscribe_to_OHLC(std::chrono::minutes) override;
+  bool subscribed_to_OHLC(std::chrono::minutes) override;
+  bool backfill_OHLC(std::chrono::minutes, unsigned long) override;
+
   void open(Position, double, double, int, std::chrono::nanoseconds);
   void close(Position, double, double, int, std::chrono::nanoseconds);
   void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);
   void cancel_order(const std::string&, std::chrono::nanoseconds);
   void orderinfo(const std::string&, std::chrono::nanoseconds);
+  FuturePosition positions();
 
   void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {
     userinfo_callback = callback;
@@ -83,18 +87,14 @@ public:
     orderinfo_callback = callback;
   }
 
-  // REST commands
-  FuturePosition positions();
-  bool backfill_OHLC(std::chrono::minutes, unsigned long);
-
 private:
   ContractType contract_type;
 
   std::function<void(const UserInfo&)> userinfo_callback;
   std::function<void(const OrderInfo&)> orderinfo_callback;
 
-  void orderinfo_handler(const json&);
-  void userinfo_handler(const json&);
+  void orderinfo_handler(const json&) override;
+  void userinfo_handler(const json&) override;
 
   // convert contract type into string for ws messages
   static const std::string contract_s(const ContractType type) {

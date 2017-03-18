@@ -54,20 +54,15 @@ public:
 
   OKCoin(std::string, Market, std::shared_ptr<Log>, std::shared_ptr<Config>);
 
-  void start();
-
-  void ping();
+  void start() override;
+  void ping() override;
+  std::string status() override;
+  bool connected() override {
+    return ws.get_status() == websocket::Status::Open;
+  }
 
   void userinfo(std::chrono::nanoseconds);
 
-  // backfill OHLC period
-  virtual bool backfill_OHLC(std::chrono::minutes, unsigned long) = 0;
-
-  std::string status();
-
-  bool connected() {
-    return ws.get_status() == websocket::Status::Open;
-  }
 
 protected:
   std::string api_key;

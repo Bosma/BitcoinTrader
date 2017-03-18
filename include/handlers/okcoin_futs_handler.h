@@ -13,6 +13,7 @@ public:
   void manage_positions(double) override;
 
   boost::optional<OKCoinFuts::UserInfo> okcoin_futs_userinfo();
+  // open a limit that closes after some time
   bool limit(OKCoinFuts::OrderType, double, int, double, std::chrono::seconds);
 
   std::shared_ptr<OKCoinFuts> okcoin_futs;

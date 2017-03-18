@@ -49,9 +49,11 @@ public:
 
   OKCoinSpot(std::string, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
 
-  void subscribe_to_ticker();
-  void subscribe_to_OHLC(std::chrono::minutes);
-  bool subscribed_to_OHLC(std::chrono::minutes);
+  void subscribe_to_ticker() override;
+  void subscribe_to_OHLC(std::chrono::minutes) override;
+  bool subscribed_to_OHLC(std::chrono::minutes) override;
+  bool backfill_OHLC(std::chrono::minutes, unsigned long) override;
+
   void market_buy(double, std::chrono::nanoseconds);
   void market_sell(double, std::chrono::nanoseconds);
   void limit_buy(double, double, std::chrono::nanoseconds);
@@ -63,11 +65,13 @@ public:
   void set_orderinfo_callback(std::function<void(const OrderInfo&)> callback) {
     orderinfo_callback = callback;
   }
-
-  bool backfill_OHLC(std::chrono::minutes, unsigned long);
 private:
   std::function<void(const UserInfo&)> userinfo_callback;
   std::function<void(const OrderInfo&)> orderinfo_callback;
+
+  // HANDLERS FOR CHANNEL MESSAGES
+  void orderinfo_handler(const json&) override;
+  void userinfo_handler(const json&) override;
 
   void order(const std::string&, const std::string&, std::chrono::nanoseconds, const std::string& price = "");
 
@@ -79,8 +83,4 @@ private:
   json unrepayments_info(Currency);
   json borrow_money(Currency, double, double);
   json repayment(const std::string&);
-
-  // HANDLERS FOR CHANNEL MESSAGES
-  void orderinfo_handler(const json&);
-  void userinfo_handler(const json&);
 };
