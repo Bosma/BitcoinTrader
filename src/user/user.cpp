@@ -17,7 +17,7 @@ void BitcoinTrader::user_specifications() {
   exchange_handlers.push_back(okcoin_futs_h);
 
   // create and add strategies to each exchange
-  //okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", okcoin_futs_h->trading_log));
+  okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", okcoin_futs_h->trading_log));
 }
 
 double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {
