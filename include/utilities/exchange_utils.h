@@ -50,7 +50,6 @@ public:
       bids(bids), asks(asks), timestamp(ts) { }
   Depth() { }
 
-  // TODO: switch all to_string()s into string cast
   std::string to_string() const {
     std::string s = std::to_string(timestamp.count());
     s += "," + std::accumulate(std::next(bids.begin()),
