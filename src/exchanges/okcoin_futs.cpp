@@ -24,6 +24,10 @@ void OKCoinFuts::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period));
 }
 
+void OKCoinFuts::subscribe_to_depth() {
+  subscribe_to_channel("ok_sub_futureusd_btc_depth_" + contract_s(contract_type) + "_20");
+}
+
 bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
 

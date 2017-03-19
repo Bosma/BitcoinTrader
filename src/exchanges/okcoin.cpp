@@ -17,6 +17,8 @@ using std::next;
 using std::exception;
 using std::stringstream;
 using std::to_string;
+using std::sort;
+using boost::adaptors::reverse;
 
 OKCoin::OKCoin(string name, Market market, shared_ptr<Log> log, shared_ptr<Config> config) :
     Exchange(name, log, config),
@@ -74,6 +76,9 @@ void OKCoin::on_message(const string& message) {
 
             if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
               ticker_handler(channel_message["data"]);
+            }
+            else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_depth") != string::npos) {
+              depth_handler(channel_message["data"]);
             }
             else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
               // remove beginning of channel name to obtain period
@@ -292,6 +297,21 @@ void OKCoin::ticker_handler(const json& j) {
     Ticker tick(last, bid, ask, timestamp_now());
 
     ticker_callback(tick);
+  }
+}
+
+void OKCoin::depth_handler(const json& j) {
+  if (depth_callback) {
+    Depth depth;
+
+    for (const json& order: reverse(j["asks"]))
+      depth.asks.emplace_back(order[0], order[1]);
+
+    for (const json& order : j["bids"])
+      depth.bids.emplace_back(order[0], order[1]);
+
+    depth.timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(j["timestamp"])));
+    depth_callback(depth);
   }
 }
 

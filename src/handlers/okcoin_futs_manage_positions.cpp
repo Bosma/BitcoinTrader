@@ -20,7 +20,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     return;
 
   // fetch userinfo, if we cannot just return
-  auto userinfo = userinfo();
+  auto userinfo = get_userinfo();
   if (!userinfo)
     return;
 
@@ -101,7 +101,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   if (contracts_to_close != 0) {
     auto to_close = (contracts_to_close >= 0) ? OKCoinFuts::OrderType::CloseLong : OKCoinFuts::OrderType::CloseShort;
     calculations(to_close);
-    logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
+    trading_log->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // limit with price crossing the bid/ask immediately executes with maximum slippage
     if (!limit(to_close, abs(contracts_to_close), position->lever_rate, max_price, std::chrono::seconds())) {
       // if we've failed to close, discontinue
@@ -113,7 +113,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   if (contracts_to_open != 0) {
     auto to_close = (contracts_to_open >= 0) ? OKCoinFuts::OrderType::OpenLong : OKCoinFuts::OrderType::OpenShort;
     calculations(to_close);
-    logs.at("trading")->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
+    trading_log->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // no need to check for success, since it's the last thing we do
     // if it fails, manage positions loops again
     limit(to_close, abs(contracts_to_open), position->lever_rate, max_price, std::chrono::seconds());

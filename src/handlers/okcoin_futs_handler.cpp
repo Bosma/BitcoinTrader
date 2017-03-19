@@ -10,9 +10,8 @@ using std::to_string;
 using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
-OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, OKCoinFuts::ContractType contract_type) :
-    ExchangeHandler(name,
-                    config),
+OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, string exchange_log_key, string trading_log_key, string execution_log_key, OKCoinFuts::ContractType contract_type) :
+    ExchangeHandler(name, config, exchange_log_key, trading_log_key, execution_log_key),
     contract_type(contract_type) {
 }
 
@@ -26,8 +25,9 @@ void OKCoinFutsHandler::set_up_and_start() {
   cancel_checking = false;
 
   tick.clear();
+  depth.clear();
 
-  okcoin_futs = std::make_shared<OKCoinFuts>(name, contract_type, logs.at("exchange"), config);
+  okcoin_futs = std::make_shared<OKCoinFuts>(name, contract_type, exchange_log, config);
   exchange = okcoin_futs;
 
   // set the callbacks the exchange will use
@@ -37,19 +37,23 @@ void OKCoinFutsHandler::set_up_and_start() {
     okcoin_futs->subscribe_to_ticker();
     check_until([&]() { return tick.has_been_set() || cancel_checking; });
 
+    // do the same for depth
+    okcoin_futs->subscribe_to_depth();
+    check_until([&]() { return depth.has_been_set() || cancel_checking; });
+
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
       auto OHLC_is_fetched = [&]() {
-        logs.at("trading")->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
+        trading_log->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         bool success = okcoin_futs->backfill_OHLC(m.second.period, m.second.bars.capacity());
         if (success)
-          logs.at("trading")->output("FINISHED BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
+          trading_log->output("FINISHED BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         else
-          logs.at("exchange")->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
+          exchange_log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, TRYING AGAIN.");
         return success;
       };
       if (!check_until(OHLC_is_fetched, timestamp_now() + 1min, 10s))
-        logs.at("exchange")->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
+        exchange_log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
       okcoin_futs->subscribe_to_OHLC(m.second.period);
     }
   };
@@ -69,6 +73,11 @@ void OKCoinFutsHandler::set_up_and_start() {
     tick.set(new_tick);
   };
   okcoin_futs->set_ticker_callback(ticker_callback);
+
+  auto depth_callback = [&](const Depth& new_depth) {
+    depth.set(new_depth);
+  };
+  okcoin_futs->set_depth_callback(depth_callback);
 
   // start the exchange
   okcoin_futs->start();

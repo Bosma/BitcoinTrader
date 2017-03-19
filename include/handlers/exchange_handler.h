@@ -12,13 +12,21 @@
 
 class ExchangeHandler {
 public:
-  ExchangeHandler(std::string name, std::shared_ptr<Config> config) :
-      name(name), config(config), cancel_checking(false) {
+  ExchangeHandler(std::string name, std::shared_ptr<Config> config, std::string exchange_log_key, std::string trading_log_key, std::string execution_log_key) :
+      name(name),
+      exchange_log(std::make_shared<Log>((*config)[exchange_log_key])),
+      trading_log(std::make_shared<Log>((*config)[trading_log_key])),
+      execution_log(std::make_shared<Log>((*config)[execution_log_key])),
+      config(config),
+      cancel_checking(false) {
   }
   std::string name;
-  std::map<std::string, std::shared_ptr<Log>> logs;
-  std::shared_ptr<Config> config;
 
+  std::shared_ptr<Log> exchange_log;
+  std::shared_ptr<Log> trading_log;
+  std::shared_ptr<Log> execution_log;
+
+  std::shared_ptr<Config> config;
   std::shared_ptr<Exchange> exchange;
 
   std::map<std::chrono::minutes, MktData> mktdata;
@@ -31,10 +39,7 @@ public:
     return s;
   }
   Atomic<Ticker> tick;
-
-  void make_log(std::string name, std::string config_key) {
-    logs[name] = std::make_shared<Log>((*config)[config_key]);
-  }
+  Atomic<Depth> depth;
 
   std::mutex reconnect;
   std::atomic<bool> cancel_checking;

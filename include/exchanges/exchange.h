@@ -22,6 +22,7 @@ public:
 
   virtual void start() = 0;
   virtual void subscribe_to_ticker() = 0;
+  virtual void subscribe_to_depth() = 0;
   virtual void subscribe_to_OHLC(std::chrono::minutes) = 0;
   virtual bool subscribed_to_OHLC(std::chrono::minutes) = 0;
   virtual void userinfo(std::chrono::nanoseconds) = 0;
@@ -32,6 +33,9 @@ public:
 
   void set_ticker_callback(std::function<void(const Ticker&)> callback) {
     ticker_callback = callback;
+  }
+  void set_depth_callback(std::function<void(const Depth&)> callback) {
+    depth_callback = callback;
   }
   void set_OHLC_callback(std::function<void(std::chrono::minutes, const OHLC&)> callback) {
     OHLC_callback = callback;
@@ -58,6 +62,7 @@ protected:
   std::shared_ptr<Log> log;
 
   std::function<void(const Ticker&)> ticker_callback;
+  std::function<void(const Depth&)> depth_callback;
   std::function<void(std::chrono::minutes, const OHLC&)> OHLC_callback;
   std::function<void()> open_callback;
   std::function<void(const std::string&)> trade_callback;

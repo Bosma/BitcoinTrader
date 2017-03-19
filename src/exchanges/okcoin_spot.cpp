@@ -19,6 +19,9 @@ OKCoinSpot::OKCoinSpot(std::string name, shared_ptr<Log> log, shared_ptr<Config>
 void OKCoinSpot::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");
 }
+void OKCoinSpot::subscribe_to_depth() {
+  subscribe_to_channel("ok_sub_spotusd_btc_depth_20");
+}
 
 void OKCoinSpot::subscribe_to_OHLC(minutes period) {
   subscribe_to_channel("ok_sub_spotusd_btc_kline_" + period_s(period));

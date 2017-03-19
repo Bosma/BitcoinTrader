@@ -8,7 +8,9 @@
 #include <fstream>
 #include <regex>
 #include <numeric>
+#include <algorithm>
 
+#include <boost/range/adaptor/reversed.hpp>
 #include <openssl/md5.h>
 
 #include "json.hpp"
@@ -60,9 +62,7 @@ public:
   bool connected() override {
     return ws.get_status() == websocket::Status::Open;
   }
-
-  void userinfo(std::chrono::nanoseconds);
-
+  void userinfo(std::chrono::nanoseconds) override;
 protected:
   std::string api_key;
   std::string secret_key;
@@ -85,6 +85,7 @@ protected:
   // HANDLERS FOR CHANNEL MESSAGES
   void OHLC_handler(const std::string&, const json&);
   void ticker_handler(const json&);
+  void depth_handler(const json&);
   virtual void userinfo_handler(const json&) = 0;
   virtual void orderinfo_handler(const json&) = 0;
 
@@ -110,4 +111,5 @@ protected:
   }
 private:
   std::string get_sig(const std::string&);
+
 };

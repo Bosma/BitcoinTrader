@@ -5,7 +5,7 @@
 
 class OKCoinSpotHandler : public ExchangeHandler {
 public:
-  OKCoinSpotHandler(std::string, std::shared_ptr<Config>);
+  OKCoinSpotHandler(std::string, std::shared_ptr<Config>, std::string, std::string, std::string);
 
   void set_up_and_start() override;
 

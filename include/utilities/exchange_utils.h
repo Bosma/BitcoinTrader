@@ -28,6 +28,29 @@ public:
   std::chrono::nanoseconds timestamp;
 };
 
+class Depth {
+public:
+  struct Order {
+    Order(double price, int volume) : price(price), volume(volume) { };
+
+    bool operator<(const Order& rhs) {
+      return price < rhs.price;
+    }
+
+    double price;
+    int volume;
+  };
+  using Orders = std::vector<Order>;
+
+  Depth(Orders bids, Orders asks, std::chrono::nanoseconds ts) :
+      bids(bids), asks(asks), timestamp(ts) { }
+  Depth() { }
+
+  Orders bids;
+  Orders asks;
+  std::chrono::nanoseconds timestamp;
+};
+
 std::string ts_to_string(std::chrono::nanoseconds);
 
 class IndicatorValue {

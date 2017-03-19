@@ -112,8 +112,11 @@ void BitcoinTrader::position_management() {
     }
   };
 
-  for (auto handler : exchange_handlers)
-    running_threads.emplace_back(position_thread, handler);
+  for (auto handler : exchange_handlers) {
+    // no need to manage positions for exchanges with no strategies
+    if (!handler->strategies().empty())
+      running_threads.emplace_back(position_thread, handler);
+  }
 }
 
 void BitcoinTrader::check_connection() {
@@ -131,7 +134,7 @@ void BitcoinTrader::check_connection() {
             (((timestamp_now() - exchange->exchange->ts_since_last) > 1min) ||
              // if the websocket has closed
              !exchange->exchange->connected())) {
-          exchange->logs["exchange"]->output("RECONNECTING TO " + exchange->name);
+          exchange->exchange_log->output("RECONNECTING TO " + exchange->name);
           exchange->set_up_and_start();
           warm_up = true;
         }

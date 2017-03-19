@@ -50,6 +50,7 @@ public:
   OKCoinSpot(std::string, std::shared_ptr<Log> log, std::shared_ptr<Config> config);
 
   void subscribe_to_ticker() override;
+  void subscribe_to_depth() override;
   void subscribe_to_OHLC(std::chrono::minutes) override;
   bool subscribed_to_OHLC(std::chrono::minutes) override;
   bool backfill_OHLC(std::chrono::minutes, unsigned long) override;
