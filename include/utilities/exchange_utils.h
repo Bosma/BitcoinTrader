@@ -37,6 +37,10 @@ public:
       return price < rhs.price;
     }
 
+    std::string to_string() const {
+      return std::to_string(price) + ":" + std::to_string(volume);
+    }
+
     double price;
     int volume;
   };
@@ -45,6 +49,24 @@ public:
   Depth(Orders bids, Orders asks, std::chrono::nanoseconds ts) :
       bids(bids), asks(asks), timestamp(ts) { }
   Depth() { }
+
+  // TODO: switch all to_string()s into string cast
+  std::string to_string() const {
+    std::string s = std::to_string(timestamp.count());
+    s += "," + std::accumulate(std::next(bids.begin()),
+                               bids.end(),
+                               bids[0].to_string(),
+                               [](std::string a, Order& b) {
+                                 return a + ";" + b.to_string();
+                               });
+    s += "," + std::accumulate(std::next(asks.begin()),
+                               asks.end(),
+                               asks[0].to_string(),
+                               [](std::string a, Order& b) {
+                                 return a + ";" + b.to_string();
+                               });
+    return s;
+  }
 
   Orders bids;
   Orders asks;
