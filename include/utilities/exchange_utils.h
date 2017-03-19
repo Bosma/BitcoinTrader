@@ -56,13 +56,13 @@ public:
     s += "," + std::accumulate(std::next(bids.begin()),
                                bids.end(),
                                bids[0].to_string(),
-                               [](std::string a, Order& b) {
+                               [](const std::string& a, const Order& b) {
                                  return a + ";" + b.to_string();
                                });
     s += "," + std::accumulate(std::next(asks.begin()),
                                asks.end(),
                                asks[0].to_string(),
-                               [](std::string a, Order& b) {
+                               [](const std::string& a, const Order& b) {
                                  return a + ";" + b.to_string();
                                });
     return s;
