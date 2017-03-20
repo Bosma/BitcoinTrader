@@ -13,6 +13,18 @@ using namespace std::chrono_literals;
 OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, string exchange_log_key, string trading_log_key, string execution_log_key, OKCoinFuts::ContractType contract_type) :
     ExchangeHandler(name, config, exchange_log_key, trading_log_key, execution_log_key),
     contract_type(contract_type) {
+  std::vector<std::string> columns = {"contract_type",
+                                      "start_time",
+                                      "end_time",
+                                      "contract_amount",
+                                      "limit_price",
+                                      "filled_amount",
+                                      "average_price",
+                                      "posting_depth",
+                                      "expire_depth"};
+  execution_logs.emplace(std::piecewise_construct,
+                         std::forward_as_tuple("limit"),
+                         std::forward_as_tuple(name + "_limit.csv", columns));
 }
 
 void OKCoinFutsHandler::set_up_and_start() {

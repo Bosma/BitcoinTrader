@@ -52,13 +52,13 @@ public:
 
   std::string to_string() const {
     std::string s = std::to_string(timestamp.count());
-    s += "," + std::accumulate(std::next(bids.begin()),
+    s += "|" + std::accumulate(std::next(bids.begin()),
                                bids.end(),
                                bids[0].to_string(),
                                [](const std::string& a, const Order& b) {
                                  return a + ";" + b.to_string();
                                });
-    s += "," + std::accumulate(std::next(asks.begin()),
+    s += "|" + std::accumulate(std::next(asks.begin()),
                                asks.end(),
                                asks[0].to_string(),
                                [](const std::string& a, const Order& b) {

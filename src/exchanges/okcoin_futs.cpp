@@ -208,6 +208,7 @@ void OKCoinFuts::orderinfo_handler(const json& order) {
     new_order.symbol = order["symbol"];
     new_order.type = static_cast<OrderType>(optionally_to_int(order["type"]));
     new_order.unit_amount = optionally_to_int(order["unit_amount"]);
+    new_order.timestamp = timestamp_now();
     orderinfo_callback(new_order);
   }
 }

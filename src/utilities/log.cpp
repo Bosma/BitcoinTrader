@@ -20,11 +20,10 @@ Log::~Log() {
 }
 
 void Log::output(std::string message, bool alert) {
-  std::stringstream ss;
-  ss << ts_to_string(timestamp_now()) << ": " << message;
+  std::string s = ts_to_string(timestamp_now()) + ": " + message;
   if (alert)
-    send_email(ss.str());
-  *log << ss.str() << std::endl;
+    send_email(s);
+  *log << s << std::endl;
 };
 
 void Log::send_email(std::string message) {

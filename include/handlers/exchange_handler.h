@@ -5,6 +5,7 @@
 #include <atomic>
 
 #include "utilities/log.h"
+#include "utilities/csv.h"
 #include "utilities/config.h"
 #include "exchanges/exchange.h"
 #include "utilities/config.h"
@@ -16,7 +17,6 @@ public:
       name(name),
       exchange_log(std::make_shared<Log>((*config)[exchange_log_key])),
       trading_log(std::make_shared<Log>((*config)[trading_log_key])),
-      execution_log(std::make_shared<Log>((*config)[execution_log_key])),
       config(config),
       cancel_checking(false) {
   }
@@ -24,7 +24,7 @@ public:
 
   std::shared_ptr<Log> exchange_log;
   std::shared_ptr<Log> trading_log;
-  std::shared_ptr<Log> execution_log;
+  std::map<std::string, CSV> execution_logs;
 
   std::shared_ptr<Config> config;
   std::shared_ptr<Exchange> exchange;

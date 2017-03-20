@@ -43,10 +43,11 @@ public:
     std::string order_id;
     double price;
     double avg_price;
-    OrderStatus status;
+    OrderStatus status = OrderStatus::Failed;
     std::string symbol;
     OrderType type;
     int unit_amount;
+    std::chrono::nanoseconds timestamp;
   };
   struct FuturePosition {
     struct Position {
