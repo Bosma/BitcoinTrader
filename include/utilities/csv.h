@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <stdexcept>
 #include <boost/filesystem.hpp>
 
 class CSV {
@@ -11,6 +12,7 @@ public:
   void row(const std::vector<std::string> &vector);
 private:
   std::ofstream csv_file;
+  unsigned long n;
 };
 
 

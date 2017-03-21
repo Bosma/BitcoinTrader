@@ -13,7 +13,7 @@
 
 class ExchangeHandler {
 public:
-  ExchangeHandler(std::string name, std::shared_ptr<Config> config, std::string exchange_log_key, std::string trading_log_key, std::string execution_log_key) :
+  ExchangeHandler(std::string name, std::shared_ptr<Config> config, std::string exchange_log_key, std::string trading_log_key) :
       name(name),
       exchange_log(std::make_shared<Log>((*config)[exchange_log_key])),
       trading_log(std::make_shared<Log>((*config)[trading_log_key])),

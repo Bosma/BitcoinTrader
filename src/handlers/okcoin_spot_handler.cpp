@@ -6,8 +6,8 @@ using std::shared_ptr;
 using std::make_shared;
 using std::string;
 
-OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Config> config, string exchange_log_key, string trading_log_key, string execution_log_key) :
-    ExchangeHandler(name, config, exchange_log_key, trading_log_key, execution_log_key) {
+OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Config> config, string exchange_log_key, string trading_log_key) :
+    ExchangeHandler(name, config, exchange_log_key, trading_log_key) {
 }
 
 void OKCoinSpotHandler::set_up_and_start() {

@@ -2,6 +2,7 @@
 
 // include each strategy you are going to use
 #include "user/strategies/smacrossover.h"
+#include "user/strategies/bbands.h"
 
 using std::make_shared;
 using std::shared_ptr;
@@ -10,14 +11,14 @@ void BitcoinTrader::user_specifications() {
   // create the exchanges that you will use
   okcoin_futs_h = make_shared<OKCoinFutsHandler>("OKCoinFuts",
                                                  config,
-                                                 "futs_exchange_log", "futs_trading_log", "futs_execution_log",
+                                                 "futs_exchange_log", "futs_trading_log",
                                                  OKCoinFuts::ContractType::Weekly);
 
   // required to explicitly add each exchange to the handlers list
   exchange_handlers.push_back(okcoin_futs_h);
 
   // create and add strategies to each exchange
-  okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", okcoin_futs_h->trading_log));
+  okcoin_futs_h->signal_strategies.push_back(make_shared<BBands>("BBands", okcoin_futs_h->trading_log));
 }
 
 double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {

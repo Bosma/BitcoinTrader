@@ -5,7 +5,7 @@
 
 class OKCoinFutsHandler : public ExchangeHandler {
 public:
-  OKCoinFutsHandler(std::string, std::shared_ptr<Config>, std::string, std::string, std::string, OKCoinFuts::ContractType);
+  OKCoinFutsHandler(std::string, std::shared_ptr<Config>, std::string, std::string, OKCoinFuts::ContractType);
 
   void set_up_and_start() override;
   void manage_positions(double) override;

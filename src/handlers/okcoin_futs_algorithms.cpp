@@ -16,7 +16,7 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
   auto d1 = depth.get();
   auto t1 = timestamp_now();
 
-  bool trading_done = false;
+  atomic<bool> trading_done(false);
   auto cancel_time = t1 + timeout;
   auto trade_callback = [&](const string& order_id) {
     if (order_id != "failed") {
@@ -25,21 +25,22 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
       // we fully filled for the entire amount
       // or some seconds have passed
       OKCoinFuts::OrderInfo final_info{};
+
+      okcoin_futs->set_orderinfo_callback(
+          [&](const OKCoinFuts::OrderInfo& orderinfo) {
+            if (orderinfo.status != OKCoin::OrderStatus::Failed) {
+              final_info = orderinfo;
+              // early stopping if we fill for the entire amount
+              if (orderinfo.status == OKCoin::OrderStatus::FullyFilled)
+                done_limit_check = true;
+            }
+            else // early stop if order status is failed (this shouldn't be called)
+              done_limit_check = true;
+          }
+      );
       while (!done_limit_check &&
              timestamp_now() < cancel_time) {
         // fetch the orderinfo every second
-        okcoin_futs->set_orderinfo_callback(
-            [&](const OKCoinFuts::OrderInfo& orderinfo) {
-              if (orderinfo.status != OKCoin::OrderStatus::Failed) {
-                final_info = orderinfo;
-                // early stopping if we fill for the entire amount
-                if (orderinfo.status == OKCoin::OrderStatus::FullyFilled)
-                  done_limit_check = true;
-              }
-              else // early stop if order status is failed (this shouldn't be called)
-                done_limit_check = true;
-            }
-        );
         okcoin_futs->orderinfo(order_id, cancel_time);
         sleep_for(seconds(1));
       }
@@ -72,7 +73,7 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
 
   // check until the trade callback is finished, or cancel_time
   // TODO: replace with void future ?
-  return check_until([&]() { return trading_done; }, cancel_time);
+  return check_until([&]() -> bool { return trading_done; }, cancel_time);
 }
 
 optional<OKCoinFuts::UserInfo> OKCoinFutsHandler::get_userinfo() {

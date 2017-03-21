@@ -26,7 +26,7 @@ void BBands::apply(const OHLC& bar) {
 
   double stop_percentage = 0.01;
 
-  if (bar.close < bar.indis.at(name).at("bbands").at("up").get() &&
+  if (bar.close < bar.indis.at(name).at("bbands").at("dn").get() &&
       !crossed_below) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
@@ -38,7 +38,7 @@ void BBands::apply(const OHLC& bar) {
     crossed_below = true;
     crossed_above = false;
   }
-  else if (bar.close > bar.indis.at(name).at("bbands").at("dn").get() &&
+  else if (bar.close > bar.indis.at(name).at("bbands").at("up").get() &&
            !crossed_above) {
     auto new_stop = bar.close * (1 + stop_percentage);
     stop.set(new_stop);
