@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include <atomic>
+#include <future>
 
 #include "utilities/log.h"
 #include "utilities/csv.h"

@@ -16,6 +16,7 @@ void MktData::add(const OHLC& new_bar) {
     if (x.timestamp == bar.timestamp)
       found = true;
 
+  // TODO: does reconnecting always clear?
   if (bars.empty() || !found) {
     // if we receive a bar that's not contiguous
     // our old data is useless
