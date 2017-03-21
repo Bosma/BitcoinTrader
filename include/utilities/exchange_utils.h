@@ -88,24 +88,7 @@ public:
   bool has_been_set() const {
     return is_set;
   }
-  bool operator<(const IndicatorValue& other) const {
-    return value < other.value;
-  }
-  bool operator>(const IndicatorValue& other) const {
-    return value > other.value;
-  }
-  bool operator<=(const IndicatorValue& other) const {
-    return value <= other.value;
-  }
-  bool operator>=(const IndicatorValue& other) const {
-    return value >= other.value;
-  }
-  bool operator==(const IndicatorValue& other) const {
-    return value == other.value;
-  }
-  bool operator!=(const IndicatorValue& other) const {
-    return value != other.value;
-  }
+
   friend std::ostream& operator<<(std::ostream& stream, const IndicatorValue iv) {
     if (iv.has_been_set())
       stream << iv.value;

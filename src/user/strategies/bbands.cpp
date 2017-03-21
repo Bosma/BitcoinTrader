@@ -1,4 +1,4 @@
-#include "user/strategies/smacrossover.h"
+#include "user/strategies/bbands.h"
 
 using std::shared_ptr;
 using std::string;
@@ -6,18 +6,17 @@ using std::make_shared;
 using std::to_string;
 using namespace std::chrono_literals;
 
-SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
+BBands::BBands(string name, shared_ptr<Log> log) :
     SignalStrategy(name,
-             15min,
+             1min,
              {
-                 make_shared<MovingAverage>("sma_fast", 30),
-                 make_shared<MovingAverage>("sma_slow", 150)
+                 make_shared<BollingerBands>("bbands")
              },
              log),
-    crossed_above(false),
-    crossed_below(false) { }
+    crossed_below(false),
+    crossed_above(false) { }
 
-void SMACrossover::apply(const OHLC& bar) {
+void BBands::apply(const OHLC& bar) {
   // used for backfilling
   process_stop(bar);
 
@@ -27,8 +26,8 @@ void SMACrossover::apply(const OHLC& bar) {
 
   double stop_percentage = 0.01;
 
-  if (bar.indis.at(name).at("sma_fast").at("mavg").get() > bar.indis.at(name).at("sma_slow").at("mavg").get() &&
-      !crossed_above) {
+  if (bar.close < bar.indis.at(name).at("bbands").at("up").get() &&
+      !crossed_below) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
     stop.set(new_stop);
@@ -36,23 +35,23 @@ void SMACrossover::apply(const OHLC& bar) {
 
     log->output(name + ": LONGING WITH SIGNAL 1 AND STOP " + to_string(new_stop));
 
-    crossed_above = true;
-    crossed_below = false;
+    crossed_below = true;
+    crossed_above = false;
   }
-  else if (bar.indis.at(name).at("sma_fast").at("mavg").get() < bar.indis.at(name).at("sma_slow").at("mavg").get() &&
-           !crossed_below) {
+  else if (bar.close > bar.indis.at(name).at("bbands").at("dn").get() &&
+           !crossed_above) {
     auto new_stop = bar.close * (1 + stop_percentage);
     stop.set(new_stop);
     signal.set(-1);
 
     log->output(name + ": SHORTING WITH SIGNAL -1 AND STOP " + to_string(new_stop));
 
-    crossed_below = true;
-    crossed_above = false;
+    crossed_above = true;
+    crossed_below = false;
   }
 }
 
-void SMACrossover::apply(const Ticker& new_tick) {
+void BBands::apply(const Ticker& new_tick) {
   process_stop(new_tick);
 }
 
