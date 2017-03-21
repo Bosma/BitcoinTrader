@@ -51,6 +51,5 @@ std::string MktData::status() {
   std::ostringstream os;
   os << "MktData with " << period.count() << "m period";
   os << ", size: " << bars.size();
-  os << ", last OHLC bar: " + bars.back().to_string();
   return os.str();
 }

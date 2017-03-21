@@ -144,19 +144,31 @@ public:
     return all_set;
   }
 
-  std::string to_string() {
-    std::ostringstream os;
-    os << "timestamp=" << ts_to_string(timestamp) <<
-       ",open=" << open << ",high=" << high <<
-       ",low=" << low << ",close=" << close <<
-       ",volume=" << volume;
-
+  std::vector<std::string> to_columns() {
+    std::vector<std::string> vs = {
+        "timestamp", "open", "high", "low", "close", "volume"
+    };
     for (auto& strategy : indis)
       for (auto& indicator : strategy.second)
         for (auto& column : indicator.second)
-          os << "," << strategy.first << "." << indicator.first << "." << column.first << "=" << column.second;
+          vs.push_back(strategy.first + "." + indicator.first + "." + column.first);
+    return vs;
+  }
 
-    return os.str();
+  std::vector<std::string> to_csv() {
+    std::vector<std::string> vs = {
+        std::to_string(timestamp.count()),
+        std::to_string(open),
+        std::to_string(high),
+        std::to_string(low),
+        std::to_string(close),
+        std::to_string(volume)
+    };
+    for (auto& strategy : indis)
+      for (auto& indicator : strategy.second)
+        for (auto& column : indicator.second)
+          vs.push_back(std::to_string(column.second.get()));
+    return vs;
   }
 };
 

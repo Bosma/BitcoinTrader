@@ -56,6 +56,7 @@ void OKCoinFutsHandler::set_up_and_start() {
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
       auto OHLC_is_fetched = [&]() {
+        // TODO: WHILE BACKFILLING DO NOT PRINT TRADING INFO
         trading_log->output("BACKFILLING OKCOIN FUTS " + to_string(m.first.count()) + "m BARS");
         bool success = okcoin_futs->backfill_OHLC(m.second.period, m.second.bars.capacity());
         if (success)

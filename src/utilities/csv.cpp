@@ -1,9 +1,10 @@
 #include <numeric>
 #include "utilities/csv.h"
 
-CSV::CSV(std::string file_name, const std::vector<std::string> &columns) :
+CSV::CSV(std::string file_name, const std::vector<std::string> &columns, Mode mode) :
     n(columns.size()) {
-  csv_file.open(file_name, std::ofstream::app);
+  csv_file.open(file_name,
+                (mode == Mode::Append) ? std::ofstream::app : std::ofstream::out);
   if (boost::filesystem::is_empty(file_name))
     row(columns);
 }

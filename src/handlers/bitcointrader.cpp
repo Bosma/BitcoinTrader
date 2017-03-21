@@ -66,6 +66,18 @@ string BitcoinTrader::status() {
   return os.str();
 }
 
+void BitcoinTrader::print_bars() {
+  for (auto handler : exchange_handlers) {
+    for (auto& m : handler->mktdata) {
+      string file_name = handler->name + "_" + to_string(m.first.count()) + "m.csv";
+      CSV csv(file_name, m.second.bars.at(0).to_columns(), CSV::Mode::Overwrite);
+      for (auto& bar : m.second.bars)
+        csv.row(bar.to_csv());
+      std::cout << "written " << file_name << std::endl;
+    }
+  }
+}
+
 void BitcoinTrader::start() {
   for (auto exchange : exchange_handlers)
     exchange->set_up_and_start();

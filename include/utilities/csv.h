@@ -8,7 +8,8 @@
 
 class CSV {
 public:
-  CSV(std::string, const std::vector<std::string> &);
+  enum class Mode { Append, Overwrite };
+  CSV(std::string, const std::vector<std::string> &, Mode = Mode::Append);
   void row(const std::vector<std::string> &vector);
 private:
   std::ofstream csv_file;

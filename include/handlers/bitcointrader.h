@@ -21,18 +21,7 @@ public:
   std::function<void(std::string)> execution_callback;
 
   std::string status();
-  void print_bars() {
-    for (auto handler : exchange_handlers) {
-      for (auto& m : handler->mktdata) {
-        std::string file_name = handler->name + "_" + std::to_string(m.first.count()) + "m.csv";
-        std::ofstream csv(file_name);
-        for (auto& bar : m.second.bars)
-          csv << bar.to_string() << std::endl;
-        csv.close();
-        std::cout << "written " << file_name << std::endl;
-      }
-    }
-  }
+  void print_bars();
 
   // start the exchange
   // after setting callbacks and creating log files
