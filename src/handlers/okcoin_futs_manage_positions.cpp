@@ -5,12 +5,15 @@ using std::accumulate;
 using std::abs;
 using std::to_string;
 using std::string;
-using std::chrono::seconds;
+using namespace std::chrono;
 using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 using std::function;
 using std::ostringstream;
 using boost::optional;
+using std::promise;
+using std::future_status;
+using std::move;
 
 void OKCoinFutsHandler::manage_positions(double signal) {
   // fetch the current position

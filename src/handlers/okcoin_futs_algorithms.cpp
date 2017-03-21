@@ -3,7 +3,7 @@
 using std::shared_ptr;
 using std::to_string;
 using std::string;
-using std::chrono::seconds;
+using namespace std::chrono;
 using namespace std::chrono_literals;
 using std::this_thread::sleep_for;
 using boost::optional;
@@ -73,22 +73,22 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
 
   okcoin_futs->order(type, amount, limit_price, lever_rate, false, cancel_time);
 
-  auto trading_status = trading_done.get_future().wait_until(time_point(cancel_time));
+  auto trading_status = trading_done.get_future().wait_until(system_clock::time_point(cancel_time));
   return trading_status == future_status::ready;
 }
 
-// TODO: I think this is what a Future is for
 optional<OKCoinFuts::UserInfo> OKCoinFutsHandler::get_userinfo() {
-  // Fetch the current OKCoin Futs account information (to get the equity)
-  auto cancel_time = timestamp_now() + 10s;
-  Atomic<OKCoinFuts::UserInfo> userinfo_a;
-  okcoin_futs->set_userinfo_callback([&userinfo_a](const OKCoinFuts::UserInfo& new_userinfo) {
-    userinfo_a.set(new_userinfo);
+  promise<OKCoinFuts::UserInfo> userinfo_p;
+  auto userinfo_f = userinfo_p.get_future();
+  okcoin_futs->set_userinfo_callback([&userinfo_p](const OKCoinFuts::UserInfo& new_userinfo) {
+    userinfo_p.set_value_at_thread_exit(new_userinfo);
   });
+  auto cancel_time = timestamp_now() + 30s;
   okcoin_futs->userinfo(cancel_time);
-  if (check_until([&userinfo_a]() { return userinfo_a.has_been_set(); }, cancel_time)) {
-    return userinfo_a.get();
-  }
+
+  auto userinfo_fs = userinfo_f.wait_until(system_clock::time_point(cancel_time));
+  if (userinfo_fs == future_status::ready)
+    return userinfo_f.get();
   else
     return {};
 }
