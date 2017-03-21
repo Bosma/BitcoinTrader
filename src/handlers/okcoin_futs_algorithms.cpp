@@ -44,12 +44,11 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
         sleep_for(seconds(1));
       }
 
-      // given the limit enough time, cancel it
-      if (final_info.status != OKCoin::OrderStatus::FullyFilled &&
-          final_info.status != OKCoin::OrderStatus::Failed)
-        okcoin_futs->cancel_order(order_id, cancel_time);
-
       if (final_info.status != OKCoin::OrderStatus::Failed) {
+        // given the limit enough time, cancel it
+        if (final_info.status != OKCoin::OrderStatus::FullyFilled)
+          okcoin_futs->cancel_order(order_id, cancel_time);
+
         // execution logging
         auto d2 = depth.get();
         execution_logs.at("limit").row({
