@@ -89,11 +89,18 @@ public:
     return is_set;
   }
 
+  std::string to_string() const {
+    if (is_set)
+      return std::to_string(value);
+    else
+      return "NA";
+  }
+
   friend std::ostream& operator<<(std::ostream& stream, const IndicatorValue iv) {
     if (iv.has_been_set())
       stream << iv.value;
     else
-      stream << "N/A";
+      stream << "NA";
     return stream;
   }
 
@@ -167,7 +174,7 @@ public:
     for (auto& strategy : indis)
       for (auto& indicator : strategy.second)
         for (auto& column : indicator.second)
-          vs.push_back(std::to_string(column.second.get()));
+          vs.push_back(column.second.to_string());
     return vs;
   }
 };
