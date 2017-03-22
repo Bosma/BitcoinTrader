@@ -10,7 +10,6 @@ CSV::CSV(std::string file_name, const std::vector<std::string> &columns, Mode mo
 }
 
 void CSV::row(const std::vector<std::string> &columns) {
-  // TODO: use a templated tuple instead of runtime checking n
   if (columns.size() == n) {
     csv_file << std::accumulate(std::next(columns.begin()),
                                 columns.end(),
