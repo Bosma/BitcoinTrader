@@ -99,7 +99,6 @@ void OKCoin::on_message(const string& message) {
             }
           }
           // store the last message received
-          channels.at(channel).last_message = message;
           channels.at(channel).last_message_time = timestamp_now();
         }
           // we don't have a channel stored in the map

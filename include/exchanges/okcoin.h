@@ -38,11 +38,10 @@ public:
         status(status) { }
     std::string name;
     Status status;
-    std::string last_message;
     std::chrono::nanoseconds last_message_time;
 
     std::string to_string() {
-      return name + " (" + ts_to_string(last_message_time) + "): last message: " + last_message;
+      return name + " (" + ts_to_string(last_message_time) + ")";
     }
   };
   enum class OrderStatus {
