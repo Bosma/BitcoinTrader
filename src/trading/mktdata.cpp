@@ -24,16 +24,16 @@ void MktData::add(const OHLC& new_bar) {
         bar.timestamp != bars.back().timestamp + period)
       bars.clear();
 
+    bars.push_back(std::move(bar));
+
     // for each indicator
     // calculate the indicator value
     // from the bars (with the new value)
     for (const auto& strategy : strategies) {
       for (const auto& indicator : strategy->indicators)
-        bar.indis[strategy->name][indicator->name] = indicator->calculate(bars);
-      strategy->apply(bar);
+        bars.back().indis[strategy->name][indicator->name] = indicator->calculate(bars);
+      strategy->apply(bars.back());
     }
-
-    bars.push_back(std::move(bar));
   }
 }
 
