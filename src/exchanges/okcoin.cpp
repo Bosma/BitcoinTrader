@@ -55,8 +55,12 @@ void OKCoin::on_message(const string& message) {
         // fetch the channel name
         const string& channel = channel_message["channel"];
         const json& data = channel_message["data"];
-        // if we have a channel stored with that name
-        // it's a price or data channel
+
+        // store the time of the last message received
+        if (channels.count(channel) == 1)
+          channels.at(channel).last_message_time = timestamp_now();
+
+        // if we're adding a channel
         if (channel == "addChannel") {
           // we're subscribing to a channel
           const string &channel_name = data["channel"];
@@ -67,35 +71,31 @@ void OKCoin::on_message(const string& message) {
           else
             log->output("UNSUCCESSFULLY SUBSCRIBED TO " + channel_name);
         }
-        else if (channels.count(channel) == 1) {
-          // we're subscribed so delegate to a channel handler
-          if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
-            ticker_handler(data);
-          }
-          else if (channel.find("ok_sub_" + market_s(market) + "_btc_depth") != string::npos) {
-            depth_handler(data);
-          }
-          else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
-            // remove beginning of channel name to obtain period
-            std::regex period_r("_([^_]*)$", std::regex::extended);
-            std::smatch match;
-            string period;
-            if (std::regex_search(channel, match, period_r))
-              period = match[1];
-            else
-              throw std::runtime_error("cannot get the period using regex");
-
-            if (data[0].is_array()) // data is an array of trades
-              for (auto& trade : data)
-                OHLC_handler(period, trade);
-            else // data is a trade
-              OHLC_handler(period, data);
-          }
-          // store the last message received
-          channels.at(channel).last_message_time = timestamp_now();
+        // or if it's a channel we have a handler for
+        else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
+          ticker_handler(data);
         }
-        // we don't have a channel stored in the map
+        else if (channel.find("ok_sub_" + market_s(market) + "_btc_depth") != string::npos) {
+          depth_handler(data);
+        }
+        else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
+          // remove beginning of channel name to obtain period
+          std::regex period_r("_([^_]*)$", std::regex::extended);
+          std::smatch match;
+          string period;
+          if (std::regex_search(channel, match, period_r))
+            period = match[1];
+          else
+            throw std::runtime_error("cannot get the period using regex");
+
+          if (data[0].is_array()) // data is an array of trades
+            for (auto& trade : data)
+              OHLC_handler(period, trade);
+          else // data is a trade
+            OHLC_handler(period, data);
+        }
         // check for one off channel messages that have callbacks
+        // these are grouped together because they have an expiry
         else {
           // only process messages that have no timeout or their timeout hasn't been reached
           auto ts = timestamp_now();
@@ -142,7 +142,7 @@ void OKCoin::on_message(const string& message) {
               log->output("MESSAGE WITH UNKNOWN CHANNEL, JSON: " + message);
             }
           }
-            // channel timeout has been reached
+          // channel timeout has been reached
           else {
             log->output("CHANNEL " + channel + " MESSAGE RECEIVED BUT TIMEOUT REACHED, NOT CALLING CALLBACK");
           }
