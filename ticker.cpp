@@ -15,7 +15,6 @@ int main() {
   zmq::context_t context (1);
   zmq::socket_t socket (context, ZMQ_PUB);
 
-  std::cout << "Connecting to hello world server…" << std::endl;
   socket.bind("tcp://*:5558");
 
   std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -49,6 +48,7 @@ int main() {
       std::this_thread::sleep_for(std::chrono::seconds(5));
       warm_up = false;
     }
+    okcoin->ping();
     if (timestamp_now() - okcoin->ts_since_last > std::chrono::minutes(1) ||
         !okcoin->connected()) {
         log->output("RECONNECTING TO " + okcoin->name);
