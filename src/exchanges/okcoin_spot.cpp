@@ -20,7 +20,7 @@ void OKCoinSpot::subscribe_to_ticker() {
   subscribe_to_channel("ok_sub_spotusd_btc_ticker");
 }
 void OKCoinSpot::subscribe_to_depth() {
-  subscribe_to_channel("ok_sub_spotusd_btc_depth_20");
+  subscribe_to_channel("ok_sub_spotusd_btc_depth");
 }
 
 void OKCoinSpot::subscribe_to_OHLC(minutes period) {

@@ -255,6 +255,7 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
   if (channels.count(channel)) {
     log->output("UNSUBSCRIBING TO " + channel);
     ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
+    channels.erase(channel);
   }
   else
     log->output("ATTEMPT TO UNSUBSCRIBE TO CHANNEL " + channel + " BUT NOT SUBSCRIBED");
