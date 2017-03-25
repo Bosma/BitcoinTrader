@@ -109,6 +109,10 @@ void BitcoinTrader::position_management() {
                               [](bool a, shared_ptr<SignalStrategy> b) { return a && b->signal.has_been_set(); });
       // and we have a tick set
       can = can && handler->tick.has_been_set();
+
+      // and we have the depth set
+      can = can && handler->depth.has_been_set();
+
       return can;
     };
     // this can block forever, because there's no reason to manage positions if can_open_positions is never true

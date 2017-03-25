@@ -30,14 +30,9 @@ public:
   }
   class Channel {
   public:
-    enum class Status {
-      Subscribing, Subscribed, Failed, Unsubscribed
-    };
-    Channel(std::string name, Status status) :
-        name(name),
-        status(status) { }
+    Channel(std::string name) :
+        name(name) { }
     std::string name;
-    Status status;
     std::chrono::nanoseconds last_message_time;
 
     std::string to_string() {

@@ -54,55 +54,48 @@ void OKCoin::on_message(const string& message) {
       if (channel_message.count("channel") == 1) {
         // fetch the channel name
         const string& channel = channel_message["channel"];
+        const json& data = channel_message["data"];
         // if we have a channel stored with that name
         // it's a price or data channel
-        if (channels.count(channel) == 1) {
-          // we have a channel in our map
-          if (channels.at(channel).status == Channel::Status::Subscribing) {
-            // if it's subscribing it's the first message we've received
-            if (channel_message.count("success") == 1) {
-              if (channel_message["success"] == "true") {
-                channels.at(channel).status = Channel::Status::Subscribed;
-                log->output("SUBSCRIBED TO " + channel);
-              }
-              else {
-                channels.at(channel).status = Channel::Status::Failed;
-                log->output("UNSUCCESSFULLY SUBSCRIBED TO " + channel);
-              }
-            }
+        if (channel == "addChannel") {
+          // we're subscribing to a channel
+          const string &channel_name = data["channel"];
+          if (data["result"]) {
+            log->output("SUBSCRIBED TO " + channel_name);
+            channels.emplace(channel_name, channel_name);
           }
-          else if (channels.at(channel).status == Channel::Status::Subscribed) {
-            // we're subscribed so delegate to a channel handler
+          else
+            log->output("UNSUCCESSFULLY SUBSCRIBED TO " + channel_name);
+        }
+        else if (channels.count(channel) == 1) {
+          // we're subscribed so delegate to a channel handler
+          if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
+            ticker_handler(data);
+          }
+          else if (channel.find("ok_sub_" + market_s(market) + "_btc_depth") != string::npos) {
+            depth_handler(data);
+          }
+          else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
+            // remove beginning of channel name to obtain period
+            std::regex period_r("_([^_]*)$", std::regex::extended);
+            std::smatch match;
+            string period;
+            if (std::regex_search(channel, match, period_r))
+              period = match[1];
+            else
+              throw std::runtime_error("cannot get the period using regex");
 
-            if (channel.find("ok_sub_" + market_s(market) + "usd_btc_ticker") != string::npos) {
-              ticker_handler(channel_message["data"]);
-            }
-            else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_depth") != string::npos) {
-              depth_handler(channel_message["data"]);
-            }
-            else if (channel.find("ok_sub_" + market_s(market) + "usd_btc_kline_") != string::npos) {
-              // remove beginning of channel name to obtain period
-              std::regex period_r("_([^_]*)$", std::regex::extended);
-              std::smatch match;
-              string period;
-              if (std::regex_search(channel, match, period_r))
-                period = match[1];
-              else
-                throw std::runtime_error("cannot get the period using regex");
-
-              const json& data = channel_message["data"];
-              if (data[0].is_array()) // data is an array of trades
-                for (auto& trade : data)
-                  OHLC_handler(period, trade);
-              else // data is a trade
-                OHLC_handler(period, data);
-            }
+            if (data[0].is_array()) // data is an array of trades
+              for (auto& trade : data)
+                OHLC_handler(period, trade);
+            else // data is a trade
+              OHLC_handler(period, data);
           }
           // store the last message received
           channels.at(channel).last_message_time = timestamp_now();
         }
-          // we don't have a channel stored in the map
-          // check for one off channel messages that have callbacks
+        // we don't have a channel stored in the map
+        // check for one off channel messages that have callbacks
         else {
           // only process messages that have no timeout or their timeout hasn't been reached
           auto ts = timestamp_now();
@@ -116,22 +109,19 @@ void OKCoin::on_message(const string& message) {
                   trade_callback("failed");
               }
               else {
-                const json& data = channel_message["data"];
-                const string& order_id = data["order_id"];
-                const string& result = data["result"];
-                if (result == "true") {
+                const string& order_id = opt_to_string<long>(data["order_id"]);
+                if (data["result"]) {
                   if (trade_callback)
                     trade_callback(order_id);
                 }
                 else {
-                  log->output("FAILED TRADE (" + order_id + ") ON " + channel + "WITH ERROR " + result);
+                  log->output("FAILED TRADE (" + order_id + ") ON " + channel);
                   if (trade_callback)
                     trade_callback("failed");
                 }
               }
             }
             else if (channel == "ok_" + market_s(market) + "usd_orderinfo") {
-              const json& data = channel_message["data"];
               if (data["orders"].empty())
                 log->output(channel + " MESSAGE RECEIVED BY INVALID ORDER ID");
               else
@@ -163,8 +153,8 @@ void OKCoin::on_message(const string& message) {
         log->output("RAW JSON: " + message);
       }
     }
-      // message is not a channel message
-      // so it's an event message
+    // message is not a channel message
+    // so it's an event message
     else {
       if (j.count("event") == 1) {
         if (j["event"] == "pong") {
@@ -259,17 +249,12 @@ void OKCoin::subscribe_to_channel(string const & channel) {
   log->output("SUBSCRIBING TO " + channel);
 
   ws.send("{'event':'addChannel','channel':'" + channel + "'}");
-
-  channels.emplace(std::piecewise_construct,
-                   std::forward_as_tuple(channel),
-                   std::forward_as_tuple(channel, Channel::Status::Subscribing));
 }
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
   if (channels.count(channel)) {
     log->output("UNSUBSCRIBING TO " + channel);
     ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");
-    channels.at(channel).status = Channel::Status::Unsubscribed;
   }
   else
     log->output("ATTEMPT TO UNSUBSCRIBE TO CHANNEL " + channel + " BUT NOT SUBSCRIBED");
@@ -303,11 +288,14 @@ void OKCoin::depth_handler(const json& j) {
   if (depth_callback) {
     Depth depth;
 
-    for (const json& order: reverse(j["asks"]))
-      depth.asks.emplace_back(order[0], order[1]);
+    for (const json& order: reverse(j["asks"])) {
+      depth.asks.emplace_back(optionally_to_double(order[0]),
+                              optionally_to_double(order[1]));
+    }
 
     for (const json& order : j["bids"])
-      depth.bids.emplace_back(order[0], order[1]);
+      depth.bids.emplace_back(optionally_to_double(order[0]),
+                              optionally_to_double(order[1]));
 
     depth.timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(j["timestamp"])));
     depth_callback(depth);
