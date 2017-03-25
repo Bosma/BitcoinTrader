@@ -30,6 +30,7 @@ public:
       std::cout << "config file bitcointrader.conf required" << std::endl;
     }
   };
+  Config() : default_value("") {};
 
   std::string operator[](std::string key) {
     if (exists(key)) {
