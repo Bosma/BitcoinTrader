@@ -36,7 +36,10 @@ public:
     std::chrono::nanoseconds last_message_time;
 
     std::string to_string() {
-      return name + " (" + ts_to_string(last_message_time) + ")";
+      auto time_since_last = timestamp_now() - last_message_time;
+      const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(time_since_last).count() % 60;
+      const auto minutes = static_cast<int>(std::floor(std::chrono::duration_cast<std::chrono::minutes>(time_since_last).count()));
+      return name + " (" + std::to_string(minutes) + "m" + std::to_string(seconds) + "s)";
     }
   };
   enum class OrderStatus {
