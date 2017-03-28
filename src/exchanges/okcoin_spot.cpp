@@ -90,8 +90,8 @@ OKCoinSpot::BorrowInfo OKCoinSpot::borrow(Currency currency, double amount) {
 
   json response;
   try {
-    double rate = optionally_to_double(ld["lend_depth"][0]["rate"]);
-    double can_borrow = optionally_to_double(bi["can_borrow"]);
+    double rate = optionally_to<double>(ld["lend_depth"][0]["rate"]);
+    double can_borrow = optionally_to<double>(bi["can_borrow"]);
 
     if (amount > can_borrow)
       amount = can_borrow;
@@ -297,13 +297,13 @@ void OKCoinSpot::orderinfo_handler(const json& order) {
 
   if (orderinfo_callback) {
     OrderInfo new_order;
-    new_order.amount = optionally_to_double(order["amount"]);
-    new_order.avg_price = optionally_to_double(order["avg_price"]);
+    new_order.amount = optionally_to<double>(order["amount"]);
+    new_order.avg_price = optionally_to<double>(order["avg_price"]);
     new_order.create_date = opt_to_string<long>(order["create_date"]);
-    new_order.filled_amount = optionally_to_double(order["deal_amount"]);
+    new_order.filled_amount = optionally_to<double>(order["deal_amount"]);
     new_order.order_id = opt_to_string<long>(order["order_id"]);
-    new_order.price = optionally_to_double(order["price"]);
-    new_order.status = static_cast<OrderStatus>(optionally_to_int(order["status"]));
+    new_order.price = optionally_to<double>(order["price"]);
+    new_order.status = static_cast<OrderStatus>(optionally_to<int>(order["status"]));
     new_order.symbol = order["symbol"];
     new_order.type = order["type"];
 
@@ -315,12 +315,12 @@ void OKCoinSpot::userinfo_handler(const json& j) {
   if (userinfo_callback) {
     const json& funds = j["info"]["funds"];
     UserInfo info;
-    info.asset_net = optionally_to_double(funds["asset"]["net"]);
-    info.free[Currency::BTC] = optionally_to_double(funds["free"]["btc"]);
-    info.free[Currency::USD] = optionally_to_double(funds["free"]["usd"]);
+    info.asset_net = optionally_to<double>(funds["asset"]["net"]);
+    info.free[Currency::BTC] = optionally_to<double>(funds["free"]["btc"]);
+    info.free[Currency::USD] = optionally_to<double>(funds["free"]["usd"]);
     if (funds.count("borrow") == 1) {
-      info.borrow[Currency::BTC] = optionally_to_double(funds["borrow"]["btc"]);
-      info.borrow[Currency::USD] = optionally_to_double(funds["borrow"]["usd"]);
+      info.borrow[Currency::BTC] = optionally_to<double>(funds["borrow"]["btc"]);
+      info.borrow[Currency::USD] = optionally_to<double>(funds["borrow"]["usd"]);
     }
     else {
       info.borrow[Currency::BTC] = 0;

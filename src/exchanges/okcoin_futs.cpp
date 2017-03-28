@@ -146,19 +146,19 @@ optional<OKCoinFuts::FuturePosition> OKCoinFuts::positions() {
         FuturePosition pos{};
         if (j["holding"] != nullptr && !j["holding"].empty()) {
           const json& h = j["holding"][0];
-          pos.buy.contracts = optionally_to_int(h["buy_amount"]);
-          pos.buy.contracts_can_close = optionally_to_int(h["buy_available"]);
-          pos.buy.avg_open_price = optionally_to_double(h["buy_price_avg"]);
-          pos.buy.cost_price = optionally_to_double(h["buy_price_cost"]);
-          pos.buy.realized_profit = optionally_to_double(h["buy_profit_real"]);
-          pos.sell.contracts = optionally_to_int(h["sell_amount"]);
-          pos.sell.contracts_can_close = optionally_to_int(h["sell_available"]);
-          pos.sell.avg_open_price = optionally_to_double(h["sell_price_avg"]);
-          pos.sell.cost_price = optionally_to_double(h["sell_price_cost"]);
-          pos.sell.realized_profit = optionally_to_double(h["sell_profit_real"]);
+          pos.buy.contracts = optionally_to<int>(h["buy_amount"]);
+          pos.buy.contracts_can_close = optionally_to<int>(h["buy_available"]);
+          pos.buy.avg_open_price = optionally_to<double>(h["buy_price_avg"]);
+          pos.buy.cost_price = optionally_to<double>(h["buy_price_cost"]);
+          pos.buy.realized_profit = optionally_to<double>(h["buy_profit_real"]);
+          pos.sell.contracts = optionally_to<int>(h["sell_amount"]);
+          pos.sell.contracts_can_close = optionally_to<int>(h["sell_available"]);
+          pos.sell.avg_open_price = optionally_to<double>(h["sell_price_avg"]);
+          pos.sell.cost_price = optionally_to<double>(h["sell_price_cost"]);
+          pos.sell.realized_profit = optionally_to<double>(h["sell_profit_real"]);
           pos.contract_id = opt_to_string<long>(h["contract_id"]);
           pos.create_date = opt_to_string<long>(h["create_date"]);
-          pos.lever_rate = optionally_to_int(h["lever_rate"]);
+          pos.lever_rate = optionally_to<int>(h["lever_rate"]);
         }
         return pos;
       }
@@ -194,19 +194,19 @@ bool OKCoinFuts::backfill_OHLC(minutes period, unsigned long n) {
 void OKCoinFuts::orderinfo_handler(const json& order) {
   if (orderinfo_callback) {
     OrderInfo new_order;
-    new_order.amount = optionally_to_double(order["amount"]);
+    new_order.amount = optionally_to<double>(order["amount"]);
     new_order.contract_name = order["contract_name"];
     new_order.create_date = opt_to_string<long>(order["create_date"]);
-    new_order.filled_amount = optionally_to_double(order["deal_amount"]);
-    new_order.fee = optionally_to_double(order["fee"]);
-    new_order.lever_rate = optionally_to_int(order["lever_rate"]);
+    new_order.filled_amount = optionally_to<double>(order["deal_amount"]);
+    new_order.fee = optionally_to<double>(order["fee"]);
+    new_order.lever_rate = optionally_to<int>(order["lever_rate"]);
     new_order.order_id = opt_to_string<long>(order["order_id"]);
-    new_order.price = optionally_to_double(order["price"]);
-    new_order.avg_price = optionally_to_double(order["price_avg"]);
-    new_order.status = static_cast<OrderStatus>(optionally_to_int(order["status"]));
+    new_order.price = optionally_to<double>(order["price"]);
+    new_order.avg_price = optionally_to<double>(order["price_avg"]);
+    new_order.status = static_cast<OrderStatus>(optionally_to<int>(order["status"]));
     new_order.symbol = order["symbol"];
-    new_order.type = static_cast<OrderType>(optionally_to_int(order["type"]));
-    new_order.unit_amount = optionally_to_int(order["unit_amount"]);
+    new_order.type = static_cast<OrderType>(optionally_to<int>(order["type"]));
+    new_order.unit_amount = optionally_to<int>(order["unit_amount"]);
     new_order.timestamp = timestamp_now();
     orderinfo_callback(new_order);
   }
@@ -217,10 +217,10 @@ void OKCoinFuts::userinfo_handler(const json& j) {
     const json& data = j["info"]["btc"];
     if (data.count("contracts") == 0) {
       UserInfo info;
-      info.equity = optionally_to_double(data["account_rights"]);
-      info.margin = optionally_to_double(data["keep_deposit"]);
-      info.realized = optionally_to_double(data["profit_real"]);
-      info.unrealized = optionally_to_double(data["profit_unreal"]);
+      info.equity = optionally_to<double>(data["account_rights"]);
+      info.margin = optionally_to<double>(data["keep_deposit"]);
+      info.realized = optionally_to<double>(data["profit_real"]);
+      info.unrealized = optionally_to<double>(data["profit_unreal"]);
       userinfo_callback(info);
     }
     else

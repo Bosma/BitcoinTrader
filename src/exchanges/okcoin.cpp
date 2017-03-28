@@ -263,12 +263,12 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
 
 void OKCoin::OHLC_handler(const string& period, const json& trade) {
   if (OHLC_callback) {
-    nanoseconds timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(trade[0])));
-    double open = optionally_to_double(trade[1]);
-    double high = optionally_to_double(trade[2]);
-    double low = optionally_to_double(trade[3]);
-    double close = optionally_to_double(trade[4]);
-    double volume = optionally_to_double(trade[5]);
+    nanoseconds timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to<long>(trade[0])));
+    double open = optionally_to<double>(trade[1]);
+    double high = optionally_to<double>(trade[2]);
+    double low = optionally_to<double>(trade[3]);
+    double close = optionally_to<double>(trade[4]);
+    double volume = optionally_to<double>(trade[5]);
     OHLC new_bar(timestamp, open, high, low, close, volume);
     OHLC_callback(period_m(period), new_bar);
   }
@@ -276,9 +276,9 @@ void OKCoin::OHLC_handler(const string& period, const json& trade) {
 
 void OKCoin::ticker_handler(const json& j) {
   if (ticker_callback) {
-    double last = optionally_to_double(j["last"]);
-    double bid = optionally_to_double(j["buy"]);
-    double ask = optionally_to_double(j["sell"]);
+    double last = optionally_to<double>(j["last"]);
+    double bid = optionally_to<double>(j["buy"]);
+    double ask = optionally_to<double>(j["sell"]);
     Ticker tick(last, bid, ask, timestamp_now());
 
     ticker_callback(tick);
@@ -290,15 +290,15 @@ void OKCoin::depth_handler(const json& j) {
     Depth depth;
 
     for (const json& order: reverse(j["asks"])) {
-      depth.asks.emplace_back(optionally_to_double(order[0]),
-                              optionally_to_double(order[1]));
+      depth.asks.emplace_back(optionally_to<double>(order[0]),
+                              optionally_to<double>(order[1]));
     }
 
     for (const json& order : j["bids"])
-      depth.bids.emplace_back(optionally_to_double(order[0]),
-                              optionally_to_double(order[1]));
+      depth.bids.emplace_back(optionally_to<double>(order[0]),
+                              optionally_to<double>(order[1]));
 
-    depth.timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to_long(j["timestamp"])));
+    depth.timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to<long>(j["timestamp"])));
     depth_callback(depth);
   }
 }

@@ -34,30 +34,6 @@ bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time,
   return completed_on_time;
 }
 
-long optionally_to_long(const json& object) {
-  if (object.is_string()) {
-    return stol(object.get<std::string>());
-  }
-  else
-    return object;
-}
-
-double optionally_to_double(const json& object) {
-  if (object.is_string()) {
-    return stod(object.get<std::string>());
-  }
-  else
-    return object;
-}
-
-int optionally_to_int(const json& object) {
-  if (object.is_string()) {
-    return stoi(object.get<std::string>());
-  }
-  else
-    return object;
-}
-
 std::string dtos(double n, int digits) {
   std::ostringstream n_ss;
   n_ss << std::fixed << std::setprecision(digits) << n;

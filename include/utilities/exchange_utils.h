@@ -6,6 +6,8 @@
 #include <thread>
 #include <mutex>
 
+#include <boost/lexical_cast.hpp>
+
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -179,15 +181,19 @@ public:
   }
 };
 
-long optionally_to_long(const json&);
-double optionally_to_double(const json&);
-int optionally_to_int(const json&);
 template <typename T> std::string opt_to_string(const json& object) {
   if (object.is_string()) {
     return object.get<std::string>();
   }
   else
     return std::to_string(object.get<T>());
+}
+template <typename T>
+T optionally_to(const json& j) {
+  if (j.is_string())
+    return boost::lexical_cast<T>(j.get<std::string>());
+  else
+    return j;
 }
 
 template <class T> class Atomic {
