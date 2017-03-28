@@ -141,6 +141,10 @@ void OKCoin::on_message(const string& message) {
             else {
               log->output("MESSAGE WITH UNKNOWN CHANNEL, JSON: " + message);
             }
+
+            // erase the timeout
+            if (channel_timeouts.count(channel) == 1)
+              channel_timeouts.erase(channel);
           }
           // channel timeout has been reached
           else {
