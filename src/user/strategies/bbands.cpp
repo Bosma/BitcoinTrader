@@ -31,10 +31,7 @@ void BBands::apply(const OHLC& bar) {
       !crossed_below) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
-    stop.set(new_stop);
-    signal.set(weight);
-
-    log->output(name + ": LONGING WITH SIGNAL 1 AND STOP " + to_string(new_stop));
+    go_long(1, new_stop);
 
     crossed_below = true;
     crossed_above = false;
@@ -42,10 +39,8 @@ void BBands::apply(const OHLC& bar) {
   else if (bar.close > bar.indis.at(name).at("bbands").at("up").get() &&
            !crossed_above) {
     auto new_stop = bar.close * (1 + stop_percentage);
-    stop.set(new_stop);
-    signal.set(-weight);
 
-    log->output(name + ": SHORTING WITH SIGNAL -1 AND STOP " + to_string(new_stop));
+    go_short(1, new_stop);
 
     crossed_above = true;
     crossed_below = false;

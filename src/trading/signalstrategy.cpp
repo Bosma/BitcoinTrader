@@ -38,3 +38,17 @@ void SignalStrategy::process_stop(const OHLC& bar) {
   fake_tick.ask = bar.high;
   process_stop(fake_tick);
 }
+
+void SignalStrategy::go_long(double confidence, double new_stop) {
+  stop.set(new_stop);
+  double new_signal = weight * confidence;
+  signal.set(new_signal);
+  log->output(name + ": LONGING WITH SIGNAL " + std::to_string(new_signal) + " AND STOP " + to_string(new_stop));
+}
+
+void SignalStrategy::go_short(double confidence, double new_stop) {
+  stop.set(new_stop);
+  double new_signal = -weight * confidence;
+  signal.set(new_signal);
+  log->output(name + ": SHORTING WITH SIGNAL " + std::to_string(new_signal) + " AND STOP " + to_string(new_stop));
+}

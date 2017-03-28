@@ -32,10 +32,7 @@ void SMACrossover::apply(const OHLC& bar) {
       !crossed_above) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
-    stop.set(new_stop);
-    signal.set(weight);
-
-    log->output(name + ": LONGING WITH SIGNAL 1 AND STOP " + to_string(new_stop));
+    go_long(1, new_stop);
 
     crossed_above = true;
     crossed_below = false;
@@ -43,10 +40,8 @@ void SMACrossover::apply(const OHLC& bar) {
   else if (bar.indis.at(name).at("sma_fast").at("mavg").get() < bar.indis.at(name).at("sma_slow").at("mavg").get() &&
            !crossed_below) {
     auto new_stop = bar.close * (1 + stop_percentage);
-    stop.set(new_stop);
-    signal.set(-weight);
 
-    log->output(name + ": SHORTING WITH SIGNAL -1 AND STOP " + to_string(new_stop));
+    go_short(1, new_stop);
 
     crossed_below = true;
     crossed_above = false;
