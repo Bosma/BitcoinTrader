@@ -14,6 +14,8 @@ public:
       period(period),
       indicators(indicators) {}
 
+  // TODO: implement long and short methods
+
   virtual void apply(const OHLC&) = 0;
   virtual void apply(const Ticker&) = 0;
 

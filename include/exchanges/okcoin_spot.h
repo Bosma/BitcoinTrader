@@ -55,10 +55,10 @@ public:
   bool subscribed_to_OHLC(std::chrono::minutes) override;
   bool backfill_OHLC(std::chrono::minutes, unsigned long) override;
 
-  void market_buy(double, std::chrono::nanoseconds);
-  void market_sell(double, std::chrono::nanoseconds);
-  void limit_buy(double, double, std::chrono::nanoseconds);
-  void limit_sell(double, double, std::chrono::nanoseconds);
+  void market_buy(double, timestamp_t);
+  void market_sell(double, timestamp_t);
+  void limit_buy(double, double, timestamp_t);
+  void limit_sell(double, double, timestamp_t);
 
   void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {
     userinfo_callback = callback;
@@ -74,7 +74,7 @@ private:
   void orderinfo_handler(const json&) override;
   void userinfo_handler(const json&) override;
 
-  void order(const std::string&, const std::string&, std::chrono::nanoseconds, const std::string& price = "");
+  void order(const std::string&, const std::string&, timestamp_t, const std::string& price = "");
 
   // INTERNAL REST BORROWING FUNCTIONS
   BorrowInfo borrow(Currency, double);

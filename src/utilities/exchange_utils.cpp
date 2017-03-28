@@ -12,13 +12,13 @@ using namespace std::chrono_literals;
 // IE: returns TRUE if test()
 // If stop_time is reached before test() is true, returns false
 // IE: returns FALSE if we have timed out
-bool check_until(std::function<bool()> test, std::chrono::nanoseconds stop_time, std::chrono::milliseconds time_between_checks) {
+bool check_until(std::function<bool()> test, timestamp_t stop_time, std::chrono::milliseconds time_between_checks) {
   bool complete = false;
   bool completed_on_time = true;
   do {
     // if we're over time (and our stop_time isn't 0)
     if (timestamp_now() > stop_time &&
-        stop_time != 0ns) {
+        stop_time != std::chrono::high_resolution_clock::time_point{}) {
       completed_on_time = false;
       complete = true;
     }
@@ -47,8 +47,8 @@ double truncate_to(double to_round, int digits) {
 }
 
 // use this function for consistent timestamps
-std::chrono::nanoseconds timestamp_now() {
-  return std::chrono::high_resolution_clock::now().time_since_epoch();
+timestamp_t timestamp_now() {
+  return std::chrono::high_resolution_clock::now();
 }
 
 size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::string *s)
@@ -70,9 +70,8 @@ size_t Curl_write_callback(void *contents, size_t size, size_t nmemb, std::strin
   return size*nmemb;
 }
 
-std::string ts_to_string(std::chrono::nanoseconds timestamp) {
-  auto tp = std::chrono::high_resolution_clock::time_point(timestamp);
-  std::time_t rawtime = std::chrono::high_resolution_clock::to_time_t(tp);
+std::string ts_to_string(timestamp_t timestamp) {
+  std::time_t rawtime = std::chrono::high_resolution_clock::to_time_t(timestamp);
   std::tm* timeinfo;
   char buffer[80];
   timeinfo = std::localtime(&rawtime);

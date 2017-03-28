@@ -33,23 +33,23 @@ bool OKCoinSpot::subscribed_to_OHLC(minutes period) {
   return channels.count(channel) == 1;
 }
 
-void OKCoinSpot::market_buy(double usd_amount, nanoseconds timeout_time) {
+void OKCoinSpot::market_buy(double usd_amount, timestamp_t timeout_time) {
   order("buy_market", dtos(usd_amount, 2), timeout_time);
 }
 
-void OKCoinSpot::market_sell(double btc_amount, nanoseconds timeout_time) {
+void OKCoinSpot::market_sell(double btc_amount, timestamp_t timeout_time) {
   order("sell_market", dtos(btc_amount, 4), timeout_time);
 }
 
-void OKCoinSpot::limit_buy(double amount, double price, nanoseconds timeout_time) {
+void OKCoinSpot::limit_buy(double amount, double price, timestamp_t timeout_time) {
   order("buy", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::limit_sell(double amount, double price, nanoseconds timeout_time) {
+void OKCoinSpot::limit_sell(double amount, double price, timestamp_t timeout_time) {
   order("sell", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::order(const string& type, const string& amount, nanoseconds timeout_time, const string& price) {
+void OKCoinSpot::order(const string& type, const string& amount, timestamp_t timeout_time, const string& price) {
   string channel = "ok_spotusd_trade";
 
   channel_timeouts[channel] = timeout_time;

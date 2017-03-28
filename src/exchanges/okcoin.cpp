@@ -227,7 +227,7 @@ void OKCoin::populate_error_reasons() {
   }
 }
 
-void OKCoin::userinfo(std::chrono::nanoseconds invalid_time) {
+void OKCoin::userinfo(timestamp_t invalid_time) {
   string channel = "ok_" + market_s(market) + "usd_userinfo";
 
   channel_timeouts[channel] = invalid_time;
@@ -263,7 +263,7 @@ void OKCoin::unsubscribe_to_channel(string const & channel) {
 
 void OKCoin::OHLC_handler(const string& period, const json& trade) {
   if (OHLC_callback) {
-    nanoseconds timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to<long>(trade[0])));
+    timestamp_t timestamp(duration_cast<nanoseconds>(milliseconds(optionally_to<long>(trade[0]))));
     double open = optionally_to<double>(trade[1]);
     double high = optionally_to<double>(trade[2]);
     double low = optionally_to<double>(trade[3]);
@@ -298,7 +298,8 @@ void OKCoin::depth_handler(const json& j) {
       depth.bids.emplace_back(optionally_to<double>(order[0]),
                               optionally_to<double>(order[1]));
 
-    depth.timestamp = duration_cast<nanoseconds>(milliseconds(optionally_to<long>(j["timestamp"])));
+    timestamp_t t(duration_cast<nanoseconds>(milliseconds(optionally_to<long>(j["timestamp"]))));
+    depth.timestamp = t;
     depth_callback(depth);
   }
 }

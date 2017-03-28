@@ -47,7 +47,7 @@ public:
     std::string symbol;
     OrderType type;
     int unit_amount;
-    std::chrono::nanoseconds timestamp;
+    timestamp_t timestamp;
   };
   struct FuturePosition {
     struct Position {
@@ -75,11 +75,11 @@ public:
   void subscribe_to_depth() override;
   bool backfill_OHLC(std::chrono::minutes, unsigned long) override;
 
-  void open(Position, double, double, int, std::chrono::nanoseconds);
-  void close(Position, double, double, int, std::chrono::nanoseconds);
-  void order(OrderType, double, double, int, bool, std::chrono::nanoseconds);
-  void cancel_order(const std::string&, std::chrono::nanoseconds);
-  void orderinfo(const std::string&, std::chrono::nanoseconds);
+  void open(Position, double, double, int, timestamp_t);
+  void close(Position, double, double, int, timestamp_t);
+  void order(OrderType, double, double, int, bool, timestamp_t);
+  void cancel_order(const std::string&, timestamp_t);
+  void orderinfo(const std::string&, timestamp_t);
   boost::optional<FuturePosition> positions();
 
   void set_userinfo_callback(std::function<void(const UserInfo&)> callback) {

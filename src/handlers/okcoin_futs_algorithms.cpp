@@ -54,8 +54,8 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
         auto d2 = depth.get();
         execution_logs.at("limit").row({
                                            to_string(static_cast<int>(type)),  // contract type
-                                           to_string(t1.count()),              // start time
-                                           to_string(final_info.timestamp.count()),              // finished time
+                                           to_string(t1.time_since_epoch().count()),              // start time
+                                           to_string(final_info.timestamp.time_since_epoch().count()),              // finished time
                                            to_string(amount),                  // amount of contracts
                                            to_string(limit_price),             // limit price
                                            to_string(final_info.filled_amount),// amount filled

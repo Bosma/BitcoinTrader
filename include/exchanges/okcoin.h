@@ -33,7 +33,7 @@ public:
     Channel(std::string name) :
         name(name) { }
     std::string name;
-    std::chrono::nanoseconds last_message_time;
+    timestamp_t last_message_time;
 
     std::string to_string() {
       auto time_since_last = timestamp_now() - last_message_time;
@@ -59,7 +59,7 @@ public:
   bool connected() override {
     return ws.get_status() == websocket::Status::Open;
   }
-  void userinfo(std::chrono::nanoseconds) override;
+  void userinfo(timestamp_t) override;
 protected:
   std::string api_key;
   std::string secret_key;

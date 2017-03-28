@@ -11,23 +11,24 @@
 #include "json.hpp"
 
 using json = nlohmann::json;
+using timestamp_t = std::chrono::high_resolution_clock::time_point;
 
-bool check_until(std::function<bool()>, std::chrono::nanoseconds = std::chrono::nanoseconds(0), std::chrono::milliseconds = std::chrono::milliseconds(50));
+bool check_until(std::function<bool()>, timestamp_t = {}, std::chrono::milliseconds = std::chrono::milliseconds(50));
 
 enum class Currency { BTC, USD };
 enum class Position { Long, Short };
 
-std::chrono::nanoseconds timestamp_now();
+timestamp_t timestamp_now();
 
 class Ticker {
 public:
-  Ticker(double b, double a, double l, std::chrono::nanoseconds ts) :
+  Ticker(double b, double a, double l, timestamp_t ts) :
       bid(b), ask(a), last(l), timestamp(ts) { }
   Ticker() { }
   double bid;
   double ask;
   double last;
-  std::chrono::nanoseconds timestamp;
+  timestamp_t timestamp;
 };
 
 class Depth {
@@ -48,12 +49,12 @@ public:
   };
   using Orders = std::vector<Order>;
 
-  Depth(Orders bids, Orders asks, std::chrono::nanoseconds ts) :
+  Depth(Orders bids, Orders asks, timestamp_t ts) :
       bids(bids), asks(asks), timestamp(ts) { }
   Depth() { }
 
   std::string to_string() const {
-    std::string s = std::to_string(timestamp.count());
+    std::string s = std::to_string(timestamp.time_since_epoch().count());
     s += "|" + std::accumulate(std::next(bids.begin()),
                                bids.end(),
                                bids[0].to_string(),
@@ -71,10 +72,10 @@ public:
 
   Orders bids;
   Orders asks;
-  std::chrono::nanoseconds timestamp;
+  timestamp_t timestamp;
 };
 
-std::string ts_to_string(std::chrono::nanoseconds);
+std::string ts_to_string(timestamp_t);
 
 class IndicatorValue {
 public:
@@ -115,7 +116,7 @@ private:
 
 class OHLC {
 public:
-  OHLC(std::chrono::nanoseconds timestamp, double open, double high,
+  OHLC(timestamp_t timestamp, double open, double high,
        double low, double close, double volume) :
       timestamp(timestamp),
       open(open),
@@ -124,7 +125,7 @@ public:
       close(close),
       volume(volume) { }
 
-  std::chrono::nanoseconds timestamp;
+  timestamp_t timestamp;
   double open;
   double high;
   double low;
@@ -166,7 +167,7 @@ public:
 
   std::vector<std::string> to_csv() {
     std::vector<std::string> vs = {
-        std::to_string(timestamp.count()),
+        std::to_string(timestamp.time_since_epoch().count()),
         std::to_string(open),
         std::to_string(high),
         std::to_string(low),

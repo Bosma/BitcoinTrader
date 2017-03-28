@@ -1,18 +1,19 @@
 #include "trading/mktdata.h"
 
-MktData::MktData(std::chrono::minutes period, unsigned long size) :
+MktData::MktData(std::chrono::minutes period, unsigned long size, std::shared_ptr<Log> log) :
     bars(size),
-    period(period) {
+    period(period),
+    log(log) {
 
 }
 
-void MktData::add(const OHLC& new_bar) {
+void MktData::add(const OHLC &new_bar) {
   std::lock_guard<std::mutex> l(lock);
   OHLC bar = new_bar;
 
   // don't add bars of the same timestamp
   bool found = false;
-  for (auto& x : bars)
+  for (auto &x : bars)
     if (x.timestamp == bar.timestamp)
       found = true;
 
@@ -20,23 +21,28 @@ void MktData::add(const OHLC& new_bar) {
     // if we receive a bar that's not contiguous
     // our old data is useless
     if (!bars.empty() &&
-        bar.timestamp != bars.back().timestamp + period)
+        bar.timestamp != bars.back().timestamp + period) {
+      log->output("CLEARING MARKET DATA - LAST BAR TIME: " +
+                      std::to_string(bars.back().timestamp.time_since_epoch().count()) +
+                      ", NEW BAR: " +
+                      std::to_string(bar.timestamp.time_since_epoch().count()));
       bars.clear();
+    }
 
     bars.push_back(std::move(bar));
 
     // for each indicator
     // calculate the indicator value
     // from the bars (with the new value)
-    for (const auto& strategy : strategies) {
-      for (const auto& indicator : strategy->indicators)
+    for (const auto &strategy : strategies) {
+      for (const auto &indicator : strategy->indicators)
         bars.back().indis[strategy->name][indicator->name] = indicator->calculate(bars);
       strategy->apply(bars.back());
     }
   }
 }
 
-void MktData::add(const Ticker& new_tick) {
+void MktData::add(const Ticker &new_tick) {
   std::lock_guard<std::mutex> l(lock);
 
   for (auto &s : strategies)

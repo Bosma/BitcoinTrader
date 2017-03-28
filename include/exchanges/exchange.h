@@ -25,7 +25,7 @@ public:
   virtual void subscribe_to_depth() = 0;
   virtual void subscribe_to_OHLC(std::chrono::minutes) = 0;
   virtual bool subscribed_to_OHLC(std::chrono::minutes) = 0;
-  virtual void userinfo(std::chrono::nanoseconds) = 0;
+  virtual void userinfo(timestamp_t) = 0;
   virtual void ping() = 0;
   virtual bool backfill_OHLC(std::chrono::minutes, unsigned long) = 0;
   virtual std::string status() = 0;
@@ -56,7 +56,7 @@ public:
   std::string name;
 
   // timestamp representing time of last received message
-  std::chrono::nanoseconds ts_since_last;
+  timestamp_t ts_since_last;
 protected:
   std::shared_ptr<Config> config;
   std::shared_ptr<Log> log;
@@ -70,5 +70,5 @@ protected:
   std::function<void()> pong_callback;
 
   // stores the time that the channel message callback will be invalid and no longer called
-  std::map<std::string, std::chrono::nanoseconds> channel_timeouts;
+  std::map<std::string, timestamp_t> channel_timeouts;
 };

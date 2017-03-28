@@ -31,7 +31,7 @@ BitcoinTrader::BitcoinTrader(shared_ptr<Config> config) :
         // create a mktdata object with the period the strategy uses
         handler->mktdata.emplace(piecewise_construct,
                                     forward_as_tuple(strategy->period),
-                                    forward_as_tuple(strategy->period, 2000));
+                                    forward_as_tuple(strategy->period, 2000, handler->trading_log));
       }
       // tell the mktdata object about the strategy
       handler->mktdata.at(strategy->period).add_strategy(strategy);

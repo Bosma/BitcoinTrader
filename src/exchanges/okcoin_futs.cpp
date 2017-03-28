@@ -34,17 +34,17 @@ bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   return channels.count(channel) == 1;
 }
 
-void OKCoinFuts::open(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
+void OKCoinFuts::open(Position position, double amount, double price, int leverage, timestamp_t invalid_time) {
   OrderType order_type = (position == Position::Long) ? OrderType::OpenLong : OrderType::OpenShort;
   order(order_type, amount, price, leverage, false, invalid_time);
 }
 
-void OKCoinFuts::close(Position position, double amount, double price, int leverage, nanoseconds invalid_time) {
+void OKCoinFuts::close(Position position, double amount, double price, int leverage, timestamp_t invalid_time) {
   OrderType order_type = (position == Position::Long) ? OrderType::CloseLong : OrderType::CloseShort;
   order(order_type, amount, price, leverage, false, invalid_time);
 }
 
-void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price, nanoseconds invalid_time) {
+void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price, timestamp_t invalid_time) {
   string channel = "ok_futureusd_trade";
 
   channel_timeouts[channel] = invalid_time;
@@ -71,7 +71,7 @@ void OKCoinFuts::order(OrderType type, double amount, double price, int lever_ra
   ws.send(j.dump());
 }
 
-void OKCoinFuts::cancel_order(const std::string& order_id, nanoseconds invalid_time) {
+void OKCoinFuts::cancel_order(const std::string& order_id, timestamp_t invalid_time) {
   string channel = "ok_futureusd_cancel_order";
 
   channel_timeouts[channel] = invalid_time;
@@ -94,7 +94,7 @@ void OKCoinFuts::cancel_order(const std::string& order_id, nanoseconds invalid_t
   ws.send(j.dump());
 }
 
-void OKCoinFuts::orderinfo(const string& order_id, nanoseconds invalid_time) {
+void OKCoinFuts::orderinfo(const string& order_id, timestamp_t invalid_time) {
   string channel = "ok_futureusd_orderinfo";
 
   channel_timeouts[channel] = invalid_time;
