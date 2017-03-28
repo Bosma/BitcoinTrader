@@ -18,12 +18,18 @@ void BitcoinTrader::user_specifications() {
   exchange_handlers.push_back(okcoin_futs_h);
 
   // create and add strategies to each exchange
-  okcoin_futs_h->signal_strategies.push_back(make_shared<BBands>("BBands", okcoin_futs_h->trading_log));
+  okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", 1, okcoin_futs_h->trading_log));
+  okcoin_futs_h->signal_strategies.push_back(make_shared<BBands>("BBands", 0.2, okcoin_futs_h->trading_log));
 }
 
+// return a number between 1 and -1
 double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {
   // average the signals
-  double signal_sum = accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), 0,
+  double signal = accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), 0,
                                  [](double a, shared_ptr<SignalStrategy> b) { return a + b->signal.get(); });
-  return signal_sum / handler->signal_strategies.size();
+
+  if (signal > 1) signal = 1;
+  else if (signal < -1) signal = -1;
+
+  return signal;
 }

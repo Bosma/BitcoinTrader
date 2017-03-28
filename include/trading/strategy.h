@@ -10,12 +10,14 @@
 
 class Strategy {
 public:
-  Strategy(std::string name, std::shared_ptr<Log> log) :
+  Strategy(std::string name, double weight, std::shared_ptr<Log> log) :
       name(name),
+      weight(weight),
       log(log) { }
 
   virtual std::string status() = 0;
 
   std::string name;
+  double weight;
   std::shared_ptr<Log> log;
 };

@@ -4,7 +4,7 @@
 
 class BBands : public SignalStrategy {
 public:
-  BBands(std::string, std::shared_ptr<Log>);
+  BBands(std::string, double weight, std::shared_ptr<Log>);
 
   void apply(const OHLC&);
   void apply(const Ticker&);

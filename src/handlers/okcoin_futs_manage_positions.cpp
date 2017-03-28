@@ -40,12 +40,10 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   int desired_contracts = static_cast<int>(floor(desired_exposure / 100));
 
   // TODO: remove for live
-  if (desired_contracts > 0)
-    desired_contracts = 1;
-  else if (desired_contracts == 0)
-    desired_contracts = 0;
-  else
-    desired_contracts = -1;
+  if (desired_contracts > 5)
+    desired_contracts = 5;
+  else if (desired_contracts < -5)
+    desired_contracts = -5;
 
   int current_contracts = position->buy.contracts - position->sell.contracts;
 

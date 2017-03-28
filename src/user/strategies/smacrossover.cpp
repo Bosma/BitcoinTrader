@@ -6,16 +6,17 @@ using std::make_shared;
 using std::to_string;
 using namespace std::chrono_literals;
 
-SMACrossover::SMACrossover(string name, shared_ptr<Log> log) :
+SMACrossover::SMACrossover(string name, double weight, shared_ptr<Log> log) :
     SignalStrategy(name,
-             15min,
-             {
-                 make_shared<MovingAverage>("sma_fast", 30),
-                 make_shared<MovingAverage>("sma_slow", 150)
-             },
-             log),
+                   weight,
+                   15min,
+                   {
+                       make_shared<MovingAverage>("sma_fast", 30),
+                       make_shared<MovingAverage>("sma_slow", 150)
+                   },
+                   log),
     crossed_above(false),
-    crossed_below(false) { }
+    crossed_below(false) {}
 
 void SMACrossover::apply(const OHLC& bar) {
   // used for backfilling
@@ -32,7 +33,7 @@ void SMACrossover::apply(const OHLC& bar) {
     auto new_stop = bar.close * (1 - stop_percentage);
 
     stop.set(new_stop);
-    signal.set(1);
+    signal.set(weight);
 
     log->output(name + ": LONGING WITH SIGNAL 1 AND STOP " + to_string(new_stop));
 
@@ -43,7 +44,7 @@ void SMACrossover::apply(const OHLC& bar) {
            !crossed_below) {
     auto new_stop = bar.close * (1 + stop_percentage);
     stop.set(new_stop);
-    signal.set(-1);
+    signal.set(-weight);
 
     log->output(name + ": SHORTING WITH SIGNAL -1 AND STOP " + to_string(new_stop));
 

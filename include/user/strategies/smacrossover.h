@@ -4,7 +4,7 @@
 
 class SMACrossover : public SignalStrategy {
 public:
-  SMACrossover(std::string, std::shared_ptr<Log>);
+  SMACrossover(std::string, double weight, std::shared_ptr<Log>);
 
   void apply(const OHLC&);
   void apply(const Ticker&);
