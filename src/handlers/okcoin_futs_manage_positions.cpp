@@ -34,16 +34,16 @@ void OKCoinFutsHandler::manage_positions(double signal) {
 
   // calculate the number of contracts we have open, and the number of contracts we would like to have
   // negative contracts are short contracts
-  double equity = userinfo->equity * t.last;
-  double max_exposure = position->lever_rate * equity;
-  double desired_exposure = signal * max_exposure;;
-  int desired_contracts = static_cast<int>(floor(desired_exposure / 100));
 
-  // TODO: remove for live
-  if (desired_contracts > 2)
-    desired_contracts = 2;
-  else if (desired_contracts < -2)
-    desired_contracts = -2;
+
+  // TODO: turn this into runtime choice using config file
+  //double equity = userinfo->equity * t.last;
+  //double max_exposure = position->lever_rate * equity;
+  //double desired_exposure = signal * max_exposure;
+  //int desired_contracts = static_cast<int>(desired_exposure / 100);
+
+  double max_contracts = 2;
+  int desired_contracts = static_cast<int>(signal * max_contracts);
 
   int current_contracts = position->buy.contracts - position->sell.contracts;
 

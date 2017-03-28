@@ -25,8 +25,8 @@ void BitcoinTrader::user_specifications() {
 // return a number between 1 and -1
 double BitcoinTrader::blend_signals(shared_ptr<ExchangeHandler> handler) {
   // average the signals
-  double signal = accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), 0,
-                                 [](double a, shared_ptr<SignalStrategy> b) { return a + b->signal.get(); });
+  double signal = accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), 0.0,
+                                 [](double a, shared_ptr<SignalStrategy> b) -> double { return a + b->signal.get(); });
 
   if (signal > 1) signal = 1;
   else if (signal < -1) signal = -1;

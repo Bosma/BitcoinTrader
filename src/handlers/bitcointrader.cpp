@@ -60,6 +60,7 @@ string BitcoinTrader::status() {
     for (auto s : (*i)->strategies()) {
       os << s->status() << endl;
     }
+    os << "blended signal: " << blend_signals(*i) << std::endl;
     if (next(i) != exchange_handlers.end())
       os << endl;
   }
