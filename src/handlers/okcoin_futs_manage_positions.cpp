@@ -36,14 +36,31 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   // negative contracts are short contracts
 
 
-  // TODO: turn this into runtime choice using config file
-  //double equity = userinfo->equity * t.last;
-  //double max_exposure = position->lever_rate * equity;
-  //double desired_exposure = signal * max_exposure;
-  //int desired_contracts = static_cast<int>(desired_exposure / 100);
+  int desired_contracts = 0;
+  // we're setting our maximum contracts to a multiple of our equity
+  if ((*config).exists("equity")) {
+    double leverage = stod((*config)["equity"]);
 
-  double max_contracts = 2;
-  int desired_contracts = static_cast<int>(signal * max_contracts);
+    if (leverage <= 20) {
+      double equity = userinfo->equity * t.last;
+      double max_exposure = leverage * equity;
+      double desired_exposure = signal * max_exposure;
+      desired_contracts = static_cast<int>(desired_exposure / 100);
+    }
+    else {
+      exchange_log->output("ERROR: DESIRED LEVERAGE IS GREATER THAN 20 - CHECK EQUITY OPTION IN CONFIG");
+      return;
+    }
+  }
+  // we're setting our maximum contracts directly
+  else if ((*config).exists("contracts")) {
+    double max_contracts = stod((*config)["contracts"]);
+    desired_contracts = static_cast<int>(signal * max_contracts);
+  }
+  else {
+    exchange_log->output("ERROR: EQUITY OR CONTRACTS OPTION DOESN'T EXIST IN CONFIG");
+    return;
+  }
 
   int current_contracts = position->buy.contracts - position->sell.contracts;
 
@@ -104,7 +121,7 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     calculations(to_close);
     trading_log->output("MARKET " + action + " " + to_string(abs(contracts_to_close)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // limit with price crossing the bid/ask immediately executes with maximum slippage
-    if (!limit(to_close, abs(contracts_to_close), position->lever_rate, max_price, 30s)) {
+    if (!limit(to_close, abs(contracts_to_close), 20, max_price, 30s)) {
       // if we've failed to close, discontinue
       return;
     }
@@ -117,6 +134,6 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     trading_log->output("MARKET " + action + " " + to_string(abs(contracts_to_open)) + " " + direction + " CONTRACTS WITH MAX PRICE " + to_string(max_price));
     // no need to check for success, since it's the last thing we do
     // if it fails, manage positions loops again
-    limit(to_open, abs(contracts_to_open), position->lever_rate, max_price, 30s);
+    limit(to_open, abs(contracts_to_open), 20, max_price, 30s);
   }
 }
