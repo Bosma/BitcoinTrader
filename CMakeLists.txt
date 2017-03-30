@@ -11,6 +11,7 @@ include_directories (include)
 
 include_directories (libs/json)
 include_directories (libs/websocketpp)
+include_directories (libs/ctpl)
 
 add_executable (BitcoinTrader ${SOURCES})
 

@@ -1,6 +1,7 @@
 #include "websocket/websocket.h"
 
-websocket::websocket(std::string uri) : status(Status::Connecting), server("N/A"), uri(uri) {
+websocket::websocket(std::string uri) :
+    thread_pool(4), status(Status::Connecting), server("N/A"), uri(uri) {
   setup();
 }
 
@@ -83,10 +84,9 @@ void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
   server = con->get_response_header("Server");
 
   if (open_callback) {
-    std::thread t([&]() {
+    thread_pool.push([this](int thread_id) {
       open_callback();
     });
-    t.detach();
   }
 }
 
@@ -107,11 +107,10 @@ wspp_context_ptr websocket::on_tls_init(wspp_client *, websocketpp::connection_h
 void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr msg) {
   if (message_callback) {
     std::string m = msg->get_payload();
-    // TODO: use a thread pool instead of detached threads
-    std::thread t([this, m = std::move(m)]() {
+
+    thread_pool.push([this, m = std::move(m)](int thread_id) {
       message_callback(m);
     });
-    t.detach();
   }
 }
 

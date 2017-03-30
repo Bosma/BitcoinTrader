@@ -9,6 +9,8 @@
 #include <iostream>
 #include <string>
 
+#include <ctpl_stl.h>
+
 typedef websocketpp::client<websocketpp::config::asio_tls_client> wspp_client;
 typedef websocketpp::lib::shared_ptr<boost::asio::ssl::context> wspp_context_ptr;
 
@@ -59,6 +61,9 @@ private:
   void on_message(websocketpp::connection_hdl, wspp_client::message_ptr);
   void on_close(wspp_client *, websocketpp::connection_hdl);
   void on_fail(wspp_client *, websocketpp::connection_hdl);
+
+  // thread pool for messages
+  ctpl::thread_pool thread_pool;
 
   // callbacks
   std::function<void()> open_callback;
