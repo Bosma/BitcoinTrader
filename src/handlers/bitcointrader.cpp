@@ -120,7 +120,7 @@ void BitcoinTrader::position_management() {
     check_until(can_open_positions);
 
     while (!done) {
-      {
+      if (handler->exchange && handler->exchange->connected()) {
         lock_guard<mutex> l(handler->reconnect);
         double blended_signal = blend_signals(handler);
         handler->manage_positions(blended_signal);
@@ -145,17 +145,17 @@ void BitcoinTrader::check_connection() {
         sleep_for(10s);
         warm_up = false;
       }
-      for (auto exchange : exchange_handlers) {
-        if (exchange->exchange) {
+      for (auto handler : exchange_handlers) {
+        if (handler->exchange) {
           // ping the exchange to let them know we are here
-          exchange->exchange->ping();
+          handler->exchange->ping();
 
               // if the time since the last message received is > 1min
-          if ((timestamp_now() - exchange->exchange->ts_since_last > 1min) ||
+          if ((timestamp_now() - handler->exchange->ts_since_last > 1min) ||
               // if the websocket has closed
-              !exchange->exchange->connected()) {
-            exchange->exchange_log->output("RECONNECTING TO " + exchange->name);
-            exchange->set_up_and_start();
+              !handler->exchange->connected()) {
+            handler->exchange_log->output("RECONNECTING TO " + handler->name);
+            handler->set_up_and_start();
             warm_up = true;
           }
         }
