@@ -138,6 +138,12 @@ void OKCoin::on_message(const string& message) {
                 log->output("COULDN'T CANCEL ORDER " + channel_message["order_id"].get<string>() + " WITH ERROR: " +
                             error_reasons[channel_message["errorcode"]]);
             }
+            else if (channel == "btc_forecast_price") {
+              // no implementation - spammed an hour before contract close even if we are not subscribed
+            }
+            else if (channel == "ok_btc_future_contract") {
+              // no implementation - sent right as contract closed
+            }
             else {
               log->output("MESSAGE WITH UNKNOWN CHANNEL, JSON: " + message);
             }
