@@ -355,18 +355,7 @@ protected:
     template <typename ErrorCodeType>
     lib::error_code translate_ec(ErrorCodeType ec) {
         if (ec.category() == lib::asio::error::get_ssl_category()) {
-#if defined SSL_R_SHORT_READ
-            if (ERR_GET_REASON(ec.value()) == SSL_R_SHORT_READ) {
-                return make_error_code(transport::error::tls_short_read);
-#else
-            if (ERR_GET_REASON(ec.value()) == boost::asio::ssl::error::stream_truncated) {
-                return make_error_code(boost::asio::ssl::error::stream_truncated);
-#endif
-            } else {
-                // We know it is a TLS related error, but otherwise don't know
-                // more. Pass through as TLS generic.
-                return make_error_code(transport::error::tls_error);
-            }
+            return make_error_code(transport::error::tls_error);
         } else {
             // We don't know any more information about this error so pass
             // through
