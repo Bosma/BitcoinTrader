@@ -10,7 +10,6 @@
 #include <numeric>
 #include <algorithm>
 
-#include <boost/range/adaptor/reversed.hpp>
 #include <openssl/md5.h>
 
 #include "json.hpp"

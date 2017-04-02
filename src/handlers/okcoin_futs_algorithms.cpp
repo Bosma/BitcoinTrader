@@ -52,17 +52,7 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
 
         // execution logging
         auto d2 = depth.get();
-        execution_logs.at("limit").row({
-                                           to_string(static_cast<int>(type)),  // contract type
-                                           to_string(t1.time_since_epoch().count()),              // start time
-                                           to_string(final_info.timestamp.time_since_epoch().count()),              // finished time
-                                           to_string(amount),                  // amount of contracts
-                                           to_string(limit_price),             // limit price
-                                           to_string(final_info.filled_amount),// amount filled
-                                           to_string(final_info.avg_price),    // average price
-                                           d1.to_string(),                     // depth at posting time
-                                           d2.to_string()                      // depth after expiring
-                                       });
+        log_execution("limit", type, t1, final_info, amount, limit_price, d1, d2);
       }
     }
     trading_done = true;

@@ -10,21 +10,41 @@ using std::to_string;
 using std::this_thread::sleep_for;
 using namespace std::chrono_literals;
 
-OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, string exchange_log_key, string trading_log_key, OKCoinFuts::ContractType contract_type) :
+OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, string exchange_log_key,
+                                     string trading_log_key, OKCoinFuts::ContractType contract_type) :
     ExchangeHandler(name, config, exchange_log_key, trading_log_key),
+    execution_csv(name + "_algorithms.csv", {"algorithm",
+                                             "contract_type",
+                                             "start_time",
+                                             "end_time",
+                                             "contract_amount",
+                                             "limit_price",
+                                             "filled_amount",
+                                             "average_price",
+                                             "posting_depth",
+                                             "expire_depth"}),
     contract_type(contract_type) {
-  std::vector<std::string> columns = {"contract_type",
-                                      "start_time",
-                                      "end_time",
-                                      "contract_amount",
-                                      "limit_price",
-                                      "filled_amount",
-                                      "average_price",
-                                      "posting_depth",
-                                      "expire_depth"};
-  execution_logs.emplace(std::piecewise_construct,
-                         std::forward_as_tuple("limit"),
-                         std::forward_as_tuple(name + "_limit.csv", columns));
+}
+
+void OKCoinFutsHandler::log_execution(string algorithm,
+                                      OKCoinFuts::OrderType type,
+                                      timestamp_t t1,
+                                      OKCoinFuts::OrderInfo &final_info,
+                                      double amount, double limit_price,
+                                      Depth &d1,
+                                      Depth &d2) {
+  execution_csv.row({
+                        algorithm,
+                        to_string(static_cast<int>(type)),
+                        to_string(t1.time_since_epoch().count()),
+                        to_string(final_info.timestamp.time_since_epoch().count()),
+                        to_string(amount),
+                        to_string(limit_price),
+                        to_string(final_info.filled_amount),
+                        to_string(final_info.avg_price),
+                        d1.to_string(),
+                        d2.to_string()
+                    });
 }
 
 void OKCoinFutsHandler::set_up_and_start() {

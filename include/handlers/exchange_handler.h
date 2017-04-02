@@ -25,7 +25,6 @@ public:
 
   std::shared_ptr<Log> exchange_log;
   std::shared_ptr<Log> trading_log;
-  std::map<std::string, CSV> execution_logs;
 
   std::shared_ptr<Config> config;
   std::shared_ptr<Exchange> exchange;

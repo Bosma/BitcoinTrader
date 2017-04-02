@@ -18,7 +18,6 @@ using std::exception;
 using std::stringstream;
 using std::to_string;
 using std::sort;
-using boost::adaptors::reverse;
 
 OKCoin::OKCoin(string name, Market market, shared_ptr<Log> log, shared_ptr<Config> config) :
     Exchange(name, log, config),
@@ -299,14 +298,20 @@ void OKCoin::depth_handler(const json& j) {
   if (depth_callback) {
     Depth depth;
 
-    for (const json& order: reverse(j["asks"])) {
+    for (const json& order: j["asks"]) {
       depth.asks.emplace_back(optionally_to<double>(order[0]),
                               optionally_to<double>(order[1]));
     }
+    // ensure asks are sorted normally
+    sort(depth.asks.begin(), depth.asks.end());
 
-    for (const json& order : j["bids"])
+    for (const json& order : j["bids"]) {
       depth.bids.emplace_back(optionally_to<double>(order[0]),
                               optionally_to<double>(order[1]));
+    }
+    // ensure bids are sorted in reverse
+    sort(depth.bids.begin(), depth.bids.end(),
+         [](Depth::Order a, Depth::Order b) { return b < a; });
 
     timestamp_t t(duration_cast<nanoseconds>(milliseconds(optionally_to<long>(j["timestamp"]))));
     depth.timestamp = t;
