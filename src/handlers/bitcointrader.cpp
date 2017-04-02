@@ -80,11 +80,8 @@ void BitcoinTrader::print_bars() {
 }
 
 void BitcoinTrader::start() {
-  for (auto exchange : exchange_handlers)
-    exchange->set_up_and_start();
-
   // check connection and reconnect if down on another thread
-  check_connection();
+  manage_connections();
 
   // manage positions on another thread
   position_management();
@@ -136,8 +133,11 @@ void BitcoinTrader::position_management() {
   }
 }
 
-void BitcoinTrader::check_connection() {
+void BitcoinTrader::manage_connections() {
   auto connection_thread = [&]() {
+    for (auto exchange : exchange_handlers)
+      exchange->set_up_and_start();
+
     bool warm_up = true;
     while (!done) {
       // give some time for everything to start up after we reconnect

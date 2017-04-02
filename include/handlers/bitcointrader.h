@@ -47,7 +47,7 @@ protected:
   std::vector<std::thread> running_threads;
 
   // used to check if the exchange is working
-  void check_connection();
+  void manage_connections();
 
   void position_management();
 

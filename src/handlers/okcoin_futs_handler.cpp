@@ -68,14 +68,20 @@ void OKCoinFutsHandler::set_up_and_start() {
 
   // set the callbacks the exchange will use
   auto open_callback = [&]() {
+    exchange_log->output("OKCoinFutsHandler DEBUG: ATTEMPTING TO LOCK RECONNECT IN OPEN CALLBACK");
     std::lock_guard<std::mutex> g(reconnect);
+    exchange_log->output("OKCoinFutsHandler DEBUG: LOCKED, STARTED OPEN CALLBACK");
     // start receiving ticks and block until one is received (or we're told to stop)
+    exchange_log->output("OKCoinFutsHandler DEBUG: SUBSCRIBING TO TICKER");
     okcoin_futs->subscribe_to_ticker();
     check_until([&]() { return tick.has_been_set() || cancel_checking; });
+    exchange_log->output("OKCoinFutsHandler DEBUG: GOT FIRST TICK");
 
     // do the same for depth
+    exchange_log->output("OKCoinFutsHandler DEBUG: SUBSCRIBING TO DEPTH");
     okcoin_futs->subscribe_to_depth();
     check_until([&]() { return depth.has_been_set() || cancel_checking; });
+    exchange_log->output("OKCoinFutsHandler DEBUG: GOT FIRST DEPTH");
 
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
@@ -92,6 +98,7 @@ void OKCoinFutsHandler::set_up_and_start() {
         exchange_log->output("FAILED TO BACKFILL " + to_string(m.second.period.count()) + "m BARS FOR OKCOIN FUTS, GIVING UP.");
       okcoin_futs->subscribe_to_OHLC(m.second.period);
     }
+    exchange_log->output("OKCoinFutsHandler DEBUG: DONE OPEN CALLBACK");
   };
   okcoin_futs->set_open_callback(open_callback);
 
