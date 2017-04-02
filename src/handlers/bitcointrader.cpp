@@ -92,19 +92,26 @@ void BitcoinTrader::position_management() {
     // wait until OKCoinFuts userinfo and ticks are fetched,
     // and subscribed to market data
     auto can_open_positions = [this, handler]() {
+      lock_guard<mutex> l(handler->reconnect);
       // return right away if we're done
       if (done)
         return true;
+
+      // return right away if exchange hasn't been set up yet
+      if (!handler->exchange)
+        return false;
+
       // we can open positions if
       bool can = true;
+
       // we're subscribed to every OHLC period
-      for (auto &m : handler->mktdata) {
-        lock_guard<mutex> l(handler->reconnect);
+      for (auto &m : handler->mktdata)
         can = can && handler->exchange->subscribed_to_OHLC(m.first);
-      }
+
       // every strategy has a set signal
       can = can && accumulate(handler->signal_strategies.begin(), handler->signal_strategies.end(), true,
                               [](bool a, shared_ptr<SignalStrategy> b) { return a && b->signal.has_been_set(); });
+
       // and we have a tick set
       can = can && handler->tick.has_been_set();
 
