@@ -32,10 +32,6 @@ void OKCoinFutsHandler::manage_positions(double signal) {
   if (timestamp_now() - t.timestamp > 30s)
     return;
 
-  // calculate the number of contracts we have open, and the number of contracts we would like to have
-  // negative contracts are short contracts
-
-
   int desired_contracts = 0;
   // we're setting our maximum contracts to a multiple of our equity
   if ((*config).exists("equity")) {
@@ -62,6 +58,8 @@ void OKCoinFutsHandler::manage_positions(double signal) {
     return;
   }
 
+  // calculate the number of contracts we have open, and the number of contracts we would like to have
+  // negative contracts are short contracts
   int current_contracts = position->buy.contracts - position->sell.contracts;
 
   // number of contracts we have to close and/or open
