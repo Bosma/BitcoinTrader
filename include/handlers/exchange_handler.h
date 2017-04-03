@@ -45,5 +45,6 @@ public:
   std::atomic<bool> cancel_checking;
 
   virtual void set_up_and_start() = 0;
+  virtual void reconnect_exchange() = 0;
   virtual void manage_positions(double) = 0;
 };

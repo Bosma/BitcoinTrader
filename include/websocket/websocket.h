@@ -27,6 +27,7 @@ public:
   void teardown();
 
   void connect();
+  void reconnect();
 
   void send(std::string);
   void close(websocketpp::close::status::value, std::string);

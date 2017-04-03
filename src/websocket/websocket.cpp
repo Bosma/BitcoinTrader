@@ -33,6 +33,12 @@ void websocket::teardown() {
   thread->join();
 }
 
+void websocket::reconnect() {
+  websocketpp::lib::error_code ec;
+  auto con = endpoint.get_connection(uri, ec);
+  endpoint.connect(con);
+}
+
 void websocket::connect() {
   websocketpp::lib::error_code ec;
 

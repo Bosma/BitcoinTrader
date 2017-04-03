@@ -125,6 +125,8 @@ void BitcoinTrader::position_management() {
 
     while (!done) {
       if (handler->exchange && handler->exchange->connected()) {
+        // TODO: I don't think the reconnect lock is needed any more
+        // TODO: nor are exchange ptr checks
         lock_guard<mutex> l(handler->reconnect);
         double blended_signal = blend_signals(handler);
         handler->manage_positions(blended_signal);
@@ -161,8 +163,7 @@ void BitcoinTrader::manage_connections() {
           if ((timestamp_now() - handler->exchange->ts_since_last > 1min) ||
               // if the websocket has closed
               !handler->exchange->connected()) {
-            handler->exchange_log->output("RECONNECTING TO " + handler->name);
-            handler->set_up_and_start();
+            handler->reconnect_exchange();
             warm_up = true;
           }
         }

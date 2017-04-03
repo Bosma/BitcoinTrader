@@ -48,22 +48,7 @@ void OKCoinFutsHandler::log_execution(string algorithm,
 }
 
 void OKCoinFutsHandler::set_up_and_start() {
-  // let infinitely long check_untils know that we're reconnecting
-  // so they release their hold on the reconnect lock
-  cancel_checking = true;
-  exchange_log->output("OKCoinFutsHandler DEBUG: CANCEL CHECKING TRUE, NOW WAITING FOR LOCK.");
-  lock_guard<mutex> l(reconnect);
-  exchange_log->output("OKCoinFutsHandler DEBUG: LOCK GRABBED, SETTING CANCEL CHECKING TO FALSE");
-  // we have the lock, so we're safe to delete the exchange pointers
-  // and they can start waiting again
-  cancel_checking = false;
-
-  tick.clear();
-  depth.clear();
-
-  exchange_log->output("OKCoinFutsHandler DEBUG: MAKING NEW OKCoinFuts");
   okcoin_futs = std::make_shared<OKCoinFuts>(name, contract_type, exchange_log, config);
-  exchange_log->output("OKCoinFutsHandler DEBUG: MADE NEW OKCoinFuts");
   exchange = okcoin_futs;
 
   // set the callbacks the exchange will use
@@ -122,8 +107,24 @@ void OKCoinFutsHandler::set_up_and_start() {
   };
   okcoin_futs->set_depth_callback(depth_callback);
 
-  exchange_log->output("OKCoinFutsHandler DEBUG: STARTING okcoin_futs");
   // start the exchange
   okcoin_futs->start();
-  exchange_log->output("OKCoinFutsHandler DEBUG: STARTED okcoin_futs");
+}
+
+void OKCoinFutsHandler::reconnect_exchange() {
+  exchange_log->output("RECONNECTING TO " + name);
+  // let infinitely long check_untils know that we're reconnecting
+  // so they release their hold on the reconnect lock
+  cancel_checking = true;
+  exchange_log->output("OKCoinFutsHandler DEBUG: CANCEL CHECKING TRUE, NOW WAITING FOR LOCK.");
+  lock_guard<mutex> l(reconnect);
+  exchange_log->output("OKCoinFutsHandler DEBUG: LOCK GRABBED, SETTING CANCEL CHECKING TO FALSE");
+  // we have the lock, so we're safe to delete the exchange pointers
+  // and they can start waiting again
+  cancel_checking = false;
+
+  tick.clear();
+  depth.clear();
+
+  okcoin_futs->reconnect();
 }

@@ -18,8 +18,8 @@ void BitcoinTrader::user_specifications() {
   exchange_handlers.push_back(okcoin_futs_h);
 
   // create and add strategies to each exchange
-  okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", 1, okcoin_futs_h->trading_log));
-  okcoin_futs_h->signal_strategies.push_back(make_shared<BBands>("BBands", 0.5, okcoin_futs_h->trading_log));
+  //okcoin_futs_h->signal_strategies.push_back(make_shared<SMACrossover>("SMACrossover", 1, okcoin_futs_h->trading_log));
+  //okcoin_futs_h->signal_strategies.push_back(make_shared<BBands>("BBands", 0.5, okcoin_futs_h->trading_log));
 }
 
 // return a number between 1 and -1

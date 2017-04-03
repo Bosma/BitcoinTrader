@@ -11,6 +11,7 @@ public:
   CSV execution_csv;
 
   void set_up_and_start() override;
+  void reconnect_exchange() override;
   void manage_positions(double) override;
 
   boost::optional<OKCoinFuts::UserInfo> get_userinfo();

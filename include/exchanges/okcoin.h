@@ -58,6 +58,9 @@ public:
   bool connected() override {
     return ws.get_status() == websocket::Status::Open;
   }
+  void reconnect() {
+    ws.reconnect();
+  }
   void userinfo(timestamp_t) override;
 protected:
   std::string api_key;

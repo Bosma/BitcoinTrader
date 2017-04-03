@@ -33,3 +33,15 @@ void OKCoinSpotHandler::set_up_and_start() {
 
   okcoin_spot->start();
 }
+
+void OKCoinSpotHandler::reconnect_exchange() {
+  exchange_log->output("RECONNECTING TO " + name);
+  cancel_checking = true;
+  lock_guard<mutex> l(reconnect);
+  cancel_checking = false;
+
+  tick.clear();
+  depth.clear();
+
+  okcoin_spot->reconnect();
+}
