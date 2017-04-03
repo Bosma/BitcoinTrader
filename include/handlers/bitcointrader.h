@@ -18,8 +18,6 @@ public:
   BitcoinTrader(std::shared_ptr<Config>);
   ~BitcoinTrader();
 
-  std::function<void(std::string)> execution_callback;
-
   std::string status();
   void print_bars();
 

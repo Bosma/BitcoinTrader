@@ -11,17 +11,10 @@ OKCoinSpotHandler::OKCoinSpotHandler(string name, shared_ptr<Config> config, str
 }
 
 void OKCoinSpotHandler::set_up_and_start() {
-  cancel_checking = true;
-  std::lock_guard<std::mutex> l(reconnect);
-  cancel_checking = false;
-
-  tick.clear();
-
   okcoin_spot = std::make_shared<OKCoinSpot>(name, exchange_log, config);
   exchange = okcoin_spot;
 
   auto open_callback = [&]() {
-    std::lock_guard<std::mutex> g(reconnect);
     okcoin_spot->subscribe_to_ticker();
   };
   okcoin_spot->set_open_callback(open_callback);
@@ -36,9 +29,6 @@ void OKCoinSpotHandler::set_up_and_start() {
 
 void OKCoinSpotHandler::reconnect_exchange() {
   exchange_log->output("RECONNECTING TO " + name);
-  cancel_checking = true;
-  lock_guard<mutex> l(reconnect);
-  cancel_checking = false;
 
   tick.clear();
   depth.clear();

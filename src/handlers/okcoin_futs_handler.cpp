@@ -53,20 +53,10 @@ void OKCoinFutsHandler::set_up_and_start() {
 
   // set the callbacks the exchange will use
   auto open_callback = [&]() {
-    exchange_log->output("OKCoinFutsHandler DEBUG: ATTEMPTING TO LOCK RECONNECT IN OPEN CALLBACK");
-    std::lock_guard<std::mutex> g(reconnect);
-    exchange_log->output("OKCoinFutsHandler DEBUG: LOCKED, STARTED OPEN CALLBACK");
-    // start receiving ticks and block until one is received (or we're told to stop)
-    exchange_log->output("OKCoinFutsHandler DEBUG: SUBSCRIBING TO TICKER");
-    okcoin_futs->subscribe_to_ticker();
-    check_until([&]() { return tick.has_been_set() || cancel_checking; });
-    exchange_log->output("OKCoinFutsHandler DEBUG: GOT FIRST TICK");
+    exchange_log->output("OKCoinFutsHandler DEBUG: STARTED OPEN CALLBACK");
 
-    // do the same for depth
-    exchange_log->output("OKCoinFutsHandler DEBUG: SUBSCRIBING TO DEPTH");
+    okcoin_futs->subscribe_to_ticker();
     okcoin_futs->subscribe_to_depth();
-    check_until([&]() { return depth.has_been_set() || cancel_checking; });
-    exchange_log->output("OKCoinFutsHandler DEBUG: GOT FIRST DEPTH");
 
     // backfill and subscribe to each market data
     for (auto &m : mktdata) {
@@ -113,15 +103,6 @@ void OKCoinFutsHandler::set_up_and_start() {
 
 void OKCoinFutsHandler::reconnect_exchange() {
   exchange_log->output("RECONNECTING TO " + name);
-  // let infinitely long check_untils know that we're reconnecting
-  // so they release their hold on the reconnect lock
-  cancel_checking = true;
-  exchange_log->output("OKCoinFutsHandler DEBUG: CANCEL CHECKING TRUE, NOW WAITING FOR LOCK.");
-  lock_guard<mutex> l(reconnect);
-  exchange_log->output("OKCoinFutsHandler DEBUG: LOCK GRABBED, SETTING CANCEL CHECKING TO FALSE");
-  // we have the lock, so we're safe to delete the exchange pointers
-  // and they can start waiting again
-  cancel_checking = false;
 
   tick.clear();
   depth.clear();

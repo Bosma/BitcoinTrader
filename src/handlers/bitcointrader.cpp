@@ -50,7 +50,6 @@ BitcoinTrader::~BitcoinTrader() {
 string BitcoinTrader::status() {
   ostringstream os;
   for (auto i = exchange_handlers.begin(); i != exchange_handlers.end(); i++) {
-    lock_guard<mutex> l((*i)->reconnect);
     os << (*i)->exchange->status();
     Ticker tick = (*i)->tick.get();
     os << "Bid: " << tick.bid << ", Ask: " << tick.ask << endl;
@@ -80,6 +79,9 @@ void BitcoinTrader::print_bars() {
 }
 
 void BitcoinTrader::start() {
+  for (auto exchange : exchange_handlers)
+    exchange->set_up_and_start();
+
   // check connection and reconnect if down on another thread
   manage_connections();
 
@@ -92,14 +94,9 @@ void BitcoinTrader::position_management() {
     // wait until OKCoinFuts userinfo and ticks are fetched,
     // and subscribed to market data
     auto can_open_positions = [this, handler]() {
-      lock_guard<mutex> l(handler->reconnect);
       // return right away if we're done
       if (done)
         return true;
-
-      // return right away if exchange hasn't been set up yet
-      if (!handler->exchange)
-        return false;
 
       // we can open positions if
       bool can = true;
@@ -124,10 +121,7 @@ void BitcoinTrader::position_management() {
     check_until(can_open_positions);
 
     while (!done) {
-      if (handler->exchange && handler->exchange->connected()) {
-        // TODO: I don't think the reconnect lock is needed any more
-        // TODO: nor are exchange ptr checks
-        lock_guard<mutex> l(handler->reconnect);
+      if (handler->exchange->connected()) {
         double blended_signal = blend_signals(handler);
         handler->manage_positions(blended_signal);
       }
@@ -144,9 +138,6 @@ void BitcoinTrader::position_management() {
 
 void BitcoinTrader::manage_connections() {
   auto connection_thread = [&]() {
-    for (auto exchange : exchange_handlers)
-      exchange->set_up_and_start();
-
     bool warm_up = true;
     while (!done) {
       // give some time for everything to start up after we reconnect
@@ -155,17 +146,15 @@ void BitcoinTrader::manage_connections() {
         warm_up = false;
       }
       for (auto handler : exchange_handlers) {
-        if (handler->exchange) {
-          // ping the exchange to let them know we are here
-          handler->exchange->ping();
+        // ping the exchange to let them know we are here
+        handler->exchange->ping();
 
-              // if the time since the last message received is > 1min
-          if ((timestamp_now() - handler->exchange->ts_since_last > 1min) ||
-              // if the websocket has closed
-              !handler->exchange->connected()) {
-            handler->reconnect_exchange();
-            warm_up = true;
-          }
+        // if the time since the last message received is > 1min
+        if ((timestamp_now() - handler->exchange->ts_since_last > 1min) ||
+            // if the websocket has closed
+            !handler->exchange->connected()) {
+          handler->reconnect_exchange();
+          warm_up = true;
         }
       }
       // check to reconnect every second

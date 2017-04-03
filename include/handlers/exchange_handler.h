@@ -18,8 +18,7 @@ public:
       name(name),
       exchange_log(std::make_shared<Log>((*config)[exchange_log_key])),
       trading_log(std::make_shared<Log>((*config)[trading_log_key])),
-      config(config),
-      cancel_checking(false) {
+      config(config) {
   }
   std::string name;
 
@@ -40,9 +39,6 @@ public:
   }
   Atomic<Ticker> tick;
   Atomic<Depth> depth;
-
-  std::mutex reconnect;
-  std::atomic<bool> cancel_checking;
 
   virtual void set_up_and_start() = 0;
   virtual void reconnect_exchange() = 0;
