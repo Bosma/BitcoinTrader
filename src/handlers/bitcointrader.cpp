@@ -79,9 +79,6 @@ void BitcoinTrader::print_bars() {
 }
 
 void BitcoinTrader::start() {
-  for (auto exchange : exchange_handlers)
-    exchange->set_up_and_start();
-
   // check connection and reconnect if down on another thread
   manage_connections();
 
@@ -97,6 +94,10 @@ void BitcoinTrader::position_management() {
       // return right away if we're done
       if (done)
         return true;
+
+      // we can't if there's no exchange object
+      if (!handler->exchange)
+        return false;
 
       // we can open positions if
       bool can = true;
@@ -137,29 +138,42 @@ void BitcoinTrader::position_management() {
 }
 
 void BitcoinTrader::manage_connections() {
-  auto connection_thread = [&]() {
+  auto connection_thread = [this](shared_ptr<ExchangeHandler> handler) {
+    handler->set_up_and_start();
+
     bool warm_up = true;
+    auto warm_up_time(20s);
+
     while (!done) {
       // give some time for everything to start up after we reconnect
       if (warm_up) {
-        sleep_for(10s);
+        sleep_for(warm_up_time);
         warm_up = false;
       }
-      for (auto handler : exchange_handlers) {
-        // ping the exchange to let them know we are here
-        handler->exchange->ping();
 
-        // if the time since the last message received is > 1min
-        if ((timestamp_now() - handler->exchange->ts_since_last > 1min) ||
-            // if the websocket has closed
-            !handler->exchange->connected()) {
-          handler->reconnect_exchange();
-          warm_up = true;
-        }
+      // ping the exchange to let them know we are here
+      handler->exchange->ping();
+
+      // if the time since the last message received is > 1min
+      if ((timestamp_now() - handler->exchange->ts_since_last.get() > 1min) ||
+          // if the websocket has closed
+          !handler->exchange->connected()) {
+        handler->reconnect_exchange();
+        warm_up = true;
+        if (warm_up_time < 320s)
+          warm_up_time *= 2;
       }
+      // if we do not have to reconnect, reset the warm_up_time
+      else {
+        warm_up_time = 20s;
+      }
+
       // check to reconnect every second
       sleep_for(1s);
     }
   };
-  running_threads.emplace_back(connection_thread);
+
+  for (auto handler : exchange_handlers) {
+    running_threads.emplace_back(connection_thread, handler);
+  }
 }

@@ -56,7 +56,7 @@ public:
   std::string name;
 
   // timestamp representing time of last received message
-  timestamp_t ts_since_last;
+  Atomic<timestamp_t> ts_since_last;
 protected:
   std::shared_ptr<Config> config;
   std::shared_ptr<Log> log;

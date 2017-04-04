@@ -40,7 +40,7 @@ void OKCoin::start() {
 }
 
 void OKCoin::on_message(const string& message) {
-  ts_since_last = timestamp_now();
+  ts_since_last.set(timestamp_now());
 
   try {
     const json j = json::parse(message);

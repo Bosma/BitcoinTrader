@@ -49,7 +49,7 @@ int main() {
       warm_up = false;
     }
     okcoin->ping();
-    if (timestamp_now() - okcoin->ts_since_last > std::chrono::minutes(1) ||
+    if (timestamp_now() - okcoin->ts_since_last.get() > std::chrono::minutes(1) ||
         !okcoin->connected()) {
         log->output("RECONNECTING TO " + okcoin->name);
         set_up_and_start();
