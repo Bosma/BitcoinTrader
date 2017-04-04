@@ -64,7 +64,7 @@ private:
   void on_fail(wspp_client *, websocketpp::connection_hdl);
 
   // thread pool for messages
-  ctpl::thread_pool thread_pool;
+  ctpl::thread_pool message_pool;
 
   // callbacks
   std::function<void()> open_callback;
