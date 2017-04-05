@@ -1,7 +1,7 @@
 #include "websocket/websocket.h"
 
 websocket::websocket(std::string uri) :
-    message_pool(4), status(Status::Connecting), server("N/A"), uri(uri) {
+    thread_pool(4), status(Status::Connecting), server("N/A"), uri(uri) {
   setup();
 }
 
@@ -90,7 +90,9 @@ void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
   server = con->get_response_header("Server");
 
   if (open_callback) {
-    open_callback();
+    thread_pool.push([this](int thread_id) {
+      open_callback();
+    });
   }
 }
 
@@ -112,7 +114,7 @@ void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr
   if (message_callback) {
     std::string m = msg->get_payload();
 
-    message_pool.push([this, m = std::move(m)](int thread_id) {
+    thread_pool.push([this, m = std::move(m)](int thread_id) {
       message_callback(m);
     });
   }
