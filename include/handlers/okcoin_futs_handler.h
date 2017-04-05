@@ -7,7 +7,14 @@ class OKCoinFutsHandler : public ExchangeHandler {
 public:
   OKCoinFutsHandler(std::string, std::shared_ptr<Config>, std::string, std::string, OKCoinFuts::ContractType);
 
-  void log_execution(std::string, OKCoinFuts::OrderType, timestamp_t, OKCoinFuts::OrderInfo&, double, double, Depth&, Depth&);
+  void log_execution(const std::string&,
+                     const OKCoinFuts::OrderType,
+                     const timestamp_t,
+                     const OKCoinFuts::OrderInfo&,
+                     const double,
+                     const double,
+                     const Depth&,
+                     const Depth&);
   CSV execution_csv;
 
   void set_up_and_start() override;

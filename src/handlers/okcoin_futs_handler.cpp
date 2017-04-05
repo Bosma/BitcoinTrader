@@ -26,13 +26,13 @@ OKCoinFutsHandler::OKCoinFutsHandler(string name, shared_ptr<Config> config, str
     contract_type(contract_type) {
 }
 
-void OKCoinFutsHandler::log_execution(string algorithm,
-                                      OKCoinFuts::OrderType type,
-                                      timestamp_t t1,
-                                      OKCoinFuts::OrderInfo &final_info,
-                                      double amount, double limit_price,
-                                      Depth &d1,
-                                      Depth &d2) {
+void OKCoinFutsHandler::log_execution(const string& algorithm,
+                                      const OKCoinFuts::OrderType type,
+                                      const timestamp_t t1,
+                                      const OKCoinFuts::OrderInfo& final_info,
+                                      const double amount, const double limit_price,
+                                      const Depth &d1,
+                                      const Depth &d2) {
   execution_csv.row({
                         algorithm,
                         to_string(static_cast<int>(type)),

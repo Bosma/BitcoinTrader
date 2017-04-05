@@ -13,12 +13,12 @@ using std::atomic;
 bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lever_rate, double limit_price,
                               std::chrono::seconds timeout) {
   // execution logging variables
-  auto d1 = depth.get();
-  auto t1 = timestamp_now();
+  const auto d1 = depth.get();
+  const auto t1 = timestamp_now();
 
   atomic<bool> trading_done(false);
-  auto cancel_time = t1 + timeout;
-  auto trade_callback = [&](const string& order_id) {
+  const auto cancel_time = t1 + timeout;
+  auto trade_callback = [this, type, amount, limit_price, d1, t1, &trading_done, cancel_time](const string& order_id) {
     if (order_id != "failed") {
       atomic<bool> done_limit_check(false);
       // until we are done,
@@ -51,7 +51,7 @@ bool OKCoinFutsHandler::limit(OKCoinFuts::OrderType type, double amount, int lev
           okcoin_futs->cancel_order(order_id, cancel_time);
 
         // execution logging
-        auto d2 = depth.get();
+        const auto d2 = depth.get();
         log_execution("limit", type, t1, final_info, amount, limit_price, d1, d2);
       }
     }
