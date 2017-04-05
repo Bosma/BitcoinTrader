@@ -36,6 +36,7 @@ void websocket::teardown() {
 void websocket::reconnect() {
   websocketpp::lib::error_code ec;
   auto con = endpoint.get_connection(uri, ec);
+  hdl = con->get_handle();
   endpoint.connect(con);
 }
 
