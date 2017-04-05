@@ -149,6 +149,7 @@ void BitcoinTrader::manage_connections() {
       if (warm_up) {
         handler->exchange_log->output("CONNECTION MANAGER SLEEPING FOR " + to_string(warm_up_time.count()) + "s BEFORE CHECKING CONNECTION");
         sleep_for(warm_up_time);
+        handler->exchange_log->output("CONNECTION MANAGER DONE SLEEPING");
         warm_up = false;
       }
 
