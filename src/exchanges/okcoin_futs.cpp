@@ -31,7 +31,7 @@ void OKCoinFuts::subscribe_to_depth() {
 bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
 
-  lock_guard<mutex> channels_lock;
+  lock_guard<mutex> l(channels_lock);
   return channels.count(channel) == 1;
 }
 

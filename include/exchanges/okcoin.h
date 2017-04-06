@@ -78,7 +78,7 @@ protected:
   void populate_error_reasons();
 
   std::map<std::string, Channel> channels;
-  std::mutex channels_mutex;
+  std::mutex channels_lock;
 
   void subscribe_to_channel(std::string const &);
   void unsubscribe_to_channel(std::string const &);

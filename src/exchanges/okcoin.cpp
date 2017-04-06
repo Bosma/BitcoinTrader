@@ -59,7 +59,7 @@ void OKCoin::on_message(const string& message) {
 
         // store the time of the last message received
         {
-          lock_guard<mutex> l(channels_mutex);
+          lock_guard<mutex> l(channels_lock);
           if (channels.count(channel) == 1)
             channels.at(channel).last_message_time = timestamp_now();
         }
@@ -70,7 +70,7 @@ void OKCoin::on_message(const string& message) {
           const string &channel_name = data["channel"];
           if (data["result"]) {
             log->output("SUBSCRIBED TO " + channel_name);
-            lock_guard<mutex> l(channels_mutex);
+            lock_guard<mutex> l(channels_lock);
             channels.emplace(channel_name, channel_name);
           }
           else
@@ -228,7 +228,7 @@ void OKCoin::ping() {
 
 string OKCoin::status() {
   string ss = name + ": " + ws.get_status_s() + "\n";
-  lock_guard<mutex> channels_lock;
+  lock_guard<mutex> l(channels_lock);
   for (auto& chan : channels)
     ss += chan.second.to_string() + "\n";
   return ss;
@@ -280,7 +280,7 @@ void OKCoin::subscribe_to_channel(string const & channel) {
 }
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
-  lock_guard<mutex> channels_lock;
+  lock_guard<mutex> l(channels_lock);
   if (channels.count(channel)) {
     log->output("UNSUBSCRIBING TO " + channel);
     ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");

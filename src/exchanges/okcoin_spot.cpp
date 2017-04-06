@@ -30,7 +30,7 @@ void OKCoinSpot::subscribe_to_OHLC(minutes period) {
 bool OKCoinSpot::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + period_s(period);
 
-  lock_guard<mutex> channels_lock;
+  lock_guard<mutex> l(channels_lock);
   return channels.count(channel) == 1;
 }
 
