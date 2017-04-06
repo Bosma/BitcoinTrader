@@ -30,6 +30,7 @@ void OKCoinSpot::subscribe_to_OHLC(minutes period) {
 bool OKCoinSpot::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + period_s(period);
 
+  lock_guard<mutex> channels_lock;
   return channels.count(channel) == 1;
 }
 
@@ -49,10 +50,13 @@ void OKCoinSpot::limit_sell(double amount, double price, timestamp_t timeout_tim
   order("sell", dtos(amount, 4), timeout_time, dtos(price, 2));
 }
 
-void OKCoinSpot::order(const string& type, const string& amount, timestamp_t timeout_time, const string& price) {
+void OKCoinSpot::order(const string& type, const string& amount, timestamp_t invalid_time, const string& price) {
   string channel = "ok_spotusd_trade";
 
-  channel_timeouts[channel] = timeout_time;
+  {
+    lock_guard<mutex> l(channel_timeouts_lock);
+    channel_timeouts[channel] = invalid_time;
+  }
 
   json j;
 

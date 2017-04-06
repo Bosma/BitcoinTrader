@@ -71,4 +71,5 @@ protected:
 
   // stores the time that the channel message callback will be invalid and no longer called
   std::map<std::string, timestamp_t> channel_timeouts;
+  std::mutex channel_timeouts_lock;
 };

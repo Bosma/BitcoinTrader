@@ -31,6 +31,7 @@ void OKCoinFuts::subscribe_to_depth() {
 bool OKCoinFuts::subscribed_to_OHLC(minutes period) {
   string channel = "ok_sub_futureusd_btc_kline_" + contract_s(contract_type) + "_" + period_s(period);
 
+  lock_guard<mutex> channels_lock;
   return channels.count(channel) == 1;
 }
 
@@ -47,7 +48,10 @@ void OKCoinFuts::close(Position position, double amount, double price, int lever
 void OKCoinFuts::order(OrderType type, double amount, double price, int lever_rate, bool match_price, timestamp_t invalid_time) {
   string channel = "ok_futureusd_trade";
 
-  channel_timeouts[channel] = invalid_time;
+  {
+    lock_guard<mutex> l(channel_timeouts_lock);
+    channel_timeouts[channel] = invalid_time;
+  }
 
   json j;
 
@@ -74,7 +78,10 @@ void OKCoinFuts::order(OrderType type, double amount, double price, int lever_ra
 void OKCoinFuts::cancel_order(const std::string& order_id, timestamp_t invalid_time) {
   string channel = "ok_futureusd_cancel_order";
 
-  channel_timeouts[channel] = invalid_time;
+  {
+    lock_guard<mutex> l(channel_timeouts_lock);
+    channel_timeouts[channel] = invalid_time;
+  }
 
   json j;
 
@@ -97,7 +104,10 @@ void OKCoinFuts::cancel_order(const std::string& order_id, timestamp_t invalid_t
 void OKCoinFuts::orderinfo(const string& order_id, timestamp_t invalid_time) {
   string channel = "ok_futureusd_orderinfo";
 
-  channel_timeouts[channel] = invalid_time;
+  {
+    lock_guard<mutex> l(channel_timeouts_lock);
+    channel_timeouts[channel] = invalid_time;
+  }
 
   if (order_id == "failed") {
     OrderInfo failed_order;

@@ -18,6 +18,8 @@ using std::exception;
 using std::stringstream;
 using std::to_string;
 using std::sort;
+using std::mutex;
+using std::lock_guard;
 
 OKCoin::OKCoin(string name, Market market, shared_ptr<Log> log, shared_ptr<Config> config) :
     Exchange(name, log, config),
@@ -56,8 +58,11 @@ void OKCoin::on_message(const string& message) {
         const json& data = channel_message["data"];
 
         // store the time of the last message received
-        if (channels.count(channel) == 1)
-          channels.at(channel).last_message_time = timestamp_now();
+        {
+          lock_guard<mutex> l(channels_mutex);
+          if (channels.count(channel) == 1)
+            channels.at(channel).last_message_time = timestamp_now();
+        }
 
         // if we're adding a channel
         if (channel == "addChannel") {
@@ -65,6 +70,7 @@ void OKCoin::on_message(const string& message) {
           const string &channel_name = data["channel"];
           if (data["result"]) {
             log->output("SUBSCRIBED TO " + channel_name);
+            lock_guard<mutex> l(channels_mutex);
             channels.emplace(channel_name, channel_name);
           }
           else
@@ -97,9 +103,15 @@ void OKCoin::on_message(const string& message) {
         // these are grouped together because they have an expiry
         else {
           // only process messages that have no timeout or their timeout hasn't been reached
-          auto ts = timestamp_now();
-          if (channel_timeouts.count(channel) == 0 ||
-              ts <= channel_timeouts[channel]) {
+          const auto ts = timestamp_now();
+
+          bool no_timeout;
+          {
+            lock_guard<mutex> l(channel_timeouts_lock);
+            no_timeout = channel_timeouts.count(channel) == 0 ||
+                         ts <= channel_timeouts[channel];
+          }
+          if (no_timeout) {
             if (channel == "ok_" + market_s(market) + "usd_trade") {
               // results of a trade
               if (channel_message.count("errorcode") == 1) {
@@ -148,8 +160,11 @@ void OKCoin::on_message(const string& message) {
             }
 
             // erase the timeout
-            if (channel_timeouts.count(channel) == 1)
-              channel_timeouts.erase(channel);
+            {
+              lock_guard<mutex> l(channel_timeouts_lock);
+              if (channel_timeouts.count(channel) == 1)
+                channel_timeouts.erase(channel);
+            }
           }
           // channel timeout has been reached
           else {
@@ -213,6 +228,7 @@ void OKCoin::ping() {
 
 string OKCoin::status() {
   string ss = name + ": " + ws.get_status_s() + "\n";
+  lock_guard<mutex> channels_lock;
   for (auto& chan : channels)
     ss += chan.second.to_string() + "\n";
   return ss;
@@ -239,7 +255,10 @@ void OKCoin::populate_error_reasons() {
 void OKCoin::userinfo(timestamp_t invalid_time) {
   string channel = "ok_" + market_s(market) + "usd_userinfo";
 
-  channel_timeouts[channel] = invalid_time;
+  {
+    lock_guard<mutex> l(channel_timeouts_lock);
+    channel_timeouts[channel] = invalid_time;
+  }
 
   json j;
   j["event"] = "addChannel";
@@ -261,6 +280,7 @@ void OKCoin::subscribe_to_channel(string const & channel) {
 }
 
 void OKCoin::unsubscribe_to_channel(string const & channel) {
+  lock_guard<mutex> channels_lock;
   if (channels.count(channel)) {
     log->output("UNSUBSCRIBING TO " + channel);
     ws.send("{'event':'removeChannel', 'channel':'" + channel + "'}");

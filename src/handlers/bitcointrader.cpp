@@ -141,7 +141,9 @@ void BitcoinTrader::manage_connections() {
   auto connection_thread = [this](shared_ptr<ExchangeHandler> handler) {
     handler->set_up_and_start();
 
-    bool warm_up = true;
+    sleep_for(20s);
+
+    bool warm_up = false;
     auto warm_up_time(20s);
 
     while (!done) {
@@ -151,6 +153,9 @@ void BitcoinTrader::manage_connections() {
         sleep_for(warm_up_time);
         handler->exchange_log->output("CONNECTION MANAGER DONE SLEEPING");
         warm_up = false;
+        // next time warm up for twice the time (unless the connection is fine)
+        if (warm_up_time < 320s)
+          warm_up_time *= 2;
       }
 
       // ping the exchange to let them know we are here
@@ -162,8 +167,6 @@ void BitcoinTrader::manage_connections() {
           !handler->exchange->connected()) {
         handler->reconnect_exchange();
         warm_up = true;
-        if (warm_up_time < 320s)
-          warm_up_time *= 2;
       }
       // if we do not have to reconnect, reset the warm_up_time
       else {
