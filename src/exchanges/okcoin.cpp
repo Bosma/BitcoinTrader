@@ -102,16 +102,16 @@ void OKCoin::on_message(const string& message) {
         // check for one off channel messages that have callbacks
         // these are grouped together because they have an expiry
         else {
-          // only process messages that have no timeout or their timeout hasn't been reached
-          const auto ts = timestamp_now();
-
-          bool no_timeout;
+          bool will_callback_one_off;
           {
             lock_guard<mutex> l(channel_timeouts_lock);
-            no_timeout = channel_timeouts.count(channel) == 0 ||
-                         ts <= channel_timeouts[channel];
+            // we will callback messages that we do not have a timeout for
+            // or if we have a timeout for them, and it hasn't timed out
+            will_callback_one_off = channel_timeouts.count(channel) == 0 ||
+                                    (channel_timeouts.count(channel) == 1 &&
+                                     timestamp_now() <= channel_timeouts.at(channel));
           }
-          if (no_timeout) {
+          if (will_callback_one_off) {
             if (channel == "ok_" + market_s(market) + "usd_trade") {
               // results of a trade
               if (channel_message.count("errorcode") == 1) {
@@ -142,7 +142,7 @@ void OKCoin::on_message(const string& message) {
               if (channel_message.count("errorcode") == 1)
                 log->output("COULDN'T FETCH USER INFO WITH ERROR: " + error_reasons[channel_message["errorcode"]]);
               else
-                userinfo_handler(channel_message["data"]);
+                userinfo_handler(data);
             }
             else if (channel == "ok_" + market_s(market) + "usd_cancel_order") {
               if (j[0].count("errorcode") == 1)
