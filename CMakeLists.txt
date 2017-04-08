@@ -34,4 +34,4 @@ add_executable (BitcoinTrader ${SOURCES})
 target_link_libraries(BitcoinTrader Threads::Threads ${SSL} ${CURL} ${CRYPTO} ${Boost_LIBRARIES})
 
 add_executable (ticker EXCLUDE_FROM_ALL ticker.cpp src/utilities/log.cpp src/websocket/websocket.cpp src/exchanges/okcoin.cpp src/exchanges/okcoin_futs.cpp src/utilities/exchange_utils.cpp src/utilities/curl.cpp)
-target_link_libraries(ticker "-lzmq")
+target_link_libraries(ticker "-lzmq" Threads::Threads ${SSL} ${CURL} ${CRYPTO} ${Boost_LIBRARIES})
