@@ -10,21 +10,22 @@ websocket::~websocket() {
 }
 
 void websocket::setup() {
-  endpoint.clear_access_channels(websocketpp::log::alevel::all);
-  endpoint.clear_error_channels(websocketpp::log::elevel::all);
+  endpoint = std::make_shared<wspp_client>();
+  endpoint->clear_access_channels(websocketpp::log::alevel::all);
+  endpoint->clear_error_channels(websocketpp::log::elevel::all);
 
-  endpoint.init_asio();
-  endpoint.start_perpetual();
+  endpoint->init_asio();
+  endpoint->start_perpetual();
 
-  thread = std::make_shared<websocketpp::lib::thread>(&wspp_client::run, &endpoint);
+  thread = std::make_shared<websocketpp::lib::thread>(&wspp_client::run, endpoint);
 }
 
 void websocket::teardown() {
-  endpoint.stop_perpetual();
+  endpoint->stop_perpetual();
 
   if (status == Status::Open) {
     websocketpp::lib::error_code ec;
-    endpoint.close(hdl, websocketpp::close::status::going_away, "", ec);
+    endpoint->close(hdl, websocketpp::close::status::going_away, "", ec);
     if (ec)
       if (error_callback)
         error_callback(ec.message());
@@ -34,46 +35,51 @@ void websocket::teardown() {
 }
 
 void websocket::reconnect() {
-  websocketpp::lib::error_code ec;
-  auto con = endpoint.get_connection(uri, ec);
-  hdl = con->get_handle();
-  endpoint.connect(con);
+  std::lock_guard<std::mutex> l(reconnect_lock);
+
+  status = Status::Connecting;
+
+  endpoint->stop();
+  thread->join();
+
+  setup();
+  connect();
 }
 
 void websocket::connect() {
   websocketpp::lib::error_code ec;
 
-  endpoint.set_open_handler(websocketpp::lib::bind(
+  endpoint->set_open_handler(websocketpp::lib::bind(
       &websocket::on_open,
       this,
-      &endpoint,
+      endpoint,
       websocketpp::lib::placeholders::_1
   ));
-  endpoint.set_tls_init_handler(websocketpp::lib::bind(
+  endpoint->set_tls_init_handler(websocketpp::lib::bind(
       &websocket::on_tls_init,
       this,
-      &endpoint,
+      endpoint,
       websocketpp::lib::placeholders::_1
   ));
-  endpoint.set_message_handler(websocketpp::lib::bind(
+  endpoint->set_message_handler(websocketpp::lib::bind(
       &websocket::on_message,
       this,
       websocketpp::lib::placeholders::_1,
       websocketpp::lib::placeholders::_2
   ));
-  endpoint.set_fail_handler(websocketpp::lib::bind(
+  endpoint->set_fail_handler(websocketpp::lib::bind(
       &websocket::on_fail,
       this,
-      &endpoint,
+      endpoint,
       websocketpp::lib::placeholders::_1
   ));
-  endpoint.set_close_handler(websocketpp::lib::bind(
+  endpoint->set_close_handler(websocketpp::lib::bind(
       &websocket::on_close,
       this,
-      &endpoint,
+      endpoint,
       websocketpp::lib::placeholders::_1
   ));
-  wspp_client::connection_ptr con = endpoint.get_connection(uri, ec);
+  wspp_client::connection_ptr con = endpoint->get_connection(uri, ec);
 
   if (ec) {
     if (error_callback)
@@ -81,11 +87,11 @@ void websocket::connect() {
   }
   else {
     hdl = con->get_handle();
-    endpoint.connect(con);
+    endpoint->connect(con);
   }
 }
 
-void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
+void websocket::on_open(std::shared_ptr<wspp_client> c, websocketpp::connection_hdl hdl) {
   status = Status::Open;
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
   server = con->get_response_header("Server");
@@ -97,7 +103,7 @@ void websocket::on_open(wspp_client *c, websocketpp::connection_hdl hdl) {
   }
 }
 
-wspp_context_ptr websocket::on_tls_init(wspp_client *, websocketpp::connection_hdl) {
+wspp_context_ptr websocket::on_tls_init(std::shared_ptr<wspp_client> , websocketpp::connection_hdl) {
   namespace asio = websocketpp::lib::asio;
 
   wspp_context_ptr ctx = websocketpp::lib::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
@@ -121,7 +127,7 @@ void websocket::on_message(websocketpp::connection_hdl, wspp_client::message_ptr
   }
 }
 
-void websocket::on_close(wspp_client *c, websocketpp::connection_hdl hdl) {
+void websocket::on_close(std::shared_ptr<wspp_client> c, websocketpp::connection_hdl hdl) {
   status = Status::Closed;
 
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
@@ -136,7 +142,7 @@ void websocket::on_close(wspp_client *c, websocketpp::connection_hdl hdl) {
     close_callback();
 }
 
-void websocket::on_fail(wspp_client *c, websocketpp::connection_hdl hdl) {
+void websocket::on_fail(std::shared_ptr<wspp_client> c, websocketpp::connection_hdl hdl) {
   status = Status::Failed;
   wspp_client::connection_ptr con = c->get_con_from_hdl(hdl);
   server = con->get_response_header("Server");
@@ -146,9 +152,11 @@ void websocket::on_fail(wspp_client *c, websocketpp::connection_hdl hdl) {
 }
 
 void websocket::send(std::string message) {
+  std::lock_guard<std::mutex> l(reconnect_lock);
+
   websocketpp::lib::error_code ec;
 
-  endpoint.send(hdl, message, websocketpp::frame::opcode::text, ec);
+  endpoint->send(hdl, message, websocketpp::frame::opcode::text, ec);
   if (ec) {
     if (error_callback)
       error_callback(ec.message());
@@ -158,7 +166,7 @@ void websocket::send(std::string message) {
 void websocket::close(websocketpp::close::status::value code, std::string reason) {
   websocketpp::lib::error_code ec;
 
-  endpoint.close(hdl, code, reason, ec);
+  endpoint->close(hdl, code, reason, ec);
   if (ec) {
     if (error_callback)
       error_callback(ec.message());

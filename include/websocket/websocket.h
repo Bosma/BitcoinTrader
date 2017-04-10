@@ -57,14 +57,16 @@ public:
   int get_close_code() const { return close_code; };
 
 private:
-  void on_open(wspp_client *, websocketpp::connection_hdl);
-  wspp_context_ptr on_tls_init(wspp_client *, websocketpp::connection_hdl);
+  void on_open(std::shared_ptr<wspp_client> , websocketpp::connection_hdl);
+  wspp_context_ptr on_tls_init(std::shared_ptr<wspp_client> , websocketpp::connection_hdl);
   void on_message(websocketpp::connection_hdl, wspp_client::message_ptr);
-  void on_close(wspp_client *, websocketpp::connection_hdl);
-  void on_fail(wspp_client *, websocketpp::connection_hdl);
+  void on_close(std::shared_ptr<wspp_client> , websocketpp::connection_hdl);
+  void on_fail(std::shared_ptr<wspp_client> , websocketpp::connection_hdl);
 
   // thread pool for messages
   ctpl::thread_pool thread_pool;
+
+  std::mutex reconnect_lock;
 
   // callbacks
   std::function<void()> open_callback;
@@ -73,8 +75,8 @@ private:
   std::function<void()> close_callback;
   std::function<void()> fail_callback;
 
-  wspp_client endpoint;
-  websocketpp::lib::shared_ptr<websocketpp::lib::thread> thread;
+  std::shared_ptr<wspp_client> endpoint;
+  std::shared_ptr<websocketpp::lib::thread> thread;
   websocketpp::connection_hdl hdl;
   Status status;
   std::string server;
